@@ -939,6 +939,17 @@ export default function DealClient({
     const mainScript = document.createElement('script')
     mainScript.src = '/deal-script.js'
     mainScript.onload = () => {
+      // Override addDeal so the tabs-bar "+" button creates a real DB deal
+      ;(window as Window & { addDeal?: (name?: string) => void }).addDeal = (name?: string) => {
+        fetch('/api/deals', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name || 'Nueva operación' }),
+        })
+          .then(r => r.json())
+          .then((d: { id: string }) => { window.location.href = `/deal/${d.id}` })
+          .catch(() => { /* silent */ })
+      }
       // After the script initialises, restore saved data
       setTimeout(() => {
         if (Object.keys(initialData).length > 0) {
@@ -947,13 +958,14 @@ export default function DealClient({
       }, 300)
     }
 
-    // Chain: registro → jspdf → main
-    regScript.onload = () => {
-      jspdfScript.onload = () => document.body.appendChild(mainScript)
-      document.body.appendChild(jspdfScript)
-    }
+    // Load registro and jspdf in parallel, then load main script
+    let depsLoaded = 0
+    const onDepLoaded = () => { if (++depsLoaded === 2) document.body.appendChild(mainScript) }
+    regScript.onload = onDepLoaded
+    jspdfScript.onload = onDepLoaded
 
     document.body.appendChild(regScript)
+    document.body.appendChild(jspdfScript)
 
     // Create upload container inside input panel
     const inputPanel = document.querySelector('.input-panel')
@@ -1005,12 +1017,18 @@ export default function DealClient({
           <div className="status-lbl">Tiempo real</div>
           <div className="topbar-sep" />
 
-          <button className="btn btn-reset" onClick={() => {
-            if (typeof window !== 'undefined' && (window as Window & { resetForm?: () => void }).resetForm) {
-              (window as Window & { resetForm?: () => void }).resetForm!()
+          <button className="btn btn-reset" onClick={async () => {
+            const res = await fetch('/api/deals', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: 'Nueva operación' }),
+            })
+            if (res.ok) {
+              const deal = await res.json()
+              window.location.href = `/deal/${deal.id}`
             }
           }}>
-            ↺ Nuevo deal
+            + Nuevo deal
           </button>
 
           <button
