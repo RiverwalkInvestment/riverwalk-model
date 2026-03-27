@@ -880,42 +880,83 @@ export default function DealClient({
   const [mobileView, setMobileView] = useState<'input' | 'output'>('input')
   const scriptInjected = useRef(false)
   const [uploadContainer, setUploadContainer] = useState<Element | null>(null)
+  const renderDbTabsRef = useRef<(() => void) | null>(null)
 
-  // Collect all input/select values from the DOM
+  // Collect all input/select values + toggle states + comparables from the DOM
   function getDealData(): Record<string, unknown> {
     const data: Record<string, unknown> = {}
     document.querySelectorAll('input[id], select[id]').forEach(el => {
       const input = el as HTMLInputElement
       if (input.id) data[input.id] = input.value
     })
+    // Capture toggle states (dealMode, sfMode, taxOn, levMode…) and comparables
+    // via deal-script.js's captureCurrentDeal() — these are not input fields
+    type SnapFn = () => { fields: Record<string, string>; states: Record<string, unknown>; comps: unknown[] }
+    const capture = (window as Window & { captureCurrentDeal?: SnapFn }).captureCurrentDeal
+    if (capture) {
+      const snap = capture()
+      if (snap.states) data._states = snap.states
+      if (snap.comps?.length) data._comps = snap.comps
+    }
     return data
   }
 
-  // Push saved data back into DOM and trigger recalculation
+  // Restore saved data into DOM using deal-script's applyDeal (handles states,
+  // comparables, money formatting) then set any fields not in DEAL_FIELDS.
   function setDealData(data: Record<string, unknown>) {
+    type ApplyFn = (deal: { fields: Record<string, string>; states?: unknown; comps?: unknown[] }) => void
+    const apply = (window as Window & { applyDeal?: ApplyFn }).applyDeal
+
+    const fields: Record<string, string> = {}
     Object.entries(data).forEach(([key, value]) => {
-      const el = document.getElementById(key) as HTMLInputElement | null
-      if (el && (el.tagName === 'INPUT' || el.tagName === 'SELECT')) {
-        el.value = String(value ?? '')
-        el.dispatchEvent(new Event('input', { bubbles: true }))
-        el.dispatchEvent(new Event('change', { bubbles: true }))
-      }
+      if (!key.startsWith('_')) fields[key] = String(value ?? '')
     })
+
+    if (apply) {
+      // applyDeal sets DEAL_FIELDS, restores toggle states, restores comps,
+      // refreshes slider labels, calls setupMoneyInputs — no per-field events
+      apply({
+        fields,
+        states: data._states as Record<string, unknown> | undefined,
+        comps: data._comps as unknown[] | undefined,
+      })
+      // Also set fields not in DEAL_FIELDS (e.g. finderFeePct, taxStructure extras)
+      Object.entries(fields).forEach(([key, value]) => {
+        const el = document.getElementById(key) as HTMLInputElement | null
+        if (el && (el.tagName === 'INPUT' || el.tagName === 'SELECT') && el.value !== value) {
+          el.value = value
+        }
+      })
+    } else {
+      // Fallback if applyDeal not available (shouldn't happen after script loads)
+      Object.entries(fields).forEach(([key, value]) => {
+        const el = document.getElementById(key) as HTMLInputElement | null
+        if (el && (el.tagName === 'INPUT' || el.tagName === 'SELECT')) {
+          el.value = value
+          el.dispatchEvent(new Event('input', { bubbles: true }))
+          el.dispatchEvent(new Event('change', { bubbles: true }))
+        }
+      })
+    }
   }
 
   const save = useCallback(async () => {
     setSaving(true)
     const data = getDealData()
-    const nameEl = document.getElementById('deal-name-display') as HTMLElement | null
-    const dealName = nameEl?.textContent?.trim() || initialName
+    // Read name from the #dealName input directly (not from #deal-name-display
+    // which shows "dealName · address" — a display string, not the deal name)
+    const dealName = (data.dealName as string | undefined)?.trim() || initialName
     try {
-      await fetch(`/api/deals/${dealId}`, {
+      const res = await fetch(`/api/deals/${dealId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data, name: dealName, photos, plans }),
       })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
+      // Refresh tab names so they reflect the just-saved name
+      renderDbTabsRef.current?.()
     } catch {
       // silent — autosave; user will retry manually
     } finally {
@@ -1003,6 +1044,7 @@ export default function DealClient({
           .catch(() => {})
       }
       renderDbTabs()
+      renderDbTabsRef.current = renderDbTabs
 
       // After the script initialises, restore saved data then force-recalculate dates
       setTimeout(() => {
@@ -1011,6 +1053,8 @@ export default function DealClient({
         }
         // Force-fill all date fields after data restore (handles blank dates on load)
         w.autoFillDates?.(true)
+        // Ensure output is calculated even if no states triggered update() above
+        ;(window as Window & { update?: () => void }).update?.()
         // Re-render tabs after data restore so active tab shows saved name
         renderDbTabs()
       }, 400)
