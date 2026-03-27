@@ -939,8 +939,14 @@ export default function DealClient({
     const mainScript = document.createElement('script')
     mainScript.src = '/deal-script.js'
     mainScript.onload = () => {
-      // Override addDeal so the tabs-bar "+" button creates a real DB deal
-      ;(window as Window & { addDeal?: (name?: string) => void }).addDeal = (name?: string) => {
+      type RWWin = Window & { renderTabs?: () => void; addDeal?: (name?: string) => void }
+      const w = window as RWWin
+
+      // Block vanilla JS from managing tabs — we render them from DB
+      w.renderTabs = () => {}
+
+      // "+" in tabs-bar and topbar button both create a real DB deal
+      const createAndGo = (name?: string) => {
         fetch('/api/deals', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -948,14 +954,42 @@ export default function DealClient({
         })
           .then(r => r.json())
           .then((d: { id: string }) => { window.location.href = `/deal/${d.id}` })
-          .catch(() => { /* silent */ })
+          .catch(() => {})
       }
-      // After the script initialises, restore saved data
+      w.addDeal = createAndGo
+
+      // Fetch all deals and render DB-backed navigation tabs
+      const renderDbTabs = () => {
+        fetch('/api/deals')
+          .then(r => r.json())
+          .then((allDeals: Array<{ id: string; name: string }>) => {
+            const bar = document.getElementById('tabs-bar')
+            if (!bar) return
+            bar.innerHTML =
+              allDeals.map(d =>
+                `<div class="tab-item${d.id === dealId ? ' active' : ''}"
+                  onclick="window.location.href='/deal/${d.id}'"
+                  style="cursor:pointer"
+                  title="${d.name.replace(/[<>"]/g, '')}">
+                  <span class="tab-name">${d.name.replace(/[<>]/g, '')}</span>
+                </div>`
+              ).join('') +
+              `<button class="tab-add" id="rw-tab-add" title="Nueva operación">+</button>`
+
+            document.getElementById('rw-tab-add')?.addEventListener('click', () => createAndGo())
+          })
+          .catch(() => {})
+      }
+      renderDbTabs()
+
+      // After the script initialises, restore saved data then sync tab name
       setTimeout(() => {
         if (Object.keys(initialData).length > 0) {
           setDealData(initialData)
         }
-      }, 300)
+        // Re-render tabs after data restore so active tab shows saved name
+        renderDbTabs()
+      }, 400)
     }
 
     // Load registro and jspdf in parallel, then load main script
