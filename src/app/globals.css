@@ -490,126 +490,155 @@ body.dark-mode {
   #print-footer { display: flex !important; }
 }
 
+/* ── MOBILE PANEL TOGGLE (hidden on desktop) ─────────────────────────── */
+.mobile-panel-toggle { display: none; }
+
 /* ── MOBILE RESPONSIVE ───────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  :root {
-    --panel-w: 100%;
+  :root { --panel-w: 100%; }
+
+  /* ── Body & layout ── */
+  body { overflow: auto; height: auto; min-height: 100dvh; }
+
+  .app-body { flex-direction: column; overflow: visible; height: auto; }
+
+  /* ── Wrapper: let it expand naturally (overrides inline overflow:hidden) ── */
+  .deal-wrapper {
+    overflow: visible !important;
+    height: auto !important;
+    flex: none !important;
+    min-height: 0 !important;
   }
 
-  body {
-    overflow: auto;
-    height: auto;
+  /* ── Panel switcher ── */
+  .mobile-panel-toggle {
+    display: flex;
+    background: var(--d3);
+    border-bottom: 2px solid var(--line);
+    flex-shrink: 0;
+  }
+  .mobile-panel-btn {
+    flex: 1;
+    padding: 13px 8px;
+    font-family: 'Raleway', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    background: transparent;
+    color: var(--text-d);
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.12s;
+  }
+  .mobile-panel-btn.active {
+    color: var(--gold);
+    border-bottom-color: var(--gold);
+    font-weight: 700;
   }
 
-  .app-body {
-    flex-direction: column;
-    overflow: auto;
-    height: auto;
-  }
+  /* ── Show/hide panels based on active tab ── */
+  .mobile-show-input .output-panel { display: none; }
+  .mobile-show-output .input-panel { display: none; }
 
+  /* ── Input panel ── */
   .input-panel {
     width: 100%;
     border-right: none;
     border-bottom: 1px solid var(--line);
+    overflow-y: visible;
   }
 
-  .output-panel {
-    overflow: visible;
-  }
+  /* ── Output panel ── */
+  .output-panel { overflow: visible; }
 
-  /* KPI strip: horizontal scroll */
+  /* ── Topbar ── */
+  .topbar { padding: 0 12px; gap: 8px; height: auto; min-height: 50px; flex-wrap: wrap; }
+  .topbar-label { display: none; }
+  .topbar-sep { display: none; }
+  .topbar-deal { font-size: 11px; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .status-lbl { display: none; }
+  .btn-reset { display: none; }
+  .btn-brief { display: none; }
+  .btn { padding: 8px 10px; font-size: 8.5px; min-height: 36px; }
+
+  /* ── KPI strip: scrollable ── */
   .kpi-strip {
-    grid-template-columns: repeat(5, minmax(140px, 1fr));
+    grid-template-columns: repeat(5, minmax(130px, 1fr));
     overflow-x: auto;
     position: relative;
+    -webkit-overflow-scrolling: touch;
   }
+  .kpi-c { padding: 12px 14px; }
+  .kpi-v { font-size: 16px; }
 
-  /* Scenario cards stacked */
-  .sc-cards {
-    grid-template-columns: 1fr;
-  }
+  /* ── Input rows: tri → 2 cols ── */
+  .irow.tri { grid-template-columns: 1fr 1fr; }
+  .sc-fields { grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+  .sc-f input { padding: 6px 5px; font-size: 11px; }
 
-  /* Leverage strip stacked */
-  .lev-strip {
-    grid-template-columns: 1fr;
-  }
+  /* ── Scenario cards stacked ── */
+  .sc-cards { grid-template-columns: 1fr; }
+  .sc-big { font-size: 28px; }
 
-  /* Sensitivity tables: horizontal scroll */
-  .sens {
-    display: block;
-    overflow-x: auto;
-  }
+  /* ── Leverage strip stacked ── */
+  .lev-strip { grid-template-columns: 1fr; }
 
-  /* Cashflow table: horizontal scroll */
-  .cf-table {
-    display: block;
-    overflow-x: auto;
-  }
+  /* ── Carry ── */
+  .carry-impact-grid { grid-template-columns: 1fr 1fr; }
+  .carry-waterfall { grid-template-columns: 1fr 1fr; }
+  .carry-method-strip { grid-template-columns: 1fr; }
 
-  /* P&L table: horizontal scroll */
-  .pnl {
-    display: block;
-    overflow-x: auto;
-  }
+  /* ── Tables: horizontal scroll ── */
+  .sens { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .cf-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .pnl { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .comp-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-  /* Breakeven stats stacked */
-  .be-stats {
-    grid-template-columns: 1fr;
-  }
+  /* ── Breakeven ── */
+  .be-stats { grid-template-columns: 1fr 1fr; }
 
-  /* Carry impact grid */
-  .carry-impact-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .carry-waterfall {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  /* Comparables grid */
+  /* ── Comparables ── */
   .comp-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: 20px 1fr 1fr;
     gap: 4px;
   }
+  .comp-row > :nth-child(4),
+  .comp-row > :nth-child(5),
+  .comp-row > :nth-child(6) { display: none; }
+  .comp-row.header { display: none; }
+  .comp-out-strip { grid-template-columns: 1fr 1fr; }
 
-  .comp-row.header {
-    display: none;
-  }
+  /* ── Output sections ── */
+  .osec { padding: 18px 14px; }
+  .osec-title { font-size: 17px; }
 
-  .comp-out-strip {
-    grid-template-columns: 1fr;
-  }
+  /* ── Timeline ── */
+  .timeline-strip { padding: 10px 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-  /* Output sections: less padding */
-  .osec {
-    padding: 20px 16px;
-  }
+  /* ── Investment breakdown ── */
+  .inv-grid { grid-template-columns: 1fr 1fr; }
 
-  /* Timeline horizontal scroll */
-  .timeline-strip {
-    padding: 12px 16px;
-  }
+  /* ── CF summary ── */
+  .cf-summary-strip { grid-template-columns: 1fr 1fr; }
 
-  /* Investment breakdown */
-  .inv-grid {
-    grid-template-columns: 1fr 1fr;
-  }
+  /* ── Comp output ── */
+  .comp-out-strip { grid-template-columns: 1fr 1fr; }
 
-  /* CF summary */
-  .cf-summary-strip {
-    grid-template-columns: 1fr;
+  /* ── Dashboard ── */
+  .dashboard { padding: 16px; }
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 20px;
   }
+  .deal-grid { grid-template-columns: 1fr; }
 
-  /* Topbar adjustments */
-  .topbar {
-    padding: 0 12px;
-    gap: 10px;
-  }
-
-  .topbar-label,
-  .topbar-sep:not(:first-of-type) {
-    display: none;
-  }
+  /* ── Auth ── */
+  .auth-card { padding: 28px 20px; }
 }
 
 /* ── AUTH PAGES ──────────────────────────────────────────────────────── */

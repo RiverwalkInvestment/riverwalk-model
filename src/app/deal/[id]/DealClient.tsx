@@ -877,6 +877,7 @@ export default function DealClient({
   const [saved, setSaved] = useState(false)
   const [photos, setPhotos] = useState<string[]>(initialPhotos)
   const [plans, setPlans] = useState<string[]>(initialPlans)
+  const [mobileView, setMobileView] = useState<'input' | 'output'>('input')
   const scriptInjected = useRef(false)
   const [uploadContainer, setUploadContainer] = useState<Element | null>(null)
 
@@ -1004,7 +1005,7 @@ export default function DealClient({
           <div className="status-lbl">Tiempo real</div>
           <div className="topbar-sep" />
 
-          <button className="btn" onClick={() => {
+          <button className="btn btn-reset" onClick={() => {
             if (typeof window !== 'undefined' && (window as Window & { resetForm?: () => void }).resetForm) {
               (window as Window & { resetForm?: () => void }).resetForm!()
             }
@@ -1022,7 +1023,7 @@ export default function DealClient({
           </button>
 
           <button
-            className="btn primary"
+            className="btn primary btn-brief"
             onClick={() => {
               if (typeof window !== 'undefined' && (window as Window & { copyExport?: () => void }).copyExport) {
                 (window as Window & { copyExport?: () => void }).copyExport!()
@@ -1046,8 +1047,25 @@ export default function DealClient({
         </div>
       </div>
 
+      {/* ── Mobile panel switcher (hidden on desktop via CSS) ───────────── */}
+      <div className="mobile-panel-toggle">
+        <button
+          className={`mobile-panel-btn${mobileView === 'input' ? ' active' : ''}`}
+          onClick={() => setMobileView('input')}
+        >
+          Datos de entrada
+        </button>
+        <button
+          className={`mobile-panel-btn${mobileView === 'output' ? ' active' : ''}`}
+          onClick={() => setMobileView('output')}
+        >
+          Resultados
+        </button>
+      </div>
+
       {/* ── Original deal modeler HTML body ─────────────────────────────── */}
       <div
+        className={`deal-wrapper${mobileView === 'output' ? ' mobile-show-output' : ' mobile-show-input'}`}
         style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}
         dangerouslySetInnerHTML={{ __html: DEAL_HTML }}
       />
