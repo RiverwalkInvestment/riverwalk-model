@@ -32,6 +32,10 @@ yarn-error.log*
 /prisma/dev.db-journal
 /prisma/*.db
 /prisma/*.db-journal
+/prisma/prisma/
+
+# Claude Code local settings
+.claude/
 
 # Uploaded images
 /public/uploads/
