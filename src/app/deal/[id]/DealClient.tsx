@@ -78,7 +78,7 @@ const DEAL_HTML = `<div id="tabs-bar" class="tabs-bar"></div>
       <div class="irow full">
         <div class="field">
           <label>M² construidos (base CapEx y precio venta)</label>
-          <input type="number" id="surfCapex" value="236" oninput="update()" placeholder="Con tabiques, muros y proporcional de zonas comunes">
+          <input type="number" id="surfCapex" value="236" min="0" oninput="update()" placeholder="Con tabiques, muros y proporcional de zonas comunes">
         </div>
       </div>
 
@@ -939,11 +939,33 @@ export default function DealClient({
     const mainScript = document.createElement('script')
     mainScript.src = '/deal-script.js'
     mainScript.onload = () => {
-      type RWWin = Window & { renderTabs?: () => void; addDeal?: (name?: string) => void }
+      type RWWin = Window & {
+        renderTabs?: () => void
+        addDeal?: (name?: string) => void
+        renderNotariaAndPlusvalia?: (...args: unknown[]) => void
+        setAmpliacion?: (on: boolean) => void
+        syncAmpliacion?: () => void
+        autoFillDates?: (force?: boolean) => void
+      }
       const w = window as RWWin
 
       // Block vanilla JS from managing tabs — we render them from DB
       w.renderTabs = () => {}
+
+      // Wrap renderNotariaAndPlusvalia so errors don't abort update() and kill the output panel.
+      // calcArancel() can return a plain number (not object) for small values, causing TypeError.
+      const origRNP = w.renderNotariaAndPlusvalia
+      w.renderNotariaAndPlusvalia = (...args) => { try { origRNP?.(...args) } catch {} }
+
+      // Override setAmpliacion so toggling ampliación also:
+      //   1. Updates the "— €" amount display (syncAmpliacion)
+      //   2. Auto-fills the newly-visible date fields (autoFillDates)
+      const origSetAmpliacion = w.setAmpliacion
+      w.setAmpliacion = (on: boolean) => {
+        origSetAmpliacion?.(on)
+        w.syncAmpliacion?.()
+        w.autoFillDates?.()
+      }
 
       // "+" in tabs-bar and topbar button both create a real DB deal
       const createAndGo = (name?: string) => {
@@ -982,11 +1004,13 @@ export default function DealClient({
       }
       renderDbTabs()
 
-      // After the script initialises, restore saved data then sync tab name
+      // After the script initialises, restore saved data then force-recalculate dates
       setTimeout(() => {
         if (Object.keys(initialData).length > 0) {
           setDealData(initialData)
         }
+        // Force-fill all date fields after data restore (handles blank dates on load)
+        w.autoFillDates?.(true)
         // Re-render tabs after data restore so active tab shows saved name
         renderDbTabs()
       }, 400)
