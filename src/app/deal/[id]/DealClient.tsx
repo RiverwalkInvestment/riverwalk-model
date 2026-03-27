@@ -1045,6 +1045,17 @@ export default function DealClient({
     // No extra script side-effects; save() closure is rebuilt via useCallback
   }, [photos, plans, save])
 
+  // Re-run update() whenever the mobile output panel becomes visible.
+  // useEffect fires after React has committed the DOM (output panel visible),
+  // so render() in deal-script.js can write to its elements correctly.
+  useEffect(() => {
+    if (mobileView !== 'output') return
+    const timer = setTimeout(() => {
+      ;(window as Window & { update?: () => void }).update?.()
+    }, 50)
+    return () => clearTimeout(timer)
+  }, [mobileView])
+
   return (
     <>
       {/* ── Custom React topbar ─────────────────────────────────────────── */}
