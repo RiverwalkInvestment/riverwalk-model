@@ -498,13 +498,14 @@ body.dark-mode {
   :root { --panel-w: 100%; }
 
   /* ── Body & layout ── */
-  body { overflow: auto; height: auto; min-height: 100dvh; }
+  html { overflow-x: hidden; }
+  body { overflow-x: hidden; overflow-y: auto; height: auto; min-height: 100dvh; }
 
   .app-body { flex-direction: column; overflow: visible; height: auto; }
+  .input-panel, .output-panel { min-width: 0; max-width: 100%; }
 
-  /* ── Wrapper: let it expand naturally (overrides inline overflow:hidden) ── */
+  /* ── Wrapper: expand vertically, clip horizontal overflow ── */
   .deal-wrapper {
-    overflow: visible !important;
     height: auto !important;
     flex: none !important;
     min-height: 0 !important;
@@ -551,8 +552,8 @@ body.dark-mode {
     overflow-y: visible;
   }
 
-  /* ── Output panel ── */
-  .output-panel { overflow: visible; }
+  /* ── Output panel: clip horizontal overflow so child overflow-x:auto elements can scroll ── */
+  .output-panel { overflow-x: hidden; width: 100%; }
 
   /* ── Topbar ── */
   .topbar { padding: 0 12px; gap: 8px; height: auto; min-height: 50px; flex-wrap: wrap; }
@@ -564,20 +565,27 @@ body.dark-mode {
   .btn-brief { display: none; }
   .btn { padding: 8px 10px; font-size: 8.5px; min-height: 36px; }
 
-  /* ── KPI strip: scrollable ── */
+  /* ── KPI strip: 3-col grid (5 KPIs → 2 rows) ── */
   .kpi-strip {
-    grid-template-columns: repeat(5, minmax(130px, 1fr));
-    overflow-x: auto;
-    position: relative;
-    -webkit-overflow-scrolling: touch;
+    grid-template-columns: repeat(3, 1fr);
+    overflow-x: visible;
+    position: static;
+    height: auto;
   }
-  .kpi-c { padding: 12px 14px; }
-  .kpi-v { font-size: 16px; }
+  .kpi-c { padding: 10px 12px; border-right: 1px solid var(--line2); }
+  .kpi-v { font-size: 15px; }
+  .kpi-lbl { font-size: 8px; }
+  .kpi-n { font-size: 9px; }
+
+  /* ── iOS: prevent auto-zoom on input focus (requires ≥16px) ── */
+  .field input, .field select,
+  .sc-f input, .comp-row input, .comp-row select,
+  .sens-price-inp input, .auth-field input { font-size: 16px !important; }
 
   /* ── Input rows: tri → 2 cols ── */
   .irow.tri { grid-template-columns: 1fr 1fr; }
   .sc-fields { grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
-  .sc-f input { padding: 6px 5px; font-size: 11px; }
+  .sc-f input { padding: 6px 5px; font-size: 16px !important; }
 
   /* ── Scenario cards stacked ── */
   .sc-cards { grid-template-columns: 1fr; }
@@ -597,6 +605,33 @@ body.dark-mode {
   .pnl { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .comp-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
+  /* ── P&L table: reduce cell padding to fit 4 columns in ~347px ── */
+  .pnl th { padding: 7px 5px; font-size: 7.5px; }
+  .pnl td { padding: 5px 5px; font-size: 11px; }
+  .pnl td:first-child, .pnl th:first-child { padding-left: 4px; }
+  .pnl td:not(:first-child), .pnl th:not(:first-child) { white-space: nowrap; }
+  .pnl tr.total td { padding: 8px 5px; font-size: 12px; }
+  .pnl tr.sub td { font-size: 11px; }
+
+  /* ── Investment breakdown: column layout on mobile ── */
+  #inv-breakdown-summary {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    padding: 10px 14px !important;
+    gap: 6px !important;
+  }
+  #inv-breakdown-bars {
+    width: 100% !important;
+    flex: none !important;
+    min-width: 0 !important;
+  }
+  #inv-breakdown-legend {
+    flex-wrap: wrap !important;
+    gap: 5px 10px !important;
+    flex-shrink: 1 !important;
+    width: 100% !important;
+  }
+
   /* ── Breakeven ── */
   .be-stats { grid-template-columns: 1fr 1fr; }
 
@@ -615,8 +650,37 @@ body.dark-mode {
   .osec { padding: 18px 14px; }
   .osec-title { font-size: 17px; }
 
-  /* ── Timeline ── */
-  .timeline-strip { padding: 10px 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* ── Timeline: stack vertically on mobile ── */
+  .timeline-strip {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 12px 14px;
+    overflow-x: hidden;
+  }
+  /* Each node becomes a horizontal row: dot + label + amount */
+  .tl-node { flex-direction: row; align-items: center; gap: 8px; }
+  /* Hide the horizontal connecting bar — meaningless in column layout */
+  .tl-line { display: none !important; }
+  /* Duration labels: keep but indent them */
+  .tl-line-label { padding-left: 4px; font-size: 8px; }
+  /* Override inline flex:1 / min-width on the connector wrappers */
+  .timeline-strip > div:not(.tl-node) {
+    flex: none !important;
+    min-width: 0 !important;
+    width: 100%;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 4px !important;
+  }
+  /* "Total X meses · Inversión total Y" summary: allow wrapping, no left margin */
+  .timeline-strip > div:last-child {
+    margin-left: 0 !important;
+    white-space: normal !important;
+    font-size: 9px;
+    color: var(--text-d);
+    padding-top: 4px;
+  }
 
   /* ── Investment breakdown ── */
   .inv-grid { grid-template-columns: 1fr 1fr; }
@@ -639,6 +703,26 @@ body.dark-mode {
 
   /* ── Auth ── */
   .auth-card { padding: 28px 20px; }
+
+  /* ── Image upload: 2-column grid instead of 3 ── */
+  .image-upload-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* ── Image delete button: larger touch target ── */
+  .image-delete-btn {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 18px !important;
+    line-height: 32px !important;
+  }
+
+  /* ── Contain overflow within wrapper ── */
+  .deal-wrapper { max-width: 100vw !important; overflow-x: hidden !important; overflow-y: visible !important; }
+  .app-body { max-width: 100%; overflow-x: hidden; }
+
+  /* ── Tabs bar: taller touch target ── */
+  .tab-item { min-height: 44px; padding: 0 12px; font-size: 12px; }
+  .tab-close { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
+  .isec-hd { min-height: 44px; }
 }
 
 /* ── AUTH PAGES ──────────────────────────────────────────────────────── */
