@@ -65,7 +65,7 @@ export default function DashboardClient({ user }: Props) {
       <div className="dashboard-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
           <Image
-            src="/logo-dark.png"
+            src="/Riverwalk_Logo_Negro.png"
             alt="Riverwalk"
             width={130}
             height={21}

@@ -50,7 +50,7 @@ export default function RegisterPage() {
       <div className="auth-card">
         <div className="auth-logo">
           <Image
-            src="/logo-dark.png"
+            src="/Riverwalk_Logo_Negro.png"
             alt="Riverwalk"
             width={160}
             height={26}

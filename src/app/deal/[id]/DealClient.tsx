@@ -1178,7 +1178,7 @@ export default function DealClient({
           style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}
         >
           <Image
-            src="/logo-light.png"
+            src="/Riverwalk_Logo_Blanco.png"
             alt="Riverwalk"
             width={120}
             height={20}
