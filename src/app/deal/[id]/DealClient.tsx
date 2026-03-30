@@ -1178,11 +1178,10 @@ export default function DealClient({
           style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}
         >
           <Image
-            src="/riverwalk-logo.png"
+            src="/logo-light.png"
             alt="Riverwalk"
             width={120}
             height={20}
-            style={{ filter: 'invert(1)', mixBlendMode: 'screen' }}
             priority
           />
         </a>

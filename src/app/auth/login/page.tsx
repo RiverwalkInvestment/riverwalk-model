@@ -39,11 +39,10 @@ export default function LoginPage() {
       <div className="auth-card">
         <div className="auth-logo">
           <Image
-            src="/riverwalk-logo.png"
+            src="/logo-dark.png"
             alt="Riverwalk"
             width={160}
             height={26}
-            style={{ mixBlendMode: 'multiply' }}
             priority
           />
         </div>

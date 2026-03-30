@@ -65,11 +65,10 @@ export default function DashboardClient({ user }: Props) {
       <div className="dashboard-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
           <Image
-            src="/riverwalk-logo.png"
+            src="/logo-dark.png"
             alt="Riverwalk"
             width={130}
             height={21}
-            style={{ mixBlendMode: 'multiply' }}
           />
           <span className="topbar-sep" />
           <span className="dashboard-title">Deal Modeler</span>
