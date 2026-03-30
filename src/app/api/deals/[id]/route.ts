@@ -45,15 +45,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     updates.data = JSON.stringify(body.data)
   }
   if (body.photos !== undefined && Array.isArray(body.photos)) {
-    const validated = body.photos
+    const validated = (body.photos as unknown[])
       .slice(0, 6)
-      .map((p: unknown) => String(p).replace(/[^a-zA-Z0-9/_\-.]/g, ''))
+      .filter((p) => { try { return new URL(String(p)).protocol === 'https:' } catch { return false } })
+      .map((p) => String(p))
     updates.photos = JSON.stringify(validated)
   }
   if (body.plans !== undefined && Array.isArray(body.plans)) {
-    const validated = body.plans
+    const validated = (body.plans as unknown[])
       .slice(0, 6)
-      .map((p: unknown) => String(p).replace(/[^a-zA-Z0-9/_\-.]/g, ''))
+      .filter((p) => { try { return new URL(String(p)).protocol === 'https:' } catch { return false } })
+      .map((p) => String(p))
     updates.plans = JSON.stringify(validated)
   }
 

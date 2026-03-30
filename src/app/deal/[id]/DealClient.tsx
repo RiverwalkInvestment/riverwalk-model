@@ -875,12 +875,14 @@ export default function DealClient({
 }: Props) {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState(false)
   const [photos, setPhotos] = useState<string[]>(initialPhotos)
   const [plans, setPlans] = useState<string[]>(initialPlans)
   const [mobileView, setMobileView] = useState<'input' | 'output'>('input')
   const scriptInjected = useRef(false)
   const [uploadContainer, setUploadContainer] = useState<Element | null>(null)
   const renderDbTabsRef = useRef<(() => void) | null>(null)
+  const saveRef = useRef<(() => Promise<void>) | null>(null)
 
   // Collect all input/select values + toggle states + comparables from the DOM
   function getDealData(): Record<string, unknown> {
@@ -942,6 +944,7 @@ export default function DealClient({
 
   const save = useCallback(async () => {
     setSaving(true)
+    setSaveError(false)
     const data = getDealData()
     // Read name from the #dealName input directly (not from #deal-name-display
     // which shows "dealName · address" — a display string, not the deal name)
@@ -958,7 +961,8 @@ export default function DealClient({
       // Refresh tab names so they reflect the just-saved name
       renderDbTabsRef.current?.()
     } catch {
-      // silent — autosave; user will retry manually
+      setSaveError(true)
+      setTimeout(() => setSaveError(false), 3000)
     } finally {
       setSaving(false)
     }
@@ -1052,7 +1056,8 @@ export default function DealClient({
           setDealData(initialData)
         }
         // Force-fill all date fields after data restore (handles blank dates on load)
-        w.autoFillDates?.(true)
+        // Don't force-fill dates: only fill empty ones so saved custom dates are preserved
+        w.autoFillDates?.()
         // Ensure output is calculated even if no states triggered update() above
         ;(window as Window & { update?: () => void }).update?.()
         // Re-render tabs after data restore so active tab shows saved name
@@ -1078,16 +1083,15 @@ export default function DealClient({
       setUploadContainer(container)
     }
 
-    // Autosave every 60 seconds
-    const interval = setInterval(save, 60_000)
+    // Autosave every 60 seconds — call via ref so it always uses the latest closure
+    saveRef.current = save
+    const interval = setInterval(() => saveRef.current?.(), 60_000)
     return () => clearInterval(interval)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Keep autosave closure fresh when photos/plans change
-  useEffect(() => {
-    // No extra script side-effects; save() closure is rebuilt via useCallback
-  }, [photos, plans, save])
+  // Keep saveRef current so the autosave interval always uses the latest closure
+  useEffect(() => { saveRef.current = save }, [save])
 
   // Re-run update() whenever the mobile output panel becomes visible.
   // useEffect fires after React has committed the DOM (output panel visible),
@@ -1148,9 +1152,9 @@ export default function DealClient({
             className="btn"
             onClick={save}
             disabled={saving}
-            style={saved ? { background: 'var(--green)', color: '#fff' } : undefined}
+            style={saved ? { background: 'var(--green)', color: '#fff' } : saveError ? { background: 'var(--red)', color: '#fff' } : undefined}
           >
-            {saving ? 'Guardando…' : saved ? '✓ Guardado' : 'Guardar'}
+            {saving ? 'Guardando…' : saved ? '✓ Guardado' : saveError ? '✗ Error al guardar' : 'Guardar'}
           </button>
 
           <button
