@@ -866,6 +866,10 @@ const DEAL_HTML = `<div id="tabs-bar" class="tabs-bar"></div>
 
 `
 
+// Module-level flag: prevents createAndGo from firing more than once at a time,
+// guarding against double-clicks or remount-induced duplicate deal creation.
+let _creatingDeal = false
+
 export default function DealClient({
   dealId,
   initialData,
@@ -879,6 +883,7 @@ export default function DealClient({
   const [photos, setPhotos] = useState<string[]>(initialPhotos)
   const [plans, setPlans] = useState<string[]>(initialPlans)
   const [mobileView, setMobileView] = useState<'input' | 'output'>('input')
+  const [displayName, setDisplayName] = useState(initialName)
   const scriptInjected = useRef(false)
   const [uploadContainer, setUploadContainer] = useState<Element | null>(null)
   const renderDbTabsRef = useRef<(() => void) | null>(null)
@@ -958,8 +963,14 @@ export default function DealClient({
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
-      // Refresh tab names so they reflect the just-saved name
-      renderDbTabsRef.current?.()
+      // Update topbar name to reflect the just-saved name
+      setDisplayName(dealName)
+      // Defer renderDbTabs + update() to run after React commits state changes,
+      // avoiding any timing conflict between React's re-render and direct DOM writes
+      setTimeout(() => {
+        renderDbTabsRef.current?.()
+        ;(window as Window & { update?: () => void }).update?.()
+      }, 0)
     } catch {
       setSaveError(true)
       setTimeout(() => setSaveError(false), 3000)
@@ -969,7 +980,64 @@ export default function DealClient({
   }, [dealId, photos, plans, initialName])
 
   useEffect(() => {
-    if (scriptInjected.current) return
+    type RWWin = Window & {
+      renderTabs?: () => void
+      addDeal?: (name?: string) => void
+      renderNotariaAndPlusvalia?: (...args: unknown[]) => void
+      setAmpliacion?: (on: boolean) => void
+      syncAmpliacion?: () => void
+      autoFillDates?: (force?: boolean) => void
+      update?: () => void
+      __rwRenderDbTabs?: () => void
+    }
+    const w = window as RWWin
+
+    // visibilitychange: when the user switches back to this tab, refresh tabs and
+    // recalculate output so the panel is never blank after a focus change.
+    const onVisible = () => {
+      if (document.hidden) return
+      setTimeout(() => {
+        renderDbTabsRef.current?.()
+        w.update?.()
+      }, 0)
+    }
+    document.addEventListener('visibilitychange', onVisible)
+
+    // DOM-based guard: if deal-script.js is already in the DOM (e.g. React Strict Mode
+    // double-mount in dev, or HMR remount), skip re-injection to avoid re-declaring
+    // 'let' globals that would throw SyntaxError and corrupt state.
+    const alreadyLoaded = !!document.querySelector('script[src="/deal-script.js"]')
+
+    if (alreadyLoaded) {
+      scriptInjected.current = true
+      // Re-attach renderDbTabs ref from the previous mount's closure (exposed on window)
+      if (w.__rwRenderDbTabs) renderDbTabsRef.current = w.__rwRenderDbTabs
+      // Re-create upload container if it was lost on remount
+      if (!document.getElementById('upload-section')) {
+        const inputPanel = document.querySelector('.input-panel')
+        if (inputPanel) {
+          const container = document.createElement('div')
+          container.id = 'upload-section'
+          inputPanel.appendChild(container)
+          setUploadContainer(container)
+        }
+      }
+      // Refresh output and tabs on remount so nothing appears blank
+      setTimeout(() => { renderDbTabsRef.current?.(); w.update?.() }, 0)
+      const interval = setInterval(() => saveRef.current?.(), 60_000)
+      return () => {
+        clearInterval(interval)
+        document.removeEventListener('visibilitychange', onVisible)
+      }
+    }
+
+    if (scriptInjected.current) {
+      const interval = setInterval(() => saveRef.current?.(), 60_000)
+      return () => {
+        clearInterval(interval)
+        document.removeEventListener('visibilitychange', onVisible)
+      }
+    }
     scriptInjected.current = true
 
     // 1. Load REGISTRO_DATA (large static dataset)
@@ -984,16 +1052,6 @@ export default function DealClient({
     const mainScript = document.createElement('script')
     mainScript.src = '/deal-script.js'
     mainScript.onload = () => {
-      type RWWin = Window & {
-        renderTabs?: () => void
-        addDeal?: (name?: string) => void
-        renderNotariaAndPlusvalia?: (...args: unknown[]) => void
-        setAmpliacion?: (on: boolean) => void
-        syncAmpliacion?: () => void
-        autoFillDates?: (force?: boolean) => void
-      }
-      const w = window as RWWin
-
       // Block vanilla JS from managing tabs — we render them from DB
       w.renderTabs = () => {}
 
@@ -1012,8 +1070,11 @@ export default function DealClient({
         w.autoFillDates?.()
       }
 
-      // "+" in tabs-bar and topbar button both create a real DB deal
+      // "+" in tabs-bar and topbar button both create a real DB deal.
+      // _creatingDeal guards against double-firing (rapid clicks, remount cycles).
       const createAndGo = (name?: string) => {
+        if (_creatingDeal) return
+        _creatingDeal = true
         fetch('/api/deals', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1021,7 +1082,7 @@ export default function DealClient({
         })
           .then(r => r.json())
           .then((d: { id: string }) => { window.location.href = `/deal/${d.id}` })
-          .catch(() => {})
+          .catch(() => { _creatingDeal = false })
       }
       w.addDeal = createAndGo
 
@@ -1049,17 +1110,18 @@ export default function DealClient({
       }
       renderDbTabs()
       renderDbTabsRef.current = renderDbTabs
+      // Expose on window so remounts can re-attach the ref without re-injecting scripts
+      w.__rwRenderDbTabs = renderDbTabs
 
       // After the script initialises, restore saved data then force-recalculate dates
       setTimeout(() => {
         if (Object.keys(initialData).length > 0) {
           setDealData(initialData)
         }
-        // Force-fill all date fields after data restore (handles blank dates on load)
         // Don't force-fill dates: only fill empty ones so saved custom dates are preserved
         w.autoFillDates?.()
         // Ensure output is calculated even if no states triggered update() above
-        ;(window as Window & { update?: () => void }).update?.()
+        w.update?.()
         // Re-render tabs after data restore so active tab shows saved name
         renderDbTabs()
       }, 400)
@@ -1086,7 +1148,10 @@ export default function DealClient({
     // Autosave every 60 seconds — call via ref so it always uses the latest closure
     saveRef.current = save
     const interval = setInterval(() => saveRef.current?.(), 60_000)
-    return () => clearInterval(interval)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -1117,7 +1182,7 @@ export default function DealClient({
             alt="Riverwalk"
             width={120}
             height={20}
-            style={{ mixBlendMode: 'multiply' }}
+            style={{ filter: 'brightness(0) invert(1)' }}
             priority
           />
         </a>
@@ -1126,7 +1191,7 @@ export default function DealClient({
         <div className="topbar-label">Deal Modeler v2</div>
         <div className="topbar-sep" />
         <div className="topbar-deal" id="deal-name-display">
-          {initialName}
+          {displayName}
         </div>
 
         <div className="topbar-right">
@@ -1135,6 +1200,8 @@ export default function DealClient({
           <div className="topbar-sep" />
 
           <button className="btn btn-reset" onClick={async () => {
+            if (_creatingDeal) return
+            _creatingDeal = true
             const res = await fetch('/api/deals', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -1143,6 +1210,8 @@ export default function DealClient({
             if (res.ok) {
               const deal = await res.json()
               window.location.href = `/deal/${deal.id}`
+            } else {
+              _creatingDeal = false
             }
           }}>
             + Nuevo deal
@@ -1291,6 +1360,7 @@ function ImageUploadSection({ dealId, label, images, onImagesChange, min, max }:
 
       {images.length > 0 && (
         <div
+          className="image-upload-grid"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
@@ -1310,6 +1380,7 @@ function ImageUploadSection({ dealId, label, images, onImagesChange, min, max }:
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
               <button
+                className="image-delete-btn"
                 onClick={() => removeImage(i)}
                 style={{
                   position: 'absolute',

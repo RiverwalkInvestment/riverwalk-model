@@ -69,7 +69,7 @@ export default function DashboardClient({ user }: Props) {
             alt="Riverwalk"
             width={130}
             height={21}
-            style={{ mixBlendMode: 'multiply' }}
+            style={{ filter: 'brightness(0) invert(1)' }}
           />
           <span className="topbar-sep" />
           <span className="dashboard-title">Deal Modeler</span>
