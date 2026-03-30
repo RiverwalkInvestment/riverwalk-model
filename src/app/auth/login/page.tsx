@@ -43,7 +43,7 @@ export default function LoginPage() {
             alt="Riverwalk"
             width={160}
             height={26}
-            style={{ display: 'block' }}
+            style={{ mixBlendMode: 'multiply' }}
             priority
           />
         </div>
