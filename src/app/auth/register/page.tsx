@@ -54,7 +54,7 @@ export default function RegisterPage() {
             alt="Riverwalk"
             width={160}
             height={26}
-            style={{ filter: 'brightness(0) invert(1)' }}
+            style={{ display: 'block' }}
             priority
           />
         </div>

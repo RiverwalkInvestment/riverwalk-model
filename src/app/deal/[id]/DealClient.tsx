@@ -1182,7 +1182,7 @@ export default function DealClient({
             alt="Riverwalk"
             width={120}
             height={20}
-            style={{ filter: 'brightness(0) invert(1)' }}
+            style={{ filter: 'invert(1)' }}
             priority
           />
         </a>
