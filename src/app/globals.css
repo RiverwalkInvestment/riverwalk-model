@@ -650,36 +650,58 @@ body.dark-mode {
   .osec { padding: 18px 14px; }
   .osec-title { font-size: 17px; }
 
-  /* ── Timeline: stack vertically on mobile ── */
+  /* ── Timeline: vertical layout on mobile ── */
   .timeline-strip {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-    padding: 12px 14px;
+    align-items: stretch;
+    gap: 0;
+    padding: 14px 14px;
     overflow-x: hidden;
   }
-  /* Each node becomes a horizontal row: dot + label + amount */
-  .tl-node { flex-direction: row; align-items: center; gap: 8px; }
-  /* Hide the horizontal connecting bar — meaningless in column layout */
+  /* Each milestone: dot on left, label + amount as a row to the right */
+  .tl-node {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    position: relative;
+    z-index: 1;
+  }
+  .tl-dot { flex-shrink: 0; }
+  .tl-label { font-size: 9px; font-weight: 600; letter-spacing: 0.12em; white-space: nowrap; }
+  .tl-amount { font-size: 11px; margin-left: auto; white-space: nowrap; }
+  /* Hide the horizontal bar — use left border on connector as vertical line */
   .tl-line { display: none !important; }
-  /* Duration labels: keep but indent them */
-  .tl-line-label { padding-left: 4px; font-size: 8px; }
-  /* Override inline flex:1 / min-width on the connector wrappers */
-  .timeline-strip > div:not(.tl-node) {
+  /* Connector wrapper: vertical line + duration label */
+  .timeline-strip > div:not(.tl-node):not(:last-child) {
     flex: none !important;
     min-width: 0 !important;
-    width: 100%;
+    display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
-    gap: 4px !important;
+    gap: 0 !important;
+    min-height: 22px;
+    margin-left: 4px;            /* roughly centers the border on the 10px dot */
+    border-left: 1px solid var(--line);
+    padding-left: 16px;          /* indent label to align with node label text */
   }
-  /* "Total X meses · Inversión total Y" summary: allow wrapping, no left margin */
+  .tl-line-label {
+    font-size: 8px;
+    color: var(--text-d);
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    margin-top: 0;               /* override desktop negative margin */
+  }
+  /* Summary: own line at the bottom, full width, text wrapping allowed */
   .timeline-strip > div:last-child {
     margin-left: 0 !important;
     white-space: normal !important;
+    padding-top: 10px;
+    border-top: 1px solid var(--line2);
     font-size: 9px;
     color: var(--text-d);
-    padding-top: 4px;
+    flex: none !important;
+    min-width: 0 !important;
   }
 
   /* ── Investment breakdown ── */
