@@ -3,6 +3,8 @@ const nextConfig = {
   images: {
     localPatterns: [
       { pathname: '/riverwalk-logo.png' },
+      { pathname: '/Riverwalk_Logo_Negro.png' },
+      { pathname: '/Riverwalk_Logo_Blanco.png' },
     ],
     remotePatterns: [
       {
