@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
 import { randomUUID } from 'crypto'
 
 const ALLOWED_TYPES: Record<string, string> = {
@@ -34,6 +32,27 @@ function validateMagicBytes(buffer: Buffer, mimeType: string): boolean {
     )
   }
   return false
+}
+
+// Local filesystem save — only works when running with Node.js (dev / self-hosted)
+async function saveLocal(buffer: Buffer, dealId: string, filename: string): Promise<string> {
+  const { writeFile, mkdir } = await import('fs/promises')
+  const { join } = await import('path')
+  const dir = join(process.cwd(), 'public', 'uploads', dealId)
+  await mkdir(dir, { recursive: true })
+  await writeFile(join(dir, filename), buffer)
+  return `/uploads/${dealId}/${filename}`
+}
+
+// Vercel Blob save — requires BLOB_READ_WRITE_TOKEN in env
+async function saveBlob(buffer: Buffer, dealId: string, filename: string, mimeType: string): Promise<string> {
+  const { put } = await import('@vercel/blob')
+  const blob = await put(`uploads/${dealId}/${filename}`, buffer, {
+    access: 'public',
+    contentType: mimeType,
+    addRandomSuffix: false,
+  })
+  return blob.url
 }
 
 // Accepts local /uploads/ paths (dev) and https:// URLs (production blob storage)
@@ -89,7 +108,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'El archivo supera el límite de 5 MB' }, { status: 400 })
   }
 
-  // Read buffer once for magic byte check and save
+  // Read buffer once for magic byte check and upload
   const buffer = Buffer.from(await file.arrayBuffer())
 
   // Validate magic bytes — ensures the file content matches the claimed type
@@ -101,14 +120,19 @@ export async function POST(req: NextRequest) {
   }
 
   const filename = `${randomUUID()}.${ext}`
-  const uploadDir = join(process.cwd(), 'public', 'uploads', dealId)
 
   try {
-    await mkdir(uploadDir, { recursive: true })
-    await writeFile(join(uploadDir, filename), buffer)
-    return NextResponse.json({ url: `/uploads/${dealId}/${filename}` })
+    let url: string
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      // Production: Vercel Blob storage
+      url = await saveBlob(buffer, dealId, filename, file.type)
+    } else {
+      // Development: local filesystem (public/uploads/)
+      url = await saveLocal(buffer, dealId, filename)
+    }
+    return NextResponse.json({ url })
   } catch (err) {
-    console.error('[upload] write error', err)
+    console.error('[upload] save error', err)
     return NextResponse.json({ error: 'Error al guardar el archivo' }, { status: 500 })
   }
 }
