@@ -556,7 +556,7 @@ body.dark-mode {
   .output-panel { overflow-x: hidden; width: 100%; }
 
   /* ── Topbar ── */
-  .topbar { padding: 0 12px; gap: 8px; height: auto; min-height: 50px; flex-wrap: wrap; }
+  .topbar { padding: 0 12px; gap: 8px; height: auto; min-height: 50px; flex-wrap: wrap; align-items: center; }
   .topbar-label { display: none; }
   .topbar-sep { display: none; }
   .topbar-deal { font-size: 11px; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
