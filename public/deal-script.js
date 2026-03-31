@@ -1233,26 +1233,15 @@ async function geocodeAddress() {
   if (status) { status.textContent = '⟳ Buscando código postal…'; status.style.color = 'var(--text-d)'; }
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('/api/geocode', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 100,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        messages: [{
-          role: 'user',
-          content: `¿Cuál es el código postal y municipio de "${address}" en España? Responde SOLO con este JSON sin texto extra: {"cp":"28014","municipio":"Madrid"}`
-        }]
-      })
+      body: JSON.stringify({ address })
     });
 
-    const data = await response.json();
-    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
-    const match = text.match(/\{[^}]+\}/);
-    if (!match) throw new Error('no json');
+    if (!response.ok) throw new Error('api error');
+    const parsed = await response.json();
 
-    const parsed = JSON.parse(match[0]);
     if (parsed.cp && $('dealCP')) {
       $('dealCP').value = parsed.cp;
       // Auto-populate registro search CP
@@ -1843,48 +1832,14 @@ async function extractComp() {
   status.style.color = 'var(--text-d)';
 
   try {
-    const prompt = `Analiza este anuncio inmobiliario y extrae exactamente estos datos en JSON sin ningún texto extra:
-URL: ${url}
-
-Devuelve SOLO este JSON (sin markdown, sin explicación):
-{
-  "precio": número entero en euros (sin puntos ni símbolos),
-  "m2": número entero de metros cuadrados útiles,
-  "descripcion": string corto descriptivo del piso (máximo 60 caracteres, incluye calle/zona si aparece),
-  "planta": string o null,
-  "habitaciones": número o null
-}
-
-Si no puedes extraer el precio o los m², devuelve los campos como null. No inventes datos.`;
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('/api/extract-comp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 400,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        messages: [{ role: 'user', content: prompt }]
-      })
+      body: JSON.stringify({ url })
     });
 
-    const data = await response.json();
-
-    // Extract text from response (may include tool_use blocks)
-    const textBlock = data.content?.find(b => b.type === 'text');
-    const raw = textBlock?.text || '';
-
-    // Parse JSON — strip any markdown fences just in case
-    const cleaned = raw.replace(/```json|```/g, '').trim();
-    let parsed;
-    try {
-      parsed = JSON.parse(cleaned);
-    } catch {
-      // Try to find JSON object in text
-      const match = cleaned.match(/\{[\s\S]*\}/);
-      if (match) parsed = JSON.parse(match[0]);
-      else throw new Error('No JSON in response');
-    }
+    if (!response.ok) throw new Error(`api error ${response.status}`);
+    const parsed = await response.json();
 
     if (!parsed.precio && !parsed.m2) {
       status.textContent = '⚠ No se pudieron extraer datos del enlace. Rellena precio y m² manualmente.';

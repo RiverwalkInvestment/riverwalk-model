@@ -37,8 +37,9 @@ yarn-error.log*
 # Claude Code local settings
 .claude/
 
-# Uploaded images
-/public/uploads/
+# Uploaded images (keep the dir itself via .gitkeep, ignore actual files)
+/public/uploads/*
+!/public/uploads/.gitkeep
 
 # vercel
 .vercel
