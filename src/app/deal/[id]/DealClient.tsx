@@ -888,16 +888,27 @@ export default function DealClient({
   const [uploadContainer, setUploadContainer] = useState<Element | null>(null)
   const renderDbTabsRef = useRef<(() => void) | null>(null)
   const saveRef = useRef<(() => Promise<void>) | null>(null)
+  // Ref for the deal HTML wrapper — we set innerHTML here exactly once so that
+  // React re-renders (mobileView toggle, save state, uploadContainer, etc.)
+  // NEVER reset the DOM and lose the user's typed values.
+  const dealWrapperRef = useRef<HTMLDivElement>(null)
 
-  // For new deals: clear DEAL_HTML demo defaults BEFORE deal-script.js loads so it
-  // never captures Cedaceros data into deals[0], and autosave never persists it.
-  // useLayoutEffect runs synchronously after DOM commit but before browser paint.
+  // Set DEAL_HTML into the wrapper once, synchronously after mount (before paint
+  // and before scripts load). Then, for new deals, immediately clear demo values.
+  // Using a ref instead of dangerouslySetInnerHTML means React never touches
+  // innerHTML again on subsequent re-renders — that was the root cause of the
+  // Cedaceros revert bug: some re-render could reset innerHTML to DEAL_HTML.
   useLayoutEffect(() => {
+    const wrapper = dealWrapperRef.current
+    if (!wrapper) return
+    wrapper.innerHTML = DEAL_HTML
+
     if (Object.keys(initialData).length > 0) return
-    document.querySelectorAll<HTMLInputElement>('input[id]').forEach(el => {
+    // New deal: blank all demo-data values immediately after setting innerHTML
+    wrapper.querySelectorAll<HTMLInputElement>('input[id]').forEach(el => {
       el.value = el.id === 'dealName' ? initialName : ''
     })
-    document.querySelectorAll<HTMLSelectElement>('select[id]').forEach(el => {
+    wrapper.querySelectorAll<HTMLSelectElement>('select[id]').forEach(el => {
       el.selectedIndex = 0
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1328,10 +1339,12 @@ export default function DealClient({
       </div>
 
       {/* ── Original deal modeler HTML body ─────────────────────────────── */}
+      {/* innerHTML is set once via dealWrapperRef in useLayoutEffect — NOT via
+          dangerouslySetInnerHTML — so React re-renders never reset user input. */}
       <div
+        ref={dealWrapperRef}
         className={`deal-wrapper${mobileView === 'output' ? ' mobile-show-output' : ' mobile-show-input'}`}
         style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}
-        dangerouslySetInnerHTML={{ __html: DEAL_HTML }}
       />
 
       {/* ── Image upload portal inside .input-panel ─────────────────────── */}
