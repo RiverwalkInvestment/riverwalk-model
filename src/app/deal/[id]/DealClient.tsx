@@ -1069,18 +1069,44 @@ export default function DealClient({
       // Block vanilla JS from managing tabs — we render them from DB
       w.renderTabs = () => {}
 
-      // For new deals: deal-script.js just ran captureCurrentDeal() synchronously and
-      // stored whatever was in the DOM into deals[0]. Patch it to blank so any future
-      // applyDeal(deals[0]) call cannot restore Cedaceros demo defaults.
-      // Also re-clear DOM inputs as a belt-and-suspenders measure.
+      // For new deals: neutralise every path that could restore demo defaults.
+      //
+      // deal-script.js's init sequence ran synchronously and:
+      //   1. captureCurrentDeal() stored the DOM state into deals[0].fields/states
+      //   2. renderTabs() painted a tab with onclick="switchTab(0)"
+      //
+      // Even though we already patched deals[0].fields to blank, applyDeal() also
+      // restores deals[0].states (dealMode, zcOn, etc.) which reverts toggles the user
+      // may have changed. More importantly, some path is still calling applyDeal()
+      // during normal interaction (exact caller unknown without browser devtools).
+      //
+      // Nuclear fix for new deals: override applyDeal() to a no-op for the entire
+      // page view. A new deal has exactly one tab, so applyDeal() has no legitimate
+      // use — switchTab(0) returns early, addDeal is overridden to navigate away,
+      // and removeDeal cannot remove the only remaining tab.
       if (Object.keys(initialData).length === 0) {
-        type WDeals = Window & { deals?: Array<{ name: string; fields: Record<string, string>; states: Record<string, unknown>; comps: unknown[] }> }
+        type WDeals = Window & {
+          deals?: Array<{ name: string; fields: Record<string, string>; states: Record<string, unknown>; comps: unknown[] }>
+          applyDeal?: (deal: unknown) => void
+        }
         const wDeals = window as WDeals
+        // Patch fields + states to blank so even if applyDeal somehow bypasses
+        // the override below (e.g. called before this line executes), it restores
+        // blank values, not Cedaceros.
         if (wDeals.deals?.[0]) {
           Object.keys(wDeals.deals[0].fields).forEach(k => {
             wDeals.deals![0].fields[k] = k === 'dealName' ? initialName : ''
           })
+          // Patch states so mode toggles are not reverted either
+          wDeals.deals[0].states = {
+            sfMode: 'tramos', sfCarryMode: 'irr', zcOn: false,
+            dealMode: 'reforma', ampliacionOn: false, taxOn: true, plusvaliaOn: false,
+            levMode: 'ltv', sensPrices: [12000, 13000, 14000, 15000, 16000, 17000],
+          }
         }
+        // Override applyDeal itself — the definitive guard against any revert path
+        wDeals.applyDeal = () => {}
+        // Belt-and-suspenders: also clear DOM inputs so the initial render is blank
         document.querySelectorAll<HTMLInputElement>('input[id]').forEach(el => {
           el.value = el.id === 'dealName' ? initialName : ''
         })
