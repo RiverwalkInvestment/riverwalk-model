@@ -29,11 +29,11 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'tools-2024-04-04',
+        'anthropic-beta': 'web-search-2025-03-05',
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 100,
+        max_tokens: 512,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
         messages: [{
           role: 'user',
@@ -43,7 +43,8 @@ export async function POST(req: NextRequest) {
     })
 
     const data = await res.json() as { content?: { type: string; text?: string }[] }
-    const text = (data.content ?? []).filter(b => b.type === 'text').map(b => b.text).join('')
+    // Web search responses have multiple blocks; collect all text and find JSON in it
+    const text = (data.content ?? []).filter(b => b.type === 'text' && b.text).map(b => b.text).join('')
     const match = text.match(/\{[^}]+\}/)
     if (!match) return NextResponse.json({ error: 'Sin resultado' }, { status: 422 })
 

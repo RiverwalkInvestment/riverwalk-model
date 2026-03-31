@@ -46,19 +46,20 @@ Si no puedes extraer el precio o los m², devuelve los campos como null. No inve
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'tools-2024-04-04',
+        'anthropic-beta': 'web-search-2025-03-05',
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 400,
+        max_tokens: 1024,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
         messages: [{ role: 'user', content: prompt }],
       }),
     })
 
     const data = await res.json() as { content?: { type: string; text?: string }[] }
-    const textBlock = (data.content ?? []).find(b => b.type === 'text')
-    const raw = textBlock?.text ?? ''
+    // Web search responses have multiple blocks; the final JSON is in the last text block
+    const textBlocks = (data.content ?? []).filter(b => b.type === 'text' && b.text)
+    const raw = textBlocks.at(-1)?.text ?? ''
     const cleaned = raw.replace(/```json|```/g, '').trim()
 
     let parsed: Record<string, unknown>
