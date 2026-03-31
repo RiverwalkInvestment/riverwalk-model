@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  // 20 geocoding calls per user per hour
+  const userId = (session.user as { id?: string }).id ?? session.user?.email ?? 'unknown'
+  if (!checkRateLimit(`geocode:${userId}`, 20, 60 * 60 * 1000)) {
+    return NextResponse.json({ error: 'Límite de uso alcanzado. Inténtalo más tarde.' }, { status: 429 })
+  }
 
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return NextResponse.json({ error: 'Servicio no configurado' }, { status: 503 })

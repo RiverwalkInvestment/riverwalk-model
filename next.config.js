@@ -33,7 +33,7 @@ const nextConfig = {
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdnjs.cloudflare.com",
             "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
             "font-src 'self' fonts.gstatic.com data:",
-            "img-src 'self' data: blob:",
+            "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com",
             "connect-src 'self' https:",
             "frame-ancestors 'none'",
           ].join('; '),
