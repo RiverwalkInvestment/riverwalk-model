@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import Image from 'next/image'
 
@@ -889,6 +889,20 @@ export default function DealClient({
   const renderDbTabsRef = useRef<(() => void) | null>(null)
   const saveRef = useRef<(() => Promise<void>) | null>(null)
 
+  // For new deals: clear DEAL_HTML demo defaults BEFORE deal-script.js loads so it
+  // never captures Cedaceros data into deals[0], and autosave never persists it.
+  // useLayoutEffect runs synchronously after DOM commit but before browser paint.
+  useLayoutEffect(() => {
+    if (Object.keys(initialData).length > 0) return
+    document.querySelectorAll<HTMLInputElement>('input[id]').forEach(el => {
+      el.value = el.id === 'dealName' ? initialName : ''
+    })
+    document.querySelectorAll<HTMLSelectElement>('select[id]').forEach(el => {
+      el.selectedIndex = 0
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Collect all input/select values + toggle states + comparables from the DOM
   function getDealData(): Record<string, unknown> {
     const data: Record<string, unknown> = {}
@@ -1055,6 +1069,26 @@ export default function DealClient({
       // Block vanilla JS from managing tabs — we render them from DB
       w.renderTabs = () => {}
 
+      // For new deals: deal-script.js just ran captureCurrentDeal() synchronously and
+      // stored whatever was in the DOM into deals[0]. Patch it to blank so any future
+      // applyDeal(deals[0]) call cannot restore Cedaceros demo defaults.
+      // Also re-clear DOM inputs as a belt-and-suspenders measure.
+      if (Object.keys(initialData).length === 0) {
+        type WDeals = Window & { deals?: Array<{ name: string; fields: Record<string, string>; states: Record<string, unknown>; comps: unknown[] }> }
+        const wDeals = window as WDeals
+        if (wDeals.deals?.[0]) {
+          Object.keys(wDeals.deals[0].fields).forEach(k => {
+            wDeals.deals![0].fields[k] = k === 'dealName' ? initialName : ''
+          })
+        }
+        document.querySelectorAll<HTMLInputElement>('input[id]').forEach(el => {
+          el.value = el.id === 'dealName' ? initialName : ''
+        })
+        document.querySelectorAll<HTMLSelectElement>('select[id]').forEach(el => {
+          el.selectedIndex = 0
+        })
+      }
+
       // Wrap renderNotariaAndPlusvalia so errors don't abort update() and kill the output panel.
       // calcArancel() can return a plain number (not object) for small values, causing TypeError.
       const origRNP = w.renderNotariaAndPlusvalia
@@ -1118,7 +1152,8 @@ export default function DealClient({
         if (Object.keys(initialData).length > 0) {
           setDealData(initialData)
         }
-        // Don't force-fill dates: only fill empty ones so saved custom dates are preserved
+        // New deals: already blanked by useLayoutEffect before scripts loaded.
+        // Don't re-clear here — user may have started typing by this point.
         w.autoFillDates?.()
         // Ensure output is calculated even if no states triggered update() above
         w.update?.()

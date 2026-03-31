@@ -1,10 +1,15 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import SessionProvider from '@/components/SessionProvider'
 
 export const metadata: Metadata = {
   title: 'Riverwalk · Deal Modeler',
   description: 'Real Estate Investment Analysis',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 }
 
 export default function RootLayout({
