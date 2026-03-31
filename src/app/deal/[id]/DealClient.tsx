@@ -1392,11 +1392,14 @@ interface UploadSectionProps {
 function ImageUploadSection({ dealId, label, images, onImagesChange, min, max }: UploadSectionProps) {
   const [uploading, setUploading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   async function handleFiles(files: FileList) {
     setUploading(true)
+    setUploadError(null)
     const newUrls: string[] = []
+    let lastError: string | null = null
     for (let i = 0; i < files.length && images.length + newUrls.length < max; i++) {
       const formData = new FormData()
       formData.append('file', files[i])
@@ -1406,12 +1409,16 @@ function ImageUploadSection({ dealId, label, images, onImagesChange, min, max }:
         if (res.ok) {
           const { url } = await res.json() as { url: string }
           newUrls.push(url)
+        } else {
+          const data = await res.json().catch(() => ({})) as { error?: string }
+          lastError = data.error ?? `Error ${res.status}`
         }
       } catch {
-        // continue with remaining files on individual failure
+        lastError = 'Error de red al subir el archivo'
       }
     }
     if (newUrls.length > 0) onImagesChange([...images, ...newUrls])
+    if (lastError && newUrls.length === 0) setUploadError(lastError)
     setUploading(false)
     if (inputRef.current) inputRef.current.value = ''
   }
@@ -1505,6 +1512,12 @@ function ImageUploadSection({ dealId, label, images, onImagesChange, min, max }:
           {uploading
             ? 'Subiendo…'
             : `Añadir ${label.toLowerCase()} · arrastra o haz clic (máx. ${max})`}
+        </div>
+      )}
+
+      {uploadError && (
+        <div style={{ fontSize: 11, color: 'var(--red, #ef4444)', marginTop: 6, padding: '4px 8px', background: 'rgba(239,68,68,0.08)', borderRadius: 4 }}>
+          {uploadError}
         </div>
       )}
 

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { put } from '@vercel/blob'
+import { writeFile, mkdir } from 'fs/promises'
+import { join } from 'path'
 import { randomUUID } from 'crypto'
 
 const ALLOWED_TYPES: Record<string, string> = {
@@ -33,6 +34,12 @@ function validateMagicBytes(buffer: Buffer, mimeType: string): boolean {
     )
   }
   return false
+}
+
+// Accepts local /uploads/ paths (dev) and https:// URLs (production blob storage)
+export function isAllowedImageUrl(url: string): boolean {
+  if (/^\/uploads\/[a-zA-Z0-9_-]{1,100}\/[a-zA-Z0-9_-]{1,200}\.[a-z]{3,4}$/.test(url)) return true
+  try { return new URL(url).protocol === 'https:' } catch { return false }
 }
 
 export async function POST(req: NextRequest) {
@@ -82,7 +89,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'El archivo supera el límite de 5 MB' }, { status: 400 })
   }
 
-  // Read buffer once for magic byte check and upload
+  // Read buffer once for magic byte check and save
   const buffer = Buffer.from(await file.arrayBuffer())
 
   // Validate magic bytes — ensures the file content matches the claimed type
@@ -94,16 +101,14 @@ export async function POST(req: NextRequest) {
   }
 
   const filename = `${randomUUID()}.${ext}`
+  const uploadDir = join(process.cwd(), 'public', 'uploads', dealId)
 
   try {
-    const blob = await put(`uploads/${dealId}/${filename}`, buffer, {
-      access: 'public',
-      contentType: file.type,
-      addRandomSuffix: false,
-    })
-    return NextResponse.json({ url: blob.url })
+    await mkdir(uploadDir, { recursive: true })
+    await writeFile(join(uploadDir, filename), buffer)
+    return NextResponse.json({ url: `/uploads/${dealId}/${filename}` })
   } catch (err) {
-    console.error('[upload] blob error', err)
+    console.error('[upload] write error', err)
     return NextResponse.json({ error: 'Error al guardar el archivo' }, { status: 500 })
   }
 }

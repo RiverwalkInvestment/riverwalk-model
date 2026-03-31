@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { isAllowedImageUrl } from '@/app/api/upload/route'
 import type { Session } from 'next-auth'
 
 function safeParseJSON(str: string, fallback: unknown) {
@@ -47,14 +48,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (body.photos !== undefined && Array.isArray(body.photos)) {
     const validated = (body.photos as unknown[])
       .slice(0, 6)
-      .filter((p) => { try { return new URL(String(p)).protocol === 'https:' } catch { return false } })
+      .filter((p) => isAllowedImageUrl(String(p)))
       .map((p) => String(p))
     updates.photos = JSON.stringify(validated)
   }
   if (body.plans !== undefined && Array.isArray(body.plans)) {
     const validated = (body.plans as unknown[])
       .slice(0, 6)
-      .filter((p) => { try { return new URL(String(p)).protocol === 'https:' } catch { return false } })
+      .filter((p) => isAllowedImageUrl(String(p)))
       .map((p) => String(p))
     updates.plans = JSON.stringify(validated)
   }
