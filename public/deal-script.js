@@ -3467,6 +3467,30 @@ function handleRWCompPaste(text) {
 // ══════════════════════════════════════════════════
 const PORTAL_DISCOUNT_DEFAULT = 8;
 
+// Microzone adjustment data (base/atico/atico_sin are % premiums relative to zone avg price)
+const MICROZONE_DATA = [
+  {z:'Jerónimos',      tier:'AA', base:20,  atico:15, atico_sin:10},
+  {z:'Recoletos',      tier:'AA', base:18,  atico:12, atico_sin:9 },
+  {z:'Cortes / Huertas', tier:'AA', base:16, atico:10, atico_sin:7},
+  {z:'Justicia',       tier:'AA', base:14,  atico:12, atico_sin:7 },
+  {z:'Almagro',        tier:'AA', base:16,  atico:14, atico_sin:7 },
+  {z:'Palacio / Ópera',tier:'A',  base:8,   atico:14, atico_sin:7 },
+  {z:'Pintor Rosales', tier:'A',  base:12,  atico:14, atico_sin:7 },
+  {z:'Serrano / Goya', tier:'A',  base:10,  atico:12, atico_sin:6 },
+  {z:'Ibiza',          tier:'A',  base:8,   atico:12, atico_sin:6 },
+  {z:'Trafalgar',      tier:'A',  base:7,   atico:10, atico_sin:5 },
+  {z:'Chueca',         tier:'A',  base:6,   atico:10, atico_sin:5 },
+  {z:'Malasaña',       tier:'A',  base:4,   atico:10, atico_sin:5 },
+  {z:'Lista / Ayala',  tier:'B',  base:0,   atico:8,  atico_sin:4 },
+  {z:'Ríos Rosas',     tier:'B',  base:0,   atico:8,  atico_sin:4 },
+  {z:'Retiro sur',     tier:'B',  base:2,   atico:8,  atico_sin:4 },
+  {z:'Argüelles centro',tier:'B', base:2,   atico:8,  atico_sin:4 },
+  {z:'Sol / Gran Vía', tier:'B',  base:0,   atico:6,  atico_sin:3 },
+  {z:'Goya periferia', tier:'B',  base:-5,  atico:6,  atico_sin:3 },
+  {z:'Pacífico',       tier:'C',  base:-8,  atico:5,  atico_sin:2 },
+  {z:'Lavapiés',       tier:'C',  base:-12, atico:5,  atico_sin:2 },
+];
+
 // Planta adjustment map
 const PLANTA_ADJ = { bajo:-0.12, entre:-0.07, '1sin':-0.05, base:0, alta:0.04, muyalta:0.07 };
 // Orientation adjustment map
