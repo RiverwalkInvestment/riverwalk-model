@@ -2162,6 +2162,9 @@ function buildSlides(m, d) {
   const photo = (arr, idx, style='') => (arr||[])[idx]
     ? `<img src="${arr[idx].dataUrl}" style="object-fit:cover;${style}">`
     : `<div style="${style};background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:rgba(255,255,255,0.15)">Sin imagen</span></div>`;
+  const photoLabel = (arr, idx, style='', label='') => (arr||[])[idx]
+    ? `<img src="${arr[idx].dataUrl}" style="object-fit:cover;${style}">`
+    : `<div style="${style};background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><span style="font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.2)">FOTO</span>${label?`<span style="font-size:10px;color:rgba(255,255,255,0.15)">(${label})</span>`:''}</div>`;
 
   const addr    = [S('dealAddress'), S('dealCP'), S('dealMunicipio')].filter(Boolean).join(' · ');
   const mz      = document.getElementById('microzona')?.value || '';
@@ -2204,15 +2207,13 @@ function buildSlides(m, d) {
 
   // ── PORTADA ──────────────────────────────────────────────────────────────
   slides.push({ id:'portada', html: baseCSS + `
-    <div class="full">
-      ${d.photos[0] ? `<img src="${d.photos[0].dataUrl}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.2">` : ''}
-      <div style="position:absolute;inset:0;background:linear-gradient(160deg,rgba(10,11,15,0.97) 45%,rgba(10,11,15,0.75))"></div>
-      <div class="inner" style="position:relative;justify-content:space-between">
+    <div class="full" style="display:grid;grid-template-columns:1fr 42%">
+      <div class="inner" style="justify-content:space-between">
         <div></div>
         <div>
           <div class="ps-tag ps-anim" style="animation-delay:0.1s">Oportunidad de inversión</div>
           <div class="ps-h1 ps-anim" style="animation-delay:0.2s;font-size:56px">${S('dealName') || 'Activo prime Madrid'}</div>
-          <div style="font-size:14px;color:rgba(255,255,255,0.4);margin-top:4px" class="ps-anim" style="animation-delay:0.3s">${addr}</div>
+          <div style="font-size:14px;color:rgba(255,255,255,0.4);margin-top:4px" class="ps-anim">${addr}</div>
           ${mz ? `<div class="ps-anim" style="animation-delay:0.35s;margin-top:12px;display:inline-flex;align-items:center;gap:8px;padding:5px 14px;background:rgba(139,105,20,0.18);border:1px solid rgba(196,151,90,0.4)">
             <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(196,151,90,0.8)">${mz}</span>
             <span style="width:1px;height:12px;background:rgba(196,151,90,0.3)"></span>
@@ -2220,7 +2221,7 @@ function buildSlides(m, d) {
           </div>` : ''}
         </div>
         <div class="ps-div"></div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:40px" class="ps-anim" style="animation-delay:0.4s">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:40px" class="ps-anim">
           ${[
             ['Inversión total', fmt2(m.totalInvest)],
             ['Precio salida base', fmt2(m.base.saleGross)],
@@ -2228,6 +2229,9 @@ function buildSlides(m, d) {
           ].map(([l,v],i) => `<div class="ps-kv"><div class="ps-kv-v" style="${i===2?'color:rgba(196,151,90,0.9)':''}">${v}</div><div class="ps-kv-l">${l}</div></div>`).join('')}
         </div>
         <div style="font-size:9px;color:rgba(255,255,255,0.2);letter-spacing:0.1em">${new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'})}</div>
+      </div>
+      <div style="position:relative;overflow:hidden">
+        ${photoLabel(d.photos, 0, 'position:absolute;inset:0;width:100%;height:100%', 'Fachada exterior')}
       </div>
     </div>` });
 
@@ -2248,12 +2252,14 @@ function buildSlides(m, d) {
         </div>
       </div>
       <div style="flex:0 0 42%;display:flex;flex-direction:column;gap:6px">
-        <div style="flex:2;overflow:hidden;min-height:0">${photo(d.photos, 0, 'width:100%;height:100%')}</div>
+        <div style="flex:2;overflow:hidden;min-height:0">${photoLabel(d.plans, 0, 'width:100%;height:100%', 'Plano actual')}</div>
         <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:6px;min-height:0">
-          ${photo(d.photos, 1, 'width:100%;height:100%')}
-          ${(d.plans||[]).length > 0
-            ? `<img src="${d.plans[0].dataUrl}" style="width:100%;height:100%;object-fit:contain;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">`
-            : photo(d.photos, 2, 'width:100%;height:100%')}
+          ${photoLabel(d.photos, 0, 'width:100%;height:100%', 'Salón')}
+          ${photoLabel(d.photos, 1, 'width:100%;height:100%', 'Cocina')}
+        </div>
+        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:6px;min-height:0">
+          ${photoLabel(d.photos, 2, 'width:100%;height:100%', 'Dormitorio')}
+          ${photoLabel(d.photos, 3, 'width:100%;height:100%', 'Baño')}
         </div>
       </div>
     </div>` });
@@ -2411,38 +2417,25 @@ function buildSlides(m, d) {
   // ── EL PROYECTO ──────────────────────────────────────────────────────────
   const mats = d.materials || [];
   slides.push({ id:'proyecto', html: baseCSS + `
-    <div class="inner" style="padding:36px 48px">
-      <div class="ps-tag">El proyecto</div>
-      <div class="ps-h2">Reforma integral · Paleta de calidades</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:36px;flex:1;align-items:start">
-        <div>
-          <div class="ps-body" style="margin-bottom:20px">${d.narrative?.proyecto || '<span style="opacity:0.25">Genera la tesis del proyecto con ✦ Narrativa IA</span>'}</div>
-          <div style="display:flex;flex-direction:column;gap:6px">
-            ${[
-              ['Obra', V('obraM2').toLocaleString('es-ES') + ' €/m² + IVA'],
-              ['Interiorismo', V('decoM2').toLocaleString('es-ES') + ' €/m² + IVA'],
-              ['CapEx total', fmt2(m.capexNet * (1 + V('ivaObra')/100))],
-              ['Superficie reforma', m.surfCapex + ' m²'],
-            ].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:9px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);font-size:12px">
-              <span style="color:rgba(255,255,255,0.45)">${l}</span>
-              <span style="font-family:'DM Mono',monospace;color:#fff">${v}</span>
-            </div>`).join('')}
-          </div>
-          ${(d.plans||[]).length > 0 ? `<div style="margin-top:14px;overflow:hidden;aspect-ratio:16/9">
-            <img src="${d.plans[0].dataUrl}" style="width:100%;height:100%;object-fit:contain;background:rgba(255,255,255,0.02)">
-          </div>` : ''}
+    <div class="inner" style="flex-direction:row;gap:36px;padding:36px 48px">
+      <div style="flex:1;display:flex;flex-direction:column;gap:0">
+        <div class="ps-tag">El proyecto</div>
+        <div class="ps-h2">Reforma integral · Paleta de calidades</div>
+        <div class="ps-body" style="margin-bottom:20px">${d.narrative?.proyecto || '<span style="opacity:0.25">Genera la tesis del proyecto con ✦ Narrativa IA</span>'}</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${[
+            ['Obra', V('obraM2').toLocaleString('es-ES') + ' €/m² + IVA'],
+            ['Interiorismo', V('decoM2').toLocaleString('es-ES') + ' €/m² + IVA'],
+            ['CapEx total', fmt2(m.capexNet * (1 + V('ivaObra')/100))],
+            ['Superficie reforma', m.surfCapex + ' m²'],
+          ].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:9px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);font-size:12px">
+            <span style="color:rgba(255,255,255,0.45)">${l}</span>
+            <span style="font-family:'DM Mono',monospace;color:#fff">${v}</span>
+          </div>`).join('')}
         </div>
-        <div>
-          ${mats.length > 0 ? `<div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:10px">Selección de acabados</div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">
-            ${mats.slice(0,9).map(mat=>`<div style="position:relative;aspect-ratio:1;overflow:hidden;background:rgba(255,255,255,0.03)">
-              <img src="${mat.dataUrl}" style="width:100%;height:100%;object-fit:cover">
-              <div style="position:absolute;bottom:0;left:0;right:0;padding:4px 6px;background:rgba(0,0,0,0.7)">
-                <div style="font-size:9px;color:rgba(255,255,255,0.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mat.label||'Material'}</div>
-              </div>
-            </div>`).join('')}
-          </div>` : `<div style="color:rgba(255,255,255,0.2);font-size:12px;font-style:italic;padding:20px 0">Sube fotos de materiales en el Dossier → Paleta de calidades.</div>`}
-        </div>
+      </div>
+      <div style="flex:0 0 44%;position:relative;overflow:hidden">
+        ${photoLabel(d.plans, 0, 'position:absolute;inset:0;width:100%;height:100%', 'Plano objetivo')}
       </div>
     </div>` });
 
