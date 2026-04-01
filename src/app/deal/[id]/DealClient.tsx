@@ -1454,7 +1454,11 @@ export default function DealClient({
     const regScript = document.createElement('script')
     regScript.src = '/deal-registro.js'
 
-    // 2. Load Leaflet CDN (maps)
+    // 2. Load Leaflet CSS + JS CDN (maps)
+    const leafletLink = document.createElement('link')
+    leafletLink.rel = 'stylesheet'
+    leafletLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'
+    document.head.appendChild(leafletLink)
     const leafletScript = document.createElement('script')
     leafletScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'
 
