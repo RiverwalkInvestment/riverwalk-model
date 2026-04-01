@@ -2195,7 +2195,10 @@ function buildSlides(m, d) {
     @keyframes tl-pop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
     @keyframes fade-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
     .ps-anim{animation:fade-up 0.5s ease forwards}
-  </style>`;
+  </style>
+  <div style="position:absolute;bottom:18px;right:28px;z-index:200;pointer-events:none">
+    <img src="/Riverwalk_Logo_Blanco.png" style="height:20px;width:auto;display:block;opacity:0.55">
+  </div>`;
 
   const slides = [];
 
@@ -2205,9 +2208,7 @@ function buildSlides(m, d) {
       ${d.photos[0] ? `<img src="${d.photos[0].dataUrl}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.2">` : ''}
       <div style="position:absolute;inset:0;background:linear-gradient(160deg,rgba(10,11,15,0.97) 45%,rgba(10,11,15,0.75))"></div>
       <div class="inner" style="position:relative;justify-content:space-between">
-        <div style="opacity:0.7">
-          <svg viewBox="0 0 220 32" style="width:140px"><text x="0" y="26" font-family="Cormorant Garamond,serif" font-size="26" fill="#C4975A" font-weight="300" letter-spacing="2">Riverwalk</text></svg>
-        </div>
+        <div></div>
         <div>
           <div class="ps-tag ps-anim" style="animation-delay:0.1s">Oportunidad de inversión</div>
           <div class="ps-h1 ps-anim" style="animation-delay:0.2s;font-size:56px">${S('dealName') || 'Activo prime Madrid'}</div>
