@@ -1,6 +1,5 @@
 'use client'
 import { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react'
-import { createPortal } from 'react-dom'
 import Image from 'next/image'
 
 interface Props {
@@ -1173,15 +1172,16 @@ const DEAL_HTML = `
 </div><!-- END OUTPUT PANEL -->
 </div><!-- END APP BODY -->
 
+`
+
+// Overlay HTML appended directly to document.body so position:fixed works correctly
+// (a parent with overflow:hidden would otherwise clip fixed children).
+const OVERLAY_HTML = `
 <!-- CONSOLIDADO VIEW -->
 <div id="consol-view" class="consol-view" style="padding:24px 28px;max-width:1100px;margin:0 auto">
   <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;font-weight:600" id="consol-proj-name">Proyecto</div>
   <div style="font-size:22px;font-family:'Cormorant Garamond',serif;color:var(--text-b);margin-bottom:20px">Análisis consolidado</div>
-
-  <!-- KPI strip consolidado -->
   <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line);margin-bottom:20px" id="consol-kpis"></div>
-
-  <!-- Units table -->
   <div style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-d);margin-bottom:8px;font-weight:500">Desglose por unidad</div>
   <div style="border:1px solid var(--line);margin-bottom:20px">
     <div class="cu-row header">
@@ -1190,8 +1190,6 @@ const DEAL_HTML = `
     <div id="consol-units-rows"></div>
     <div class="cu-row" style="font-weight:600;background:rgba(139,105,20,0.08);border-top:1px solid rgba(139,105,20,0.25)" id="consol-total-row"></div>
   </div>
-
-  <!-- Carry consolidado -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
     <div style="background:var(--d3);border:1px solid var(--line);padding:16px">
       <div style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;font-weight:600">Carry consolidado — sobre el conjunto</div>
@@ -1202,15 +1200,13 @@ const DEAL_HTML = `
       <div id="consol-cashflow" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text-d);line-height:2;font-feature-settings:'tnum' 1"></div>
     </div>
   </div>
-
   <div style="font-size:9.5px;color:var(--text-d);padding:10px 12px;background:var(--d4);border-left:2px solid var(--gold-d);line-height:1.7">
-    Management fee y carry calculados sobre el <strong style="color:var(--text-b)">conjunto del proyecto</strong>, no por unidad individual. Los fees de cada deal individual se ignoran en el consolidado.
+    Management fee y carry calculados sobre el <strong style="color:var(--text-b)">conjunto del proyecto</strong>, no por unidad individual.
   </div>
 </div>
 
 <!-- PRESENTATION MODE -->
 <div id="presentation-mode" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:9000;background:#0F1014;font-family:'Raleway',sans-serif;overflow:hidden">
-  <!-- Top bar -->
   <div style="position:absolute;top:0;left:0;right:0;height:48px;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:2;border-bottom:1px solid rgba(139,105,20,0.25)">
     <div style="display:flex;align-items:center;gap:16px">
       <span id="pres-slide-label" style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.4)">01 / 09</span>
@@ -1222,9 +1218,7 @@ const DEAL_HTML = `
       <button onclick="closePresentation()" style="background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.5);padding:6px 14px;cursor:pointer;font-size:10px;letter-spacing:0.1em;text-transform:uppercase">✕ Cerrar</button>
     </div>
   </div>
-  <!-- Slide content -->
   <div id="pres-slide" style="position:absolute;top:48px;left:0;right:0;bottom:40px;overflow:hidden"></div>
-  <!-- Bottom progress bar -->
   <div style="position:absolute;bottom:0;left:0;right:0;height:40px;background:rgba(0,0,0,0.5);display:flex;align-items:center;padding:0 24px;gap:8px" id="pres-dots"></div>
 </div>
 
@@ -1237,7 +1231,6 @@ const DEAL_HTML = `
     </div>
     <button onclick="closeAITerminal()" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:18px;cursor:pointer;padding:0 4px">×</button>
   </div>
-  <!-- Quick generate buttons -->
   <div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;flex-wrap:wrap;gap:5px">
     <span style="font-size:8.5px;color:rgba(255,255,255,0.3);width:100%;margin-bottom:2px">Generación rápida →</span>
     <button onclick="aiQuickGen('activo')"   class="ai-quick-btn">Activo</button>
@@ -1247,9 +1240,7 @@ const DEAL_HTML = `
     <button onclick="aiQuickGen('tesis')"    class="ai-quick-btn">Tesis</button>
     <button onclick="aiQuickGen('todo')"     class="ai-quick-btn" style="border-color:rgba(139,105,20,0.5);color:var(--gold)">✦ Todo</button>
   </div>
-  <!-- Chat messages -->
   <div id="ai-messages" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;font-size:11.5px;line-height:1.65"></div>
-  <!-- Input -->
   <div style="padding:10px 12px;border-top:1px solid rgba(255,255,255,0.06);display:flex;gap:8px">
     <input id="ai-input" type="text" placeholder="Refina o pide algo específico…"
       onkeydown="if(event.key==='Enter')sendAIMessage()"
@@ -1260,7 +1251,6 @@ const DEAL_HTML = `
 
 <!-- INTELLIGENCE PLATFORM -->
 <div id="intel-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:9100;background:#0a0b0f;font-family:'Raleway',sans-serif;overflow:hidden;">
-  <!-- Topbar -->
   <div style="height:52px;background:rgba(120,60,200,0.12);border-bottom:1px solid rgba(160,100,240,0.2);display:flex;align-items:center;justify-content:space-between;padding:0 28px;flex-shrink:0">
     <div style="display:flex;align-items:center;gap:20px">
       <div style="font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:rgba(160,100,240,0.8);font-weight:600">⬡ Riverwalk Intelligence</div>
@@ -1268,10 +1258,8 @@ const DEAL_HTML = `
     </div>
     <button onclick="closeIntelligence()" style="background:rgba(255,255,255,0.06);border:none;color:rgba(255,255,255,0.4);padding:6px 16px;cursor:pointer;font-size:10px;letter-spacing:0.1em;text-transform:uppercase">✕ Cerrar</button>
   </div>
-  <!-- Content area -->
   <div id="intel-content" style="flex:1;overflow-y:auto;padding:28px 32px"></div>
 </div>
-
 `
 
 // Module-level flag: prevents createAndGo from firing more than once at a time,
@@ -1293,11 +1281,10 @@ export default function DealClient({
   const [mobileView, setMobileView] = useState<'input' | 'output'>('input')
   const [displayName, setDisplayName] = useState(initialName)
   const scriptInjected = useRef(false)
-  const [uploadContainer, setUploadContainer] = useState<Element | null>(null)
   const renderDbTabsRef = useRef<(() => void) | null>(null)
   const saveRef = useRef<(() => Promise<void>) | null>(null)
   // Ref for the deal HTML wrapper — we set innerHTML here exactly once so that
-  // React re-renders (mobileView toggle, save state, uploadContainer, etc.)
+  // React re-renders (mobileView toggle, save state, etc.)
   // NEVER reset the DOM and lose the user's typed values.
   const dealWrapperRef = useRef<HTMLDivElement>(null)
 
@@ -1445,16 +1432,6 @@ export default function DealClient({
       scriptInjected.current = true
       // Re-attach renderDbTabs ref from the previous mount's closure (exposed on window)
       if (w.__rwRenderDbTabs) renderDbTabsRef.current = w.__rwRenderDbTabs
-      // Re-create upload container if it was lost on remount
-      if (!document.getElementById('upload-section')) {
-        const inputPanel = document.querySelector('.input-panel')
-        if (inputPanel) {
-          const container = document.createElement('div')
-          container.id = 'upload-section'
-          inputPanel.appendChild(container)
-          setUploadContainer(container)
-        }
-      }
       // Refresh output and tabs on remount so nothing appears blank
       setTimeout(() => { renderDbTabsRef.current?.(); w.update?.() }, 0)
       const interval = setInterval(() => saveRef.current?.(), 60_000)
@@ -1639,15 +1616,6 @@ export default function DealClient({
     document.body.appendChild(html2canvasScript)
     document.body.appendChild(jspdfScript)
 
-    // Create upload container inside input panel
-    const inputPanel = document.querySelector('.input-panel')
-    if (inputPanel) {
-      const container = document.createElement('div')
-      container.id = 'upload-section'
-      inputPanel.appendChild(container)
-      setUploadContainer(container)
-    }
-
     // Autosave every 60 seconds — call via ref so it always uses the latest closure
     saveRef.current = save
     const interval = setInterval(() => saveRef.current?.(), 60_000)
@@ -1671,6 +1639,18 @@ export default function DealClient({
     }, 50)
     return () => clearTimeout(timer)
   }, [mobileView])
+
+  // Append fixed overlays directly to document.body so position:fixed escapes
+  // the overflow:hidden parent and renders as true full-screen elements.
+  useEffect(() => {
+    const OVERLAY_IDS = ['consol-view', 'presentation-mode', 'ai-terminal', 'intel-overlay']
+    // Skip if already injected (strict-mode double-mount / HMR)
+    if (document.getElementById('presentation-mode')) return
+    const tmp = document.createElement('div')
+    tmp.innerHTML = OVERLAY_HTML
+    while (tmp.firstChild) document.body.appendChild(tmp.firstChild)
+    return () => { OVERLAY_IDS.forEach(id => document.getElementById(id)?.remove()) }
+  }, [])
 
   return (
     <>
@@ -1697,6 +1677,16 @@ export default function DealClient({
         </div>
 
         <div className="topbar-right">
+          <button
+            id="dark-toggle"
+            className="btn"
+            onClick={() => { if (typeof window !== 'undefined' && (window as any).toggleDarkMode) (window as any).toggleDarkMode() }}
+            title="Modo oscuro"
+            style={{ fontSize: 14, padding: '4px 10px', minWidth: 0 }}
+          >
+            ◑
+          </button>
+          <div className="topbar-sep" />
           <div className="status-dot" />
           <div className="status-lbl">Tiempo real</div>
           <div className="topbar-sep" />
@@ -1813,188 +1803,7 @@ export default function DealClient({
         style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}
       />
 
-      {/* ── Image upload portal inside .input-panel ─────────────────────── */}
-      {uploadContainer && createPortal(
-        <div style={{ borderTop: '1px solid var(--line2)', padding: '0 0 16px' }}>
-          <div className="isec-hd" style={{ cursor: 'default' }}>
-            <span className="isec-lbl">Imágenes del activo</span>
-          </div>
-          <div className="ibody" style={{ paddingTop: 12 }}>
-            <ImageUploadSection
-              dealId={dealId}
-              label="Fotos del activo"
-              images={photos}
-              onImagesChange={setPhotos}
-              min={3}
-              max={6}
-            />
-            <ImageUploadSection
-              dealId={dealId}
-              label="Planos"
-              images={plans}
-              onImagesChange={setPlans}
-              min={1}
-              max={6}
-            />
-          </div>
-        </div>,
-        uploadContainer
-      )}
     </>
   )
 }
 
-// ── Inline image upload section ─────────────────────────────────────────────
-
-interface UploadSectionProps {
-  dealId: string
-  label: string
-  images: string[]
-  onImagesChange: (images: string[]) => void
-  min: number
-  max: number
-}
-
-function ImageUploadSection({ dealId, label, images, onImagesChange, min, max }: UploadSectionProps) {
-  const [uploading, setUploading] = useState(false)
-  const [dragOver, setDragOver] = useState(false)
-  const [uploadError, setUploadError] = useState<string | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  async function handleFiles(files: FileList) {
-    setUploading(true)
-    setUploadError(null)
-    const newUrls: string[] = []
-    let lastError: string | null = null
-    for (let i = 0; i < files.length && images.length + newUrls.length < max; i++) {
-      const formData = new FormData()
-      formData.append('file', files[i])
-      formData.append('dealId', dealId)
-      try {
-        const res = await fetch('/api/upload', { method: 'POST', body: formData })
-        if (res.ok) {
-          const { url } = await res.json() as { url: string }
-          newUrls.push(url)
-        } else {
-          const data = await res.json().catch(() => ({})) as { error?: string }
-          lastError = data.error ?? `Error ${res.status}`
-        }
-      } catch {
-        lastError = 'Error de red al subir el archivo'
-      }
-    }
-    if (newUrls.length > 0) onImagesChange([...images, ...newUrls])
-    if (lastError && newUrls.length === 0) setUploadError(lastError)
-    setUploading(false)
-    if (inputRef.current) inputRef.current.value = ''
-  }
-
-  function removeImage(index: number) {
-    onImagesChange(images.filter((_, i) => i !== index))
-  }
-
-  const countColor = images.length >= min ? 'var(--green, #22c55e)' : 'var(--amber, #f59e0b)'
-
-  return (
-    <div style={{ marginBottom: 24 }}>
-      <div className="idivider">
-        {label}{'  '}
-        <span style={{ color: countColor, fontVariantNumeric: 'tabular-nums' }}>
-          {images.length}/{max}
-        </span>
-      </div>
-
-      {images.length > 0 && (
-        <div
-          className="image-upload-grid"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 8,
-            marginBottom: 8,
-          }}
-        >
-          {images.map((url, i) => (
-            <div
-              key={url}
-              style={{ position: 'relative', aspectRatio: '4/3', borderRadius: 6, overflow: 'hidden', background: 'var(--d2)' }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={url}
-                alt={`${label} ${i + 1}`}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-              <button
-                className="image-delete-btn"
-                onClick={() => removeImage(i)}
-                style={{
-                  position: 'absolute',
-                  top: 4,
-                  right: 4,
-                  background: 'rgba(0,0,0,0.6)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: 22,
-                  height: 22,
-                  cursor: 'pointer',
-                  fontSize: 14,
-                  lineHeight: '22px',
-                  textAlign: 'center',
-                  padding: 0,
-                }}
-                title="Eliminar"
-              >
-                ×
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {images.length < max && (
-        <div
-          onClick={() => inputRef.current?.click()}
-          onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={e => {
-            e.preventDefault()
-            setDragOver(false)
-            if (e.dataTransfer.files) handleFiles(e.dataTransfer.files)
-          }}
-          style={{
-            border: `2px dashed ${dragOver ? 'var(--gold)' : 'var(--line)'}`,
-            borderRadius: 8,
-            padding: '16px 12px',
-            textAlign: 'center',
-            cursor: 'pointer',
-            color: 'var(--text-d)',
-            fontSize: 13,
-            background: dragOver ? 'var(--d2)' : 'transparent',
-            transition: 'border-color 0.15s, background 0.15s',
-          }}
-        >
-          {uploading
-            ? 'Subiendo…'
-            : `Añadir ${label.toLowerCase()} · arrastra o haz clic (máx. ${max})`}
-        </div>
-      )}
-
-      {uploadError && (
-        <div style={{ fontSize: 11, color: 'var(--red, #ef4444)', marginTop: 6, padding: '4px 8px', background: 'rgba(239,68,68,0.08)', borderRadius: 4 }}>
-          {uploadError}
-        </div>
-      )}
-
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        multiple
-        style={{ display: 'none' }}
-        onChange={e => e.target.files && handleFiles(e.target.files)}
-      />
-    </div>
-  )
-}
