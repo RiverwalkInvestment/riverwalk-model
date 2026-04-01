@@ -12,7 +12,29 @@ interface Props {
 }
 
 // Original deal modeler HTML body (tabs-bar + app-body)
-const DEAL_HTML = `<div id="tabs-bar" class="tabs-bar"></div>
+const DEAL_HTML = `
+<div id="print-cover" style="display:none;padding:32px 40px 24px;border-bottom:3px solid var(--gold);margin-bottom:0;background:#fff">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div>
+      <img id="print-logo" style="height:24px;mix-blend-mode:multiply" alt="Riverwalk">
+      <div style="font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text-d);margin-top:6px">Real Estate Investments</div>
+    </div>
+    <div style="text-align:right">
+      <div id="print-dealname" style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:400;color:var(--text-b);line-height:1.1"></div>
+      <div id="print-dealaddr" style="font-size:10px;color:var(--text-d);margin-top:3px"></div>
+      <div id="print-fecha" style="font-size:10.5px;color:var(--text-d);margin-top:2px;font-family:'DM Mono',monospace"></div>
+      <div id="print-mode" style="display:inline-block;margin-top:8px;background:var(--d3);color:var(--text-d);font-size:8px;letter-spacing:0.15em;text-transform:uppercase;padding:3px 10px;border-left:2px solid var(--gold)"></div>
+    </div>
+  </div>
+</div>
+
+<div id="print-footer" style="display:none;position:fixed;bottom:0;left:0;right:0;padding:8px 32px;background:var(--d3);border-top:1px solid var(--line);justify-content:space-between;align-items:center;font-size:8px;color:var(--text-d);letter-spacing:0.1em">
+  <img style="height:12px;mix-blend-mode:multiply;opacity:0.5" id="print-footer-logo" alt="Riverwalk">
+  <span id="print-footer-mid">Riverwalk Real Estate Investments · Confidencial</span>
+  <span id="print-footer-right"></span>
+</div>
+
+<div id="tabs-bar" class="tabs-bar"></div>
 
 <div class="app-body">
 
@@ -32,7 +54,47 @@ const DEAL_HTML = `<div id="tabs-bar" class="tabs-bar"></div>
       <div class="toggle-row" style="margin-bottom:0">
         <button class="toggle-btn active" id="mode-reforma-btn" onclick="setDealMode('reforma')">🔨 Reforma integral</button>
         <button class="toggle-btn" id="mode-pase-btn" onclick="setDealMode('pase')">⚡ Pase</button>
+        <button class="toggle-btn" id="mode-edificio-btn" onclick="setDealMode('edificio')">🏢 Edificio</button>
       </div>
+
+      <div id="edificio-panel" style="display:none">
+        <div style="font-size:10.5px;color:var(--text-d);margin:6px 0 10px;padding:8px 10px;background:rgba(139,105,20,0.07);border-left:2px solid var(--gold);line-height:1.7">
+          <strong style="color:var(--gold)">Modo edificio:</strong> precio de compra único para el edificio. Define las unidades con su superficie y precio de salida. CapEx pro-rata de superficie, ajustable por unidad. Gastos (ITP, notaría) pro-rata.
+        </div>
+        <div class="irow">
+          <div class="field"><label>Precio compra edificio (€)</label><input type="text" id="edifBuyPrice" data-fmt="money" value="3000000" oninput="updateEdificio()"></div>
+          <div class="field"><label>ITP (%)</label><input type="number" id="edifItpPct" value="6" step="0.1" oninput="updateEdificio()"></div>
+        </div>
+        <div class="irow">
+          <div class="field"><label>CapEx €/m² (reforma)</label><input type="number" id="edifObraM2" value="1800" oninput="updateEdificio()"></div>
+          <div class="field"><label>Decoración €/m²</label><input type="number" id="edifDecoM2" value="400" oninput="updateEdificio()"></div>
+        </div>
+        <div class="irow">
+          <div class="field"><label>Meses escritura → venta primera unidad</label><input type="number" id="edifMesesObra" value="14" oninput="updateEdificio()"></div>
+          <div class="field"><label>Intervalo entre ventas (meses)</label><input type="number" id="edifMesesIntervalo" value="2" oninput="updateEdificio()"></div>
+        </div>
+        <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-d);margin:12px 0 6px;font-weight:500">Unidades del edificio</div>
+        <div class="edificio-units">
+          <div class="eu-row header">
+            <div>Nombre / uso</div><div style="text-align:center">m²</div><div style="text-align:right">€/m² salida</div><div style="text-align:right">CapEx override</div><div style="text-align:right">Precio venta</div><div></div>
+          </div>
+          <div id="edificio-units-rows"></div>
+          <div class="eu-total" id="edificio-units-total">
+            <div style="color:var(--text-d)">TOTAL</div><div id="edif-total-m2" style="text-align:center">—</div><div></div><div id="edif-total-capex" style="text-align:right">—</div><div id="edif-total-venta" style="text-align:right;color:var(--gold)">—</div><div></div>
+          </div>
+        </div>
+        <button onclick="addEdificioUnit()"
+          style="margin-top:8px;width:100%;background:var(--d4);border:1px dashed var(--d6);color:var(--text-d);
+                 font-family:'Raleway',sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;
+                 padding:8px;cursor:pointer">
+          + Añadir unidad / amenity
+        </button>
+        <div style="margin-top:14px;padding:12px;background:var(--d3);border:1px solid var(--line)">
+          <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-d);margin-bottom:8px">Resumen del proyecto</div>
+          <div id="edificio-summary" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text-d);line-height:2;font-feature-settings:'tnum' 1"></div>
+        </div>
+      </div>
+
       <div id="pase-note" style="display:none;font-size:9px;color:var(--text-d);margin-top:8px;padding:8px 10px;background:rgba(139,105,20,0.07);border-left:2px solid var(--gold);line-height:1.7">
         <strong style="color:var(--gold)">Modo pase:</strong> sin CapEx ni reforma. Solo compra y venta rápida. El carry es un porcentaje fijo sobre el beneficio bruto.
       </div>
@@ -41,9 +103,15 @@ const DEAL_HTML = `<div id="tabs-bar" class="tabs-bar"></div>
       <div class="irow full">
         <div class="field">
           <label>Dirección completa</label>
-          <input id="dealAddress" value="Calle Cedaceros 8" oninput="update()"
-            onblur="geocodeAddress()"
-            placeholder="Calle, número — al salir del campo busca el CP">
+          <div style="position:relative">
+            <input id="dealAddress" value="Calle Cedaceros 8"
+              oninput="update();rwAcQuery(this.value)"
+              onblur="geocodeAddress();setTimeout(rwAcHide,180)"
+              onkeydown="rwAcKey(event)"
+              placeholder="Calle, número…"
+              autocomplete="off">
+            <div id="rw-ac-dropdown" style="display:none;"></div>
+          </div>
           <div id="geo-status" style="font-size:9px;margin-top:3px;min-height:14px"></div>
         </div>
       </div>
@@ -96,17 +164,82 @@ const DEAL_HTML = `<div id="tabs-bar" class="tabs-bar"></div>
   <!-- SALIDA -->
   <div class="isec">
     <div class="isec-hd" onclick="toggleSec(this)">
-      <span class="isec-lbl">Precios de salida</span>
+      <span class="isec-lbl" id="isec-precios-lbl">Precios de salida</span>
       <span class="isec-arr open">▼</span>
     </div>
     <div class="ibody">
-      <div class="sc-fields" style="margin-bottom:8px">
+      <div class="sc-fields" style="margin-bottom:4px">
         <div class="sc-f p"><label>Pesimista (€/m²)</label><input type="number" id="exitP" value="15000" oninput="update()"></div>
         <div class="sc-f b"><label>Base (€/m²)</label><input type="number" id="exitB" value="16000" oninput="update()"></div>
         <div class="sc-f o"><label>Optimista (€/m²)</label><input type="number" id="exitO" value="17000" oninput="update()"></div>
       </div>
+      <div id="exit-total-display" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+        <div style="text-align:center;font-family:'DM Mono',monospace;font-size:10px;color:var(--red);font-feature-settings:'tnum' 1" id="exit-total-p">—</div>
+        <div style="text-align:center;font-family:'DM Mono',monospace;font-size:10px;color:var(--amber);font-feature-settings:'tnum' 1" id="exit-total-b">—</div>
+        <div style="text-align:center;font-family:'DM Mono',monospace;font-size:10px;color:var(--green);font-feature-settings:'tnum' 1" id="exit-total-o">—</div>
+      </div>
       <div class="irow full">
         <div class="field"><label>Comisión broker salida (%)</label><input type="number" id="brokerExit" value="3" step="0.1" oninput="update()"></div>
+      </div>
+
+      <div class="idivider">Microzona y características del activo <span class="tag-optional">para precio sugerido</span></div>
+      <div style="font-size:10.5px;color:var(--text-d);margin:2px 0 8px;line-height:1.8">
+        Estos datos ajustan el precio sugerido en el motor de valoración. No modifican los campos de precio arriba — tú decides si aplicar la sugerencia.
+      </div>
+      <div class="irow full">
+        <div class="field">
+          <label>Microzona</label>
+          <select id="microzona" onchange="renderPricingEngine()" style="font-size:12px;padding:8px 10px;background:var(--d4);border:1px solid var(--d6);color:var(--text-b)">
+            <option value="">— Sin microzona —</option>
+            <optgroup label="── Tier AA ──">
+              <option>Jerónimos</option><option>Recoletos</option><option>Cortes / Huertas</option><option>Justicia</option><option>Almagro</option>
+            </optgroup>
+            <optgroup label="── Tier A ──">
+              <option>Palacio / Ópera</option><option>Pintor Rosales</option><option>Serrano / Goya</option><option>Ibiza</option><option>Trafalgar</option><option>Chueca</option><option>Malasaña</option>
+            </optgroup>
+            <optgroup label="── Tier B ──">
+              <option>Lista / Ayala</option><option>Ríos Rosas</option><option>Retiro sur</option><option>Argüelles centro</option><option>Sol / Gran Vía</option><option>Goya periferia</option>
+            </optgroup>
+            <optgroup label="── Tier C ──">
+              <option>Pacífico</option><option>Lavapiés</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+      <div class="irow">
+        <div class="field">
+          <label>Tipo de unidad</label>
+          <select id="prop-tipo" onchange="renderPricingEngine()" style="font-size:12px;padding:8px 10px;background:var(--d4);border:1px solid var(--d6);color:var(--text-b)">
+            <option value="piso">Piso</option>
+            <option value="atico_terraza">Ático con terraza</option>
+            <option value="atico_sin">Ático sin terraza</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Orientación</label>
+          <select id="prop-orient" onchange="renderPricingEngine()" style="font-size:12px;padding:8px 10px;background:var(--d4);border:1px solid var(--d6);color:var(--text-b)">
+            <option value="ext_sur">Exterior sur/este</option>
+            <option value="ext_norte">Exterior norte/oeste</option>
+            <option value="int_luminoso">Interior luminoso</option>
+            <option value="int_oscuro">Interior oscuro</option>
+          </select>
+        </div>
+      </div>
+      <div class="irow">
+        <div class="field">
+          <label>Planta</label>
+          <select id="prop-planta" onchange="renderPricingEngine()" style="font-size:12px;padding:8px 10px;background:var(--d4);border:1px solid var(--d6);color:var(--text-b)">
+            <option value="bajo">Bajo / Semisótano (−12%)</option>
+            <option value="entre">Entresuelo / 1ª (−7%)</option>
+            <option value="1sin">2ª sin ascensor (−5%)</option>
+            <option value="base" selected>2ª–3ª con ascensor (base)</option>
+            <option value="alta">4ª–5ª con ascensor (+4%)</option>
+            <option value="muyalta">6ª–7ª con ascensor (+7%)</option>
+          </select>
+        </div>
+        <div id="prop-adj-display" style="display:flex;align-items:flex-end;padding-bottom:2px">
+          <div style="font-size:9.5px;color:var(--text-d);line-height:1.6" id="prop-adj-text">—</div>
+        </div>
       </div>
     </div>
   </div>
@@ -270,43 +403,19 @@ const DEAL_HTML = `<div id="tabs-bar" class="tabs-bar"></div>
         </div>
       </div>
 
-      <div class="idivider">
-        Plusvalía + notaría venta
+      <div class="idivider">Costes de salida variables</div>
+      <div style="font-size:10.5px;color:var(--text-d);margin:2px 0 8px;line-height:1.8">
+        Notaría de venta, plusvalía municipal y otros costes variables al cierre. Estimación manual por operación.
       </div>
-      <div class="toggle-row" style="margin-bottom:8px">
-        <button class="toggle-btn active" id="plusvalia-off-btn" onclick="setPlusvaliaMode(false)">Importe manual</button>
-        <button class="toggle-btn" id="plusvalia-on-btn" onclick="setPlusvaliaMode(true)">Calcular automáticamente</button>
-      </div>
-
-      <!-- Modo manual: solo el campo de importe -->
-      <div id="plusvalia-manual-fields">
-        <div class="irow">
-          <div class="field">
-            <label>Plusvalía + notaría venta (€)</label>
-            <input type="text" id="exitFixed" data-fmt="money" value="15000" placeholder="Estimación manual">
-          </div>
-          <div class="field">
-            <label>Ajuste (€) <span class="tag-optional">±</span></label>
-            <input type="text" id="exitFixedAjuste" data-fmt="money" value="0" placeholder="0">
-          </div>
+      <div class="irow">
+        <div class="field">
+          <label>Notaría venta + otros costes (€)</label>
+          <input type="text" id="exitFixed" data-fmt="money" value="8000" placeholder="Ej: 8.000 €">
         </div>
-      </div>
-
-      <!-- Modo automático: datos catastrales -->
-      <div id="plusvalia-auto-fields" style="display:none">
-        <div style="font-size:10.5px;color:var(--text-d);margin:2px 0 8px;line-height:1.8">
-          Datos del recibo del IBI del inmueble. Calcula la plusvalía municipal (IIVTNU) por el método más favorable (RDL 26/2021).
+        <div class="field">
+          <label>Ajuste (€) <span class="tag-optional">±</span></label>
+          <input type="text" id="exitFixedAjuste" data-fmt="money" value="0" placeholder="0">
         </div>
-        <div class="irow">
-          <div class="field"><label>Valor catastral total (€)</label><input type="text" id="vcTotal" data-fmt="money" value="0" placeholder="Del recibo IBI" oninput="update()"></div>
-          <div class="field"><label>Valor catastral suelo (€)</label><input type="text" id="vcSuelo" data-fmt="money" value="0" placeholder="Del recibo IBI" oninput="update()"></div>
-        </div>
-        <div class="irow">
-          <div class="field"><label>Año adquisición por el vendedor</label><input type="number" id="vcAnyoAdq" value="2010" min="1950" max="2030" oninput="update()"></div>
-          <div class="field"><label>Tipo impositivo plusvalía (%)</label><input type="number" id="plusvaliaTipo" value="29" step="0.5" oninput="update()"></div>
-        </div>
-        <div id="plusvalia-calc-display" style="background:var(--d4);border:1px solid var(--line);padding:10px 12px;margin:8px 0;font-size:10px;font-family:'DM Mono',monospace;line-height:1.9"></div>
-        <div style="font-size:10.5px;color:var(--text-d);margin-top:4px">↑ El importe calculado se aplica automáticamente al campo "Plusvalía + notaría venta" del modo manual.</div>
       </div>
 
       <div class="irow">
@@ -477,8 +586,97 @@ const DEAL_HTML = `<div id="tabs-bar" class="tabs-bar"></div>
     </div>
     <div class="ibody">
       <div style="font-size:10.5px;color:var(--text-d);margin:4px 0 12px;line-height:1.8">
-        Pega el enlace de cualquier anuncio (Idealista, Fotocasa…) y el modelo extrae
-        precio y m² automáticamente. O busca directamente en los datos del Registro.
+        Tres formas de añadir testigos: <strong style="color:var(--text-b)">bookmarklet</strong> desde Idealista/Fotocasa en un clic, <strong style="color:var(--text-b)">Registro</strong> con datos reales de cierre, o <strong style="color:var(--text-b)">entrada rápida</strong> desde el móvil.
+      </div>
+
+      <!-- BOOKMARKLET -->
+      <div style="background:rgba(139,105,20,0.06);border:1px solid rgba(139,105,20,0.2);padding:12px 14px;margin-bottom:12px">
+        <div style="font-size:8.5px;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;font-weight:600">🔖 Bookmarklet — importar desde Idealista / Fotocasa</div>
+        <div style="font-size:10.5px;color:var(--text-d);line-height:1.75;margin-bottom:10px">
+          Instala el botón en Chrome y úsalo en cualquier anuncio para capturar precio, m², planta y orientación en un clic.
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <a id="bookmarklet-link" href="#"
+            style="display:inline-block;background:var(--d5);border:1px solid var(--gold);color:var(--gold);
+                   font-family:'Raleway',sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;
+                   font-weight:600;padding:8px 14px;text-decoration:none;cursor:move;user-select:none;flex-shrink:0"
+            ondragstart="event.dataTransfer.setData('text/plain',this.href)"
+            onclick="alert('Arrastra este botón a la barra de favoritos de Chrome.\\n\\nCuando estés en un anuncio de Idealista o Fotocasa, pulsa ese favorito → los datos se copian al portapapeles → vuelve aquí y pulsa \\'Pegar testigo\\'.');return false;"
+            title="Arrastra a la barra de favoritos de Chrome">
+            📌 Importar testigo
+          </a>
+          <span style="font-size:9px;color:var(--text-d)">← arrastra a Favoritos de Chrome</span>
+        </div>
+      </div>
+
+      <!-- MOBILE QUICK ENTRY -->
+      <div style="margin-bottom:12px">
+        <button onclick="toggleQuickEntry()"
+          style="width:100%;background:var(--d4);border:1px solid var(--line);color:var(--text-d);
+                 font-family:'Raleway',sans-serif;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;
+                 font-weight:600;padding:9px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between">
+          <span>📱 Entrada rápida</span>
+          <span id="quick-entry-arr" style="transition:transform 0.2s">▼</span>
+        </button>
+        <div id="quick-entry-panel" style="display:none;background:var(--d3);border:1px solid var(--line2);border-top:none;padding:14px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div class="field"><label>Precio total (€)</label>
+              <input type="number" id="qe-precio" placeholder="450000" oninput="updateQEPreview()"
+                style="font-size:16px;padding:12px 10px;-webkit-appearance:none"></div>
+            <div class="field"><label>Superficie (m²)</label>
+              <input type="number" id="qe-m2" placeholder="85" oninput="updateQEPreview()"
+                style="font-size:16px;padding:12px 10px;-webkit-appearance:none"></div>
+          </div>
+          <div class="field" style="margin-bottom:8px"><label>Descripción / calle</label>
+            <input type="text" id="qe-desc" placeholder="Ej: Velázquez 12, 3º ext."
+              style="font-size:15px;padding:11px 10px"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div class="field"><label>Estado</label>
+              <select id="qe-tipo" style="font-size:13px;padding:10px 8px;background:var(--d4);border:1px solid var(--d6);color:var(--text-b)">
+                <option value="reformado">Reformado</option>
+                <option value="estreno">Estreno</option>
+                <option value="reformar">A reformar</option>
+              </select></div>
+            <div class="field"><label>Fuente</label>
+              <select id="qe-source" style="font-size:13px;padding:10px 8px;background:var(--d4);border:1px solid var(--d6);color:var(--text-b)">
+                <option>Idealista</option><option>Fotocasa</option><option>Manual</option><option>Registro</option>
+              </select></div>
+          </div>
+          <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:6px;margin-bottom:10px">
+            <div class="field"><label>Planta</label>
+              <input type="number" id="qe-planta" placeholder="—" min="0" max="30"
+                style="font-size:14px;padding:10px 8px;text-align:center"></div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <label style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-d);font-weight:500">Orientación</label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">
+                <button id="qe-ext-btn" onclick="setQEExt(true)"
+                  style="padding:10px 4px;background:rgba(30,122,69,0.25);border:1px solid var(--green);
+                         color:var(--green);font-size:10px;cursor:pointer;font-weight:700">Ext</button>
+                <button id="qe-int-btn" onclick="setQEExt(false)"
+                  style="padding:10px 4px;background:var(--d4);border:1px solid var(--d6);
+                         color:var(--text-d);font-size:10px;cursor:pointer">Int</button>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <label style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-d);font-weight:500">Ascensor</label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">
+                <button id="qe-asc-si" onclick="setQEAsc(true)"
+                  style="padding:10px 4px;background:rgba(30,122,69,0.25);border:1px solid var(--green);
+                         color:var(--green);font-size:10px;cursor:pointer;font-weight:700">Sí</button>
+                <button id="qe-asc-no" onclick="setQEAsc(false)"
+                  style="padding:10px 4px;background:var(--d4);border:1px solid var(--d6);
+                         color:var(--text-d);font-size:10px;cursor:pointer">No</button>
+              </div>
+            </div>
+          </div>
+          <div id="qe-preview" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--gold);
+               margin-bottom:10px;min-height:18px;font-feature-settings:'tnum' 1;text-align:center"></div>
+          <button onclick="addQuickEntry()"
+            style="width:100%;background:var(--gold);border:none;color:#fff;font-family:'Raleway',sans-serif;
+                   font-size:11px;letter-spacing:0.15em;text-transform:uppercase;font-weight:700;padding:13px;cursor:pointer">
+            + Añadir testigo
+          </button>
+        </div>
       </div>
 
       <!-- REGISTRO SEARCH -->
@@ -543,24 +741,19 @@ const DEAL_HTML = `<div id="tabs-bar" class="tabs-bar"></div>
         <div id="registro-stats" style="display:none;margin-top:8px;padding:8px 10px;background:var(--d3);font-size:10.5px;color:var(--text-d);line-height:1.7"></div>
       </div>
 
-      <!-- URL PASTE BAR -->
-      <div style="display:flex;gap:6px;align-items:center;margin-bottom:14px">
-        <input type="url" id="comp-url-input"
-          placeholder="Pega aquí el enlace del anuncio…"
-          style="flex:1;background:var(--d4);border:1px solid var(--gold-d);color:var(--text-b);
-                 font-family:'DM Mono',monospace;font-size:11px;padding:9px 12px;outline:none">
-        <button id="comp-extract-btn" onclick="extractComp()"
-          style="background:var(--gold);border:none;color:#fff;font-family:'Raleway',sans-serif;
-                 font-size:9px;letter-spacing:0.18em;text-transform:uppercase;font-weight:600;
-                 padding:9px 16px;cursor:pointer;white-space:nowrap;transition:all 0.15s;flex-shrink:0">
-          ✦ Extraer datos
+      <!-- BOOKMARKLET PASTE -->
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+        <button type="button" onclick="rwPasteComp()"
+          style="flex:1;background:rgba(139,105,20,0.12);border:1px solid rgba(196,151,90,0.35);
+                 color:var(--gold);font-family:'Raleway',sans-serif;font-size:10px;letter-spacing:0.15em;
+                 text-transform:uppercase;font-weight:600;padding:9px 16px;cursor:pointer">
+          📋 Pegar testigo desde bookmarklet
         </button>
       </div>
       <div id="comp-extract-status" style="font-size:10px;color:var(--text-d);margin-bottom:10px;min-height:16px"></div>
 
       <!-- COMP LIST -->
       <div class="comp-row header">
-        <div></div>
         <div>Descripción</div>
         <div>Estado</div>
         <div>Precio</div>
@@ -570,6 +763,31 @@ const DEAL_HTML = `<div id="tabs-bar" class="tabs-bar"></div>
       </div>
       <div id="comp-rows-input"></div>
       <button class="comp-add-btn" onclick="addComp()">+ Añadir testigo manual</button>
+
+      <!-- PRICING ENGINE OUTPUT -->
+      <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--line2)">
+        <div style="font-size:8.5px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-d);margin-bottom:8px;font-weight:500">Motor de valoración → precios de salida</div>
+        <div id="pricing-engine-output"></div>
+      <!-- PLANS + MATERIALS in dossier -->
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line2)">
+        <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-d);margin-bottom:8px;font-weight:500">Planos y distribución (máx. 3)</div>
+        <div id="dossier-plans-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px"></div>
+        <label style="display:block;width:100%;background:var(--d4);border:1px dashed var(--d6);color:var(--text-d);font-family:'Raleway',sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;padding:8px;cursor:pointer;text-align:center" id="plans-upload-label">
+          + Añadir plano
+          <input type="file" accept="image/*" multiple style="display:none" id="plans-file-input" onchange="handlePlanUpload(this)">
+        </label>
+      </div>
+
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line2)">
+        <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-d);margin-bottom:8px;font-weight:500">Paleta de calidades (máx. 9)</div>
+        <div id="dossier-materials-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px"></div>
+        <label style="display:block;width:100%;background:var(--d4);border:1px dashed var(--d6);color:var(--text-d);font-family:'Raleway',sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;padding:8px;cursor:pointer;text-align:center" id="materials-upload-label">
+          + Añadir material / acabado
+          <input type="file" accept="image/*" multiple style="display:none" id="materials-file-input" onchange="handleMaterialUpload(this)">
+        </label>
+      </div>
+
+      </div>
     </div>
   </div>
 
@@ -627,6 +845,98 @@ const DEAL_HTML = `<div id="tabs-bar" class="tabs-bar"></div>
     </div>
   </div>
 
+  <!-- DOSSIER DE PRESENTACIÓN -->
+  <div class="isec" id="isec-dossier">
+    <div class="isec-hd" onclick="toggleSec(this)">
+      <span class="isec-lbl">Dossier de presentación</span>
+      <span class="isec-arr">▶</span>
+    </div>
+    <div class="ibody" style="display:none">
+      <div style="font-size:10.5px;color:var(--text-d);margin:4px 0 12px;line-height:1.8">
+        Añade fotos y textos narrativos para el modo presentación y el dossier PDF. El botón <strong style="color:var(--gold)">✦ Narrativa IA</strong> genera los textos automáticamente.
+      </div>
+
+      <!-- IMÁGENES DEL DOSSIER -->
+      <div style="margin-bottom:4px;">
+
+        <!-- Fachada -->
+        <div style="font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-d);margin-bottom:6px;font-weight:500">Fachada exterior</div>
+        <div id="rw-dz-fachada"
+          onclick="rwPickImage('fachada')"
+          ondragover="event.preventDefault()"
+          ondrop="rwDropImage(event,'fachada')"
+          style="width:100%;height:100px;background:var(--d4);border:1px dashed var(--d6);cursor:pointer;position:relative;background-size:cover;background-position:center;margin-bottom:10px;">
+          <div class="rw-dz-lbl" style="display:flex;align-items:center;justify-content:center;height:100%;pointer-events:none;">
+            <span style="font-size:9px;color:var(--text-d);letter-spacing:0.1em;">+ Fachada · clic o arrastra</span>
+          </div>
+          <div class="rw-dz-del" onclick="rwClearImage('fachada',0,event)" style="display:none;position:absolute;top:4px;right:4px;width:18px;height:18px;background:rgba(10,11,16,0.8);align-items:center;justify-content:center;cursor:pointer;font-size:10px;color:rgba(255,255,255,0.7);">✕</div>
+        </div>
+
+        <!-- Interiores -->
+        <div style="font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-d);margin-bottom:6px;font-weight:500">Estado actual · interiores (hasta 4)</div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:10px;">
+          <div id="rw-dz-int-0" onclick="rwPickImage('interior',0)" ondragover="event.preventDefault()" ondrop="rwDropImage(event,'interior',0)" style="height:72px;background:var(--d4);border:1px dashed var(--d6);cursor:pointer;position:relative;background-size:cover;background-position:center;"><div class="rw-dz-lbl" style="display:flex;align-items:center;justify-content:center;height:100%;pointer-events:none;"><span style="font-size:8.5px;color:var(--text-d);">+ Salón</span></div><div class="rw-dz-del" onclick="rwClearImage('interior',0,event)" style="display:none;position:absolute;top:3px;right:3px;width:16px;height:16px;background:rgba(10,11,16,0.8);align-items:center;justify-content:center;cursor:pointer;font-size:9px;color:rgba(255,255,255,0.7);">✕</div></div>
+          <div id="rw-dz-int-1" onclick="rwPickImage('interior',1)" ondragover="event.preventDefault()" ondrop="rwDropImage(event,'interior',1)" style="height:72px;background:var(--d4);border:1px dashed var(--d6);cursor:pointer;position:relative;background-size:cover;background-position:center;"><div class="rw-dz-lbl" style="display:flex;align-items:center;justify-content:center;height:100%;pointer-events:none;"><span style="font-size:8.5px;color:var(--text-d);">+ Cocina</span></div><div class="rw-dz-del" onclick="rwClearImage('interior',1,event)" style="display:none;position:absolute;top:3px;right:3px;width:16px;height:16px;background:rgba(10,11,16,0.8);align-items:center;justify-content:center;cursor:pointer;font-size:9px;color:rgba(255,255,255,0.7);">✕</div></div>
+          <div id="rw-dz-int-2" onclick="rwPickImage('interior',2)" ondragover="event.preventDefault()" ondrop="rwDropImage(event,'interior',2)" style="height:72px;background:var(--d4);border:1px dashed var(--d6);cursor:pointer;position:relative;background-size:cover;background-position:center;"><div class="rw-dz-lbl" style="display:flex;align-items:center;justify-content:center;height:100%;pointer-events:none;"><span style="font-size:8.5px;color:var(--text-d);">+ Dormitorio</span></div><div class="rw-dz-del" onclick="rwClearImage('interior',2,event)" style="display:none;position:absolute;top:3px;right:3px;width:16px;height:16px;background:rgba(10,11,16,0.8);align-items:center;justify-content:center;cursor:pointer;font-size:9px;color:rgba(255,255,255,0.7);">✕</div></div>
+          <div id="rw-dz-int-3" onclick="rwPickImage('interior',3)" ondragover="event.preventDefault()" ondrop="rwDropImage(event,'interior',3)" style="height:72px;background:var(--d4);border:1px dashed var(--d6);cursor:pointer;position:relative;background-size:cover;background-position:center;"><div class="rw-dz-lbl" style="display:flex;align-items:center;justify-content:center;height:100%;pointer-events:none;"><span style="font-size:8.5px;color:var(--text-d);">+ Baño</span></div><div class="rw-dz-del" onclick="rwClearImage('interior',3,event)" style="display:none;position:absolute;top:3px;right:3px;width:16px;height:16px;background:rgba(10,11,16,0.8);align-items:center;justify-content:center;cursor:pointer;font-size:9px;color:rgba(255,255,255,0.7);">✕</div></div>
+        </div>
+
+        <!-- Planos -->
+        <div style="font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-d);margin-bottom:6px;font-weight:500">Planos de distribución</div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:8px;">
+          <div id="rw-dz-plano-actual" onclick="rwPickImage('planoActual')" ondragover="event.preventDefault()" ondrop="rwDropImage(event,'planoActual')" style="height:82px;background:var(--d4);border:1px dashed var(--d6);cursor:pointer;position:relative;background-size:contain;background-repeat:no-repeat;background-position:center;"><div class="rw-dz-lbl" style="display:flex;align-items:center;justify-content:center;height:100%;pointer-events:none;"><span style="font-size:8.5px;color:var(--text-d);">+ Plano actual</span></div><div class="rw-dz-del" onclick="rwClearImage('planoActual',0,event)" style="display:none;position:absolute;top:3px;right:3px;width:16px;height:16px;background:rgba(10,11,16,0.8);align-items:center;justify-content:center;cursor:pointer;font-size:9px;color:rgba(255,255,255,0.7);">✕</div></div>
+          <div id="rw-dz-plano-obj" onclick="rwPickImage('planoObjetivo')" ondragover="event.preventDefault()" ondrop="rwDropImage(event,'planoObjetivo')" style="height:82px;background:var(--d4);border:1px dashed rgba(196,151,90,0.35);cursor:pointer;position:relative;background-size:contain;background-repeat:no-repeat;background-position:center;"><div class="rw-dz-lbl" style="display:flex;align-items:center;justify-content:center;height:100%;pointer-events:none;"><span style="font-size:8.5px;color:rgba(196,151,90,0.55);">+ Plano objetivo</span></div><div class="rw-dz-del" onclick="rwClearImage('planoObjetivo',0,event)" style="display:none;position:absolute;top:3px;right:3px;width:16px;height:16px;background:rgba(10,11,16,0.8);align-items:center;justify-content:center;cursor:pointer;font-size:9px;color:rgba(255,255,255,0.7);">✕</div></div>
+        </div>
+
+      </div>
+
+      <!-- NARRATIVES -->
+      <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--line2)">
+        <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-d);margin-bottom:10px;font-weight:500">Textos narrativos</div>
+
+        <div class="field" style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <label style="margin:0">Descripción del activo</label>
+            <button onclick="generateNarrative('activo')" style="background:rgba(60,100,180,0.15);border:1px solid #5588cc;color:#88aadd;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;cursor:pointer;font-family:'Raleway',sans-serif">✦ Generar</button>
+          </div>
+          <textarea id="narr-activo" rows="3" placeholder="Piso en quinta planta con ascensor, exterior sur, finca de principios del s.XX en buen estado de conservación…" oninput="saveDossierNarrative()" style="width:100%;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:'Raleway',sans-serif;font-size:11px;padding:8px 10px;resize:vertical;line-height:1.6"></textarea>
+        </div>
+
+        <div class="field" style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <label style="margin:0">Contexto de la zona</label>
+            <button onclick="generateNarrative('zona')" style="background:rgba(60,100,180,0.15);border:1px solid #5588cc;color:#88aadd;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;cursor:pointer;font-family:'Raleway',sans-serif">✦ Generar</button>
+          </div>
+          <textarea id="narr-zona" rows="3" placeholder="La microzona de Justicia se consolida como una de las más dinámicas del mercado prime madrileño…" oninput="saveDossierNarrative()" style="width:100%;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:'Raleway',sans-serif;font-size:11px;padding:8px 10px;resize:vertical;line-height:1.6"></textarea>
+        </div>
+
+        <div class="field" style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <label style="margin:0">Análisis de mercado y oportunidad</label>
+            <button onclick="generateNarrative('mercado')" style="background:rgba(60,100,180,0.15);border:1px solid #5588cc;color:#88aadd;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;cursor:pointer;font-family:'Raleway',sans-serif">✦ Generar</button>
+          </div>
+          <textarea id="narr-mercado" rows="3" placeholder="El activo se adquiere con un descuento del X% sobre el precio de mercado para pisos a reformar en la zona…" oninput="saveDossierNarrative()" style="width:100%;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:'Raleway',sans-serif;font-size:11px;padding:8px 10px;resize:vertical;line-height:1.6"></textarea>
+        </div>
+
+        <div class="field" style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <label style="margin:0">Tesis del proyecto y calidades</label>
+            <button onclick="generateNarrative('proyecto')" style="background:rgba(60,100,180,0.15);border:1px solid #5588cc;color:#88aadd;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;cursor:pointer;font-family:'Raleway',sans-serif">✦ Generar</button>
+          </div>
+          <textarea id="narr-proyecto" rows="3" placeholder="La reforma seguirá un estándar de acabados premium: suelos de madera natural, cocina integrada, baños en mármol…" oninput="saveDossierNarrative()" style="width:100%;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:'Raleway',sans-serif;font-size:11px;padding:8px 10px;resize:vertical;line-height:1.6"></textarea>
+        </div>
+
+        <div class="field">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <label style="margin:0">Tesis de inversión (cierre)</label>
+            <button onclick="generateNarrative('tesis')" style="background:rgba(60,100,180,0.15);border:1px solid #5588cc;color:#88aadd;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;cursor:pointer;font-family:'Raleway',sans-serif">✦ Generar</button>
+          </div>
+          <textarea id="narr-tesis" rows="3" placeholder="Riverwalk presenta una operación de reforma integral en el corazón de Madrid con un retorno bruto del X%…" oninput="saveDossierNarrative()" style="width:100%;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:'Raleway',sans-serif;font-size:11px;padding:8px 10px;resize:vertical;line-height:1.6"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div><!-- END INPUT PANEL -->
 
 <!-- ═══════════════════════════════ OUTPUT PANEL ═══════════════════════════════ -->
@@ -664,10 +974,10 @@ const DEAL_HTML = `<div id="tabs-bar" class="tabs-bar"></div>
   <!-- KPI STRIP -->
   <div class="kpi-strip">
     <div class="kpi-c"><div class="kpi-lbl" id="kpi-total-lbl">Inversión total</div><div class="kpi-v gold" id="kpi-total">—</div><div class="kpi-n" id="kpi-total-n">Todo incluido</div></div>
-    <div class="kpi-c"><div class="kpi-lbl">ROI neto inversor (base)</div><div class="kpi-v" id="kpi-roi">—</div><div class="kpi-n" id="kpi-roi-n">Post fees</div></div>
+    <div class="kpi-c"><div class="kpi-lbl">ROI bruto operación</div><div class="kpi-v" id="kpi-roi">—</div><div class="kpi-n" id="kpi-roi-n">Post fees</div></div>
     <div class="kpi-c"><div class="kpi-lbl">TIR anual (base)</div><div class="kpi-v up" id="kpi-irr">—</div><div class="kpi-n" id="kpi-irr-n">Equity sin apalancar</div></div>
     <div class="kpi-c"><div class="kpi-lbl">Beneficio neto (base)</div><div class="kpi-v" id="kpi-profit">—</div><div class="kpi-n">Al inversor</div></div>
-    <div class="kpi-c"><div class="kpi-lbl">Breakeven (€/m²)</div><div class="kpi-v" id="kpi-be">—</div><div class="kpi-n" id="kpi-be-n">—</div></div>
+    <div class="kpi-c"><div class="kpi-lbl">Breakeven bruto (€/m²)</div><div class="kpi-v" id="kpi-be">—</div><div class="kpi-n" id="kpi-be-n">—</div></div>
   </div>
 
   <!-- INVESTMENT BREAKDOWN -->
@@ -722,7 +1032,7 @@ const DEAL_HTML = `<div id="tabs-bar" class="tabs-bar"></div>
 
   <!-- BREAKEVEN -->
   <div class="osec">
-    <div class="osec-title"><span class="osec-tag">05</span>Protección de Capital — Breakeven</div>
+    <div class="osec-title"><span class="osec-tag">05</span>Protección de Capital — Breakeven bruto</div>
     <div class="be-wrap">
       <div style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-d)">Espectro de precio/m² — breakeven a techo de mercado</div>
       <div class="be-track"><div class="be-fill" id="be-fill"></div></div>
@@ -863,6 +1173,104 @@ const DEAL_HTML = `<div id="tabs-bar" class="tabs-bar"></div>
 </div><!-- END OUTPUT PANEL -->
 </div><!-- END APP BODY -->
 
+<!-- CONSOLIDADO VIEW -->
+<div id="consol-view" class="consol-view" style="padding:24px 28px;max-width:1100px;margin:0 auto">
+  <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;font-weight:600" id="consol-proj-name">Proyecto</div>
+  <div style="font-size:22px;font-family:'Cormorant Garamond',serif;color:var(--text-b);margin-bottom:20px">Análisis consolidado</div>
+
+  <!-- KPI strip consolidado -->
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line);margin-bottom:20px" id="consol-kpis"></div>
+
+  <!-- Units table -->
+  <div style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-d);margin-bottom:8px;font-weight:500">Desglose por unidad</div>
+  <div style="border:1px solid var(--line);margin-bottom:20px">
+    <div class="cu-row header">
+      <div>Unidad</div><div style="text-align:right">m²</div><div style="text-align:right">Inversión</div><div style="text-align:right">Venta base</div><div style="text-align:right">Benef. bruto</div><div style="text-align:right">ROI bruto</div><div></div>
+    </div>
+    <div id="consol-units-rows"></div>
+    <div class="cu-row" style="font-weight:600;background:rgba(139,105,20,0.08);border-top:1px solid rgba(139,105,20,0.25)" id="consol-total-row"></div>
+  </div>
+
+  <!-- Carry consolidado -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+    <div style="background:var(--d3);border:1px solid var(--line);padding:16px">
+      <div style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;font-weight:600">Carry consolidado — sobre el conjunto</div>
+      <div id="consol-carry" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text-d);line-height:2;font-feature-settings:'tnum' 1"></div>
+    </div>
+    <div style="background:var(--d3);border:1px solid var(--line);padding:16px">
+      <div style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;font-weight:600">Cashflow agregado</div>
+      <div id="consol-cashflow" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text-d);line-height:2;font-feature-settings:'tnum' 1"></div>
+    </div>
+  </div>
+
+  <div style="font-size:9.5px;color:var(--text-d);padding:10px 12px;background:var(--d4);border-left:2px solid var(--gold-d);line-height:1.7">
+    Management fee y carry calculados sobre el <strong style="color:var(--text-b)">conjunto del proyecto</strong>, no por unidad individual. Los fees de cada deal individual se ignoran en el consolidado.
+  </div>
+</div>
+
+<!-- PRESENTATION MODE -->
+<div id="presentation-mode" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:9000;background:#0F1014;font-family:'Raleway',sans-serif;overflow:hidden">
+  <!-- Top bar -->
+  <div style="position:absolute;top:0;left:0;right:0;height:48px;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:2;border-bottom:1px solid rgba(139,105,20,0.25)">
+    <div style="display:flex;align-items:center;gap:16px">
+      <span id="pres-slide-label" style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.4)">01 / 09</span>
+      <span id="pres-slide-title" style="font-size:11px;color:rgba(255,255,255,0.6)"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button onclick="presNav(-1)" style="background:none;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.7);width:32px;height:32px;cursor:pointer;font-size:16px">‹</button>
+      <button onclick="presNav(1)"  style="background:none;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.7);width:32px;height:32px;cursor:pointer;font-size:16px">›</button>
+      <button onclick="closePresentation()" style="background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.5);padding:6px 14px;cursor:pointer;font-size:10px;letter-spacing:0.1em;text-transform:uppercase">✕ Cerrar</button>
+    </div>
+  </div>
+  <!-- Slide content -->
+  <div id="pres-slide" style="position:absolute;top:48px;left:0;right:0;bottom:40px;overflow:hidden"></div>
+  <!-- Bottom progress bar -->
+  <div style="position:absolute;bottom:0;left:0;right:0;height:40px;background:rgba(0,0,0,0.5);display:flex;align-items:center;padding:0 24px;gap:8px" id="pres-dots"></div>
+</div>
+
+<!-- AI TERMINAL -->
+<div id="ai-terminal" style="display:none;position:fixed;right:20px;bottom:20px;width:420px;height:560px;z-index:8500;background:#0F1014;border:1px solid rgba(85,136,204,0.4);flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.8)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid rgba(85,136,204,0.2);background:rgba(60,100,180,0.15)">
+    <div>
+      <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#88aadd;font-weight:600">✦ Terminal IA — Riverwalk</div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px">Genera narrativa para el dossier</div>
+    </div>
+    <button onclick="closeAITerminal()" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:18px;cursor:pointer;padding:0 4px">×</button>
+  </div>
+  <!-- Quick generate buttons -->
+  <div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;flex-wrap:wrap;gap:5px">
+    <span style="font-size:8.5px;color:rgba(255,255,255,0.3);width:100%;margin-bottom:2px">Generación rápida →</span>
+    <button onclick="aiQuickGen('activo')"   class="ai-quick-btn">Activo</button>
+    <button onclick="aiQuickGen('zona')"     class="ai-quick-btn">Zona</button>
+    <button onclick="aiQuickGen('mercado')"  class="ai-quick-btn">Mercado</button>
+    <button onclick="aiQuickGen('proyecto')" class="ai-quick-btn">Proyecto</button>
+    <button onclick="aiQuickGen('tesis')"    class="ai-quick-btn">Tesis</button>
+    <button onclick="aiQuickGen('todo')"     class="ai-quick-btn" style="border-color:rgba(139,105,20,0.5);color:var(--gold)">✦ Todo</button>
+  </div>
+  <!-- Chat messages -->
+  <div id="ai-messages" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;font-size:11.5px;line-height:1.65"></div>
+  <!-- Input -->
+  <div style="padding:10px 12px;border-top:1px solid rgba(255,255,255,0.06);display:flex;gap:8px">
+    <input id="ai-input" type="text" placeholder="Refina o pide algo específico…"
+      onkeydown="if(event.key==='Enter')sendAIMessage()"
+      style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#fff;font-family:'Raleway',sans-serif;font-size:12px;padding:9px 12px;outline:none">
+    <button onclick="sendAIMessage()" style="background:rgba(60,100,180,0.3);border:1px solid #5588cc;color:#88aadd;font-size:11px;padding:8px 14px;cursor:pointer;white-space:nowrap">Enviar</button>
+  </div>
+</div>
+
+<!-- INTELLIGENCE PLATFORM -->
+<div id="intel-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:9100;background:#0a0b0f;font-family:'Raleway',sans-serif;overflow:hidden;">
+  <!-- Topbar -->
+  <div style="height:52px;background:rgba(120,60,200,0.12);border-bottom:1px solid rgba(160,100,240,0.2);display:flex;align-items:center;justify-content:space-between;padding:0 28px;flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:20px">
+      <div style="font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:rgba(160,100,240,0.8);font-weight:600">⬡ Riverwalk Intelligence</div>
+      <div id="intel-tabs" style="display:flex;gap:2px"></div>
+    </div>
+    <button onclick="closeIntelligence()" style="background:rgba(255,255,255,0.06);border:none;color:rgba(255,255,255,0.4);padding:6px 16px;cursor:pointer;font-size:10px;letter-spacing:0.1em;text-transform:uppercase">✕ Cerrar</button>
+  </div>
+  <!-- Content area -->
+  <div id="intel-content" style="flex:1;overflow-y:auto;padding:28px 32px"></div>
+</div>
 
 `
 
@@ -1069,11 +1477,23 @@ export default function DealClient({
     const regScript = document.createElement('script')
     regScript.src = '/deal-registro.js'
 
-    // 2. Load jsPDF CDN
+    // 2. Load Leaflet CDN (maps)
+    const leafletScript = document.createElement('script')
+    leafletScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'
+
+    // 3. Load Chart.js CDN
+    const chartScript = document.createElement('script')
+    chartScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js'
+
+    // 4. Load html2canvas CDN (for dossier screenshots)
+    const html2canvasScript = document.createElement('script')
+    html2canvasScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'
+
+    // 5. Load jsPDF CDN
     const jspdfScript = document.createElement('script')
     jspdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
 
-    // 3. Load main deal modeler logic
+    // 6. Load main deal modeler logic
     const mainScript = document.createElement('script')
     mainScript.src = '/deal-script.js'
     mainScript.onload = () => {
@@ -1199,13 +1619,24 @@ export default function DealClient({
       }, 400)
     }
 
-    // Load registro and jspdf in parallel, then load main script
+    // Load all deps in parallel, then load main script when all are ready
     let depsLoaded = 0
-    const onDepLoaded = () => { if (++depsLoaded === 2) document.body.appendChild(mainScript) }
+    const TOTAL_DEPS = 5
+    const onDepLoaded = () => { if (++depsLoaded === TOTAL_DEPS) document.body.appendChild(mainScript) }
     regScript.onload = onDepLoaded
+    leafletScript.onload = onDepLoaded
+    chartScript.onload = onDepLoaded
+    html2canvasScript.onload = onDepLoaded
     jspdfScript.onload = onDepLoaded
+    // Treat failed CDN loads as loaded (non-critical)
+    leafletScript.onerror = onDepLoaded
+    chartScript.onerror = onDepLoaded
+    html2canvasScript.onerror = onDepLoaded
 
     document.body.appendChild(regScript)
+    document.body.appendChild(leafletScript)
+    document.body.appendChild(chartScript)
+    document.body.appendChild(html2canvasScript)
     document.body.appendChild(jspdfScript)
 
     // Create upload container inside input panel
@@ -1298,6 +1729,32 @@ export default function DealClient({
           </button>
 
           <button
+            className="btn primary"
+            onClick={() => { if (typeof window !== 'undefined' && (window as any).openPresentation) (window as any).openPresentation() }}
+            style={{ background: 'rgba(139,105,20,0.25)', border: '1px solid var(--gold)' }}
+          >
+            ▶ Presentar
+          </button>
+
+          <button
+            className="btn primary"
+            onClick={() => { if (typeof window !== 'undefined' && (window as any).exportDossierPDF) (window as any).exportDossierPDF() }}
+            style={{ background: 'rgba(139,105,20,0.35)', border: '1px solid var(--gold)' }}
+            title="Generar PDF dossier — página por página A4"
+          >
+            ⬇ PDF Dossier
+          </button>
+
+          <button
+            className="btn primary"
+            onClick={() => { if (typeof window !== 'undefined' && (window as any).openAITerminal) (window as any).openAITerminal() }}
+            style={{ background: 'rgba(60,100,180,0.2)', border: '1px solid #5588cc' }}
+            title="Terminal IA — genera textos de presentación"
+          >
+            ✦ Narrativa IA
+          </button>
+
+          <button
             className="btn primary btn-brief"
             onClick={() => {
               if (typeof window !== 'undefined' && (window as Window & { copyExport?: () => void }).copyExport) {
@@ -1305,7 +1762,7 @@ export default function DealClient({
               }
             }}
           >
-            ⬇ Brief maquetación
+            ⬇ Brief
           </button>
 
           <button
@@ -1318,6 +1775,15 @@ export default function DealClient({
             style={{ background: 'var(--gold-d)' }}
           >
             ↓ PDF
+          </button>
+
+          <button
+            className="btn primary"
+            onClick={() => { if (typeof window !== 'undefined' && (window as any).openIntelligence) (window as any).openIntelligence() }}
+            style={{ background: 'rgba(120,60,200,0.2)', border: '1px solid rgba(160,100,240,0.5)' }}
+            title="Intelligence Platform"
+          >
+            ⬡ Intel
           </button>
         </div>
       </div>

@@ -1,3 +1,105 @@
+
+
+// ══════════════════════════════════════════════════
+// CORS / localhost detection + launcher download
+// ══════════════════════════════════════════════════
+function checkLocalhostRequired() {
+  // No-op: Anthropic API supports direct browser access via anthropic-dangerous-direct-browser-access header.
+  // The CORS banner has been removed. API calls work from file:// and any origin.
+}
+
+function downloadLauncher(os) {
+  const filename = location.href.split('/').pop() || 'Riverwalk_Deal_Modeler_v2.html';
+  let script, fname, mime;
+
+  if (os === 'mac') {
+    script = `#!/bin/bash
+# Riverwalk Deal Modeler — script de inicio
+# Doble clic para arrancar. Cierra esta ventana para parar.
+cd "$(dirname "$0")"
+echo "Arrancando servidor en http://localhost:8080 ..."
+python3 -m http.server 8080 &
+SERVER_PID=$!
+sleep 1
+open "http://localhost:8080/${filename}"
+echo "Servidor activo. Cierra esta ventana para parar."
+wait $SERVER_PID`;
+    fname = 'RW_Iniciar.command';
+    mime = 'text/plain';
+  } else {
+    script = `@echo off
+:: Riverwalk Deal Modeler - script de inicio
+:: Doble clic para arrancar
+cd /d "%~dp0"
+echo Arrancando servidor en http://localhost:8080 ...
+start /b python -m http.server 8080
+timeout /t 2 > nul
+start chrome "http://localhost:8080/${filename}"
+echo Servidor activo. Cierra esta ventana para parar.
+pause`;
+    fname = 'RW_Iniciar.bat';
+    mime = 'text/plain';
+  }
+
+  const blob = new Blob([script], { type: mime });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fname;
+  a.click();
+  URL.revokeObjectURL(a.href);
+
+  // Show instructions
+  setTimeout(() => {
+    alert(os === 'mac'
+      ? 'Pasos:\n1. El archivo RW_Iniciar.command se ha descargado\n2. Ábrelo en Finder → click derecho → Abrir (primera vez pide permiso)\n3. Se abrirá el Terminal y Chrome automáticamente con la herramienta\n\nA partir de ahora haz doble clic en ese archivo para arrancar.'
+      : 'Pasos:\n1. El archivo RW_Iniciar.bat se ha descargado\n2. Muévelo a la misma carpeta que el HTML\n3. Doble clic en RW_Iniciar.bat para arrancar\n\nChrome se abrirá automáticamente con la herramienta.');
+  }, 300);
+}
+
+// ══════════════════════════════════════════════════
+// API KEY MANAGEMENT
+// ══════════════════════════════════════════════════
+function saveAPIKey() {
+  const val = document.getElementById('rw-api-key')?.value?.trim() || '';
+  if (val) localStorage.setItem('rw_api_key', val);
+  updateAPIKeyStatus();
+}
+
+function loadAPIKey() {
+  const stored = localStorage.getItem('rw_api_key') || '';
+  const el = document.getElementById('rw-api-key');
+  if (el && stored) el.value = stored;
+  updateAPIKeyStatus();
+}
+
+function getAPIKey() {
+  return document.getElementById('rw-api-key')?.value?.trim() || localStorage.getItem('rw_api_key') || '';
+}
+
+function updateAPIKeyStatus() {
+  const key = getAPIKey();
+  const el = document.getElementById('api-key-status');
+  if (!el) return;
+  if (!key) {
+    el.textContent = '✕'; el.style.color = 'rgba(224,85,85,0.7)'; el.title = 'Sin API Key';
+  } else if (key.startsWith('sk-ant-')) {
+    el.textContent = '✓'; el.style.color = 'rgba(82,192,122,0.8)'; el.title = 'API Key OK';
+  } else {
+    el.textContent = '⚠'; el.style.color = 'rgba(255,165,0,0.8)'; el.title = 'Formato inesperado';
+  }
+}
+
+function getAPIHeaders() {
+  return {
+    'Content-Type': 'application/json',
+  };
+}
+
+function checkAPIKey() {
+  // API key is managed server-side
+  return true;
+}
+
 // ══════════════════════════════════════════════════
 // HELPERS
 // ══════════════════════════════════════════════════
@@ -43,7 +145,7 @@ function _applyMoneyFmt(inp) {
 }
 
 // ── Carry mode: 'roi' (simple) | 'irr' (time-weighted, institutional) ──
-let sfCarryMode = 'irr'; // default to the honest approach
+let sfCarryMode = 'roi'; // ROI simple — más sencillo de explicar
 
 // ══════════════════════════════════════════════════
 // IRR
@@ -75,7 +177,7 @@ let zcOn         = true;
 let dealMode     = 'reforma';
 let ampliacionOn = false;
 let taxOn        = true;
-let plusvaliaOn  = false;
+let plusvaliaOn  = false; // permanently disabled — manual estimation only
 let levMode      = 'ltv'; // 'ltv' | 'ltc'
 
 function setLevMode(mode) {
@@ -96,15 +198,9 @@ function setLevMode(mode) {
 }
 
 function setPlusvaliaMode(on) {
-  plusvaliaOn = on;
-  const tog = (id, cls, active) => { const el=$(id); if(el) el.classList.toggle(cls, active); };
-  const set = (id, val) => { const el=$(id); if(el) el.style.display = val; };
-  tog('plusvalia-off-btn', 'active', !on);
-  tog('plusvalia-on-btn',  'active',  on);
-  set('plusvalia-manual-fields', on ? 'none' : '');
-  set('plusvalia-auto-fields',   on ? '' : 'none');
+  plusvaliaOn = false; // always off — removed from model
   // Clear auto display when switching to manual
-  if (!on) { const d = $('plusvalia-calc-display'); if(d) d.innerHTML = ''; }
+  // plusvalia-calc-display removed
   update();
 }
 
@@ -161,13 +257,21 @@ function setDealMode(mode) {
   dealMode = mode;
   const set = (id, val) => { const el=$(id); if(el) el.style.display = val; };
   const tog = (id, cls, on) => { const el=$(id); if(el) el.classList.toggle(cls, on); };
-  tog('mode-reforma-btn', 'active', mode === 'reforma');
-  tog('mode-pase-btn',    'active', mode === 'pase');
+  tog('mode-reforma-btn',   'active', mode === 'reforma');
+  tog('mode-pase-btn',      'active', mode === 'pase');
+  tog('mode-edificio-btn',  'active', mode === 'edificio');
   set('pase-note',           mode === 'pase'    ? '' : 'none');
+  set('edificio-panel',      mode === 'edificio' ? '' : 'none');
   set('isec-capex',          mode === 'reforma' ? '' : 'none');
   set('cf-capex-block',      mode === 'reforma' ? '' : 'none');
   set('osec-sens1',          mode === 'reforma' ? '' : 'none');
   set('osec-sens2',          mode === 'reforma' ? '' : 'none');
+  // In edificio mode, hide most input sections except basic data
+  ['isec-precios','isec-calendario','isec-adquisicion','isec-fees','isec-lev','isec-comp'].forEach(id => {
+    const el = $(id);
+    if (el) el.style.display = mode === 'edificio' ? 'none' : '';
+  });
+  if (mode === 'edificio') { renderEdificioUnits(); updateEdificio(); }
   set('fees-reforma-fields', mode === 'reforma' ? '' : 'none');
   set('fees-pase-fields',    mode === 'pase'    ? '' : 'none');
   update();
@@ -427,7 +531,8 @@ function calc() {
         saleGross, brokerCost, exitCosts, grossProfit,
         roiGross: grossProfit / totalInvest,
         sf: carryTotal, carry, carryIVA,
-        afterSF: afterCarry, tax, netProfit, roiNet
+        afterSF: afterCarry, tax, netProfit, roiNet,
+        roiPostCarry: afterCarry / totalInvest
       };
     }
 
@@ -605,6 +710,7 @@ function calc() {
     return {
       saleGross, brokerCost, exitCosts, grossProfit, roiGross,
       sf, afterSF: grossProfit - sf,
+      roiPostCarry: (grossProfit - sf) / totalInvest,
       tax: Math.max(0, grossProfit - sf) * taxRate,
       netProfit, roiNet, irr, t1Profit, t2Profit
     };
@@ -642,10 +748,11 @@ function calc() {
 
   // BREAKEVEN (after carry + tax)
   function breakeven() {
+    // Breakeven = precio al que beneficio bruto = 0 (antes de carry e impuestos)
     let lo = 3000, hi = 50000;
     for (let i = 0; i < 80; i++) {
       const mid = (lo + hi) / 2;
-      if (sc(mid).netProfit > 0) hi = mid; else lo = mid;
+      if (sc(mid).grossProfit > 0) hi = mid; else lo = mid;
     }
     return (lo + hi) / 2;
   }
@@ -723,6 +830,12 @@ function render(m) {
   const kTotalN   = $('kpi-total-n');
   if (kTotalLbl) kTotalLbl.textContent = isLev ? 'Capital invertido (equity)' : 'Inversión total';
   $('kpi-total').textContent = fmtK(isLev ? m.lev0.equity : m.totalInvest);
+  // add €/m² acquisition note
+  const kpiTotalN2 = $('kpi-total-n');
+  if (kpiTotalN2 && !isLev) {
+    const acqPm2 = m.surfCapex > 0 ? Math.round(m.buyPrice / m.surfCapex) : 0;
+    kpiTotalN2.textContent = `${fmt(m.totalInvest)} · compra a ${acqPm2.toLocaleString('es-ES')} €/m²`;
+  }
   if (kTotalN) kTotalN.textContent = isLev
     ? `${levMode.toUpperCase()} ${(ltvFrac*100).toFixed(0)}% · deuda ${fmtK(loanAmt)}`
     : 'Todo incluido · sin apalancamiento';
@@ -731,7 +844,16 @@ function render(m) {
   kProfit.className = 'kpi-v ' + (m.base.netProfit>0?'up':'down');
   const beMarg = ((V('exitP')/m.bePriceM2-1)*100).toFixed(0);
   $('kpi-be').textContent = Math.round(m.bePriceM2).toLocaleString('es-ES') + ' €/m²';
+  const kpiBeTotal = $('kpi-be-n');
+  if (kpiBeTotal) kpiBeTotal.textContent = 'Bruto s/carry · total mín. ' + fmtK(m.bePriceM2 * m.surfCapex);
   $('kpi-be-n').textContent = '+'+beMarg+'% sobre escenario pesimista';
+
+  // Exit price total display (input panel)
+  const surf = m.surfCapex || 0;
+  const setET = (id, ep) => { const el=$(id); if(el && surf) el.textContent = fmt(Math.round(ep * surf)); };
+  setET('exit-total-p', V('exitP'));
+  setET('exit-total-b', V('exitB'));
+  setET('exit-total-o', V('exitO'));
 
   // TIMELINE
   const escrituraMonth = m.arasMonths;
@@ -809,11 +931,18 @@ function render(m) {
       const moic     = capital > 0 ? ((capital + netShow) / capital).toFixed(2) : '—';
       const irrShow  = isFinite(irr) ? fmtPct(irr) : '—';
       const durationMeses = m.arasMonths + m.monthsSale + (ampliacionOn ? V('ampliacionMeses') : 0);
+      const totalVentaPase = exitM2 * m.surfCapex;
       return `<div class="sc-card ${cls}">
-        <div class="sc-head">${label} — ${exitM2.toLocaleString('es-ES')} €/m²</div>
+        <div class="sc-head">
+          <div>${label}</div>
+          <div style="font-size:11px;font-family:'DM Mono',monospace;font-feature-settings:'tnum' 1;margin-top:3px">
+            <span style="color:var(--text-b);font-weight:700">${fmt(totalVentaPase)}</span>
+            <span style="opacity:0.55;font-size:9.5px"> · ${exitM2.toLocaleString('es-ES')} €/m²</span>
+          </div>
+        </div>
         <div class="sc-big" style="font-size:36px">${irrShow}</div>
         <div class="sc-irr" style="font-size:10px;margin-bottom:4px">${isLev?'TIR equity':'TIR anual'} · ${durationMeses}m</div>
-        <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text-b);margin-bottom:10px">${moic}× · ${isLev?'ROE':'ROI'} ${fmtPct(roiShow)}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text-b);margin-bottom:10px">${moic}× MOIC · ROI bruto ${fmtPct(sc.roiGross)}</div>
         <div class="sc-div"></div>
         <div class="sc-r key"><span>${isLev?'Equity':'Capital'}</span><span>${fmt(capital)}</span></div>
         ${isLev ? `<div class="sc-r red"><span>Deuda ${levMode.toUpperCase()} ${(m.ltvPct*100).toFixed(0)}%</span><span>${fmt(lev.loan)}</span></div>
@@ -829,10 +958,17 @@ function render(m) {
     const capital  = isLev ? lev.equity   : m.totalInvest;
     const netShow  = isLev ? lev.netProfitLev : sc.netProfit;
     const roiShow  = isLev ? lev.roe      : sc.roiNet;
-    const heroVal  = isLev ? fmtPct(lev.roe) : fmtPct(sc.roiNet);
-    const heroLbl  = isLev ? 'ROE neto (equity)' : 'ROI neto';
+    const heroVal  = isLev ? fmtPct(lev.roe) : fmtPct(sc.roiGross);
+    const heroLbl  = isLev ? 'ROE neto (equity)' : 'ROI bruto operación';
+    const totalVenta = exitM2 * m.surfCapex;
     return `<div class="sc-card ${cls}">
-      <div class="sc-head">${label} — ${exitM2.toLocaleString('es-ES')} €/m²</div>
+      <div class="sc-head">
+        <div>${label}</div>
+        <div style="font-size:11px;font-family:'DM Mono',monospace;font-feature-settings:'tnum' 1;margin-top:3px">
+          <span style="color:var(--text-b);font-weight:700">${fmt(totalVenta)}</span>
+          <span style="opacity:0.55;font-size:9.5px"> · ${exitM2.toLocaleString('es-ES')} €/m²</span>
+        </div>
+      </div>
       <div class="sc-big">${heroVal}</div>
       <div class="sc-irr">${heroLbl} · TIR: <span>${isFinite(irr)?fmtPct(irr):'—'}</span></div>
       <div class="sc-div"></div>
@@ -862,12 +998,12 @@ function render(m) {
   // Update ROI KPI to reflect leverage
   const kRoi = $('kpi-roi');
   const kRoiN = $('kpi-roi-n');
-  const roiKpiVal = isLev ? (levBase?.roe || m.base.roiNet) : m.base.roiNet;
+  const roiKpiVal = isLev ? (levBase?.roe || m.base.roiGross) : m.base.roiGross;
   kRoi.textContent = fmtPct(roiKpiVal);
   kRoi.className = 'kpi-v ' + (roiKpiVal>0.2?'up':roiKpiVal>0.1?'warn':'down');
   if (kRoiN) kRoiN.textContent = isLev
     ? `ROE neto · ${levMode.toUpperCase()} ${(m.ltvPct*100).toFixed(0)}%`
-    : (taxOn ? 'ROI neto · post fees + impuestos' : 'ROI neto · post fees');
+    : 'Sin carry ni impuesto · carry ' + fmt(m.base.sf);
 
   // Update IRR KPI label
   const kIrrN = $('kpi-irr-n');
@@ -904,7 +1040,7 @@ function render(m) {
     <tr class="cat"><td colspan="2">VENTA — Escenario Base (${V('exitB').toLocaleString('es-ES')} €/m²)</td></tr>
     <tr><td class="indent">Precio venta bruto (${m.surfCapex} m² construidos)</td><td>${fmt(b.saleGross)}</td></tr>
     <tr><td class="indent neg">Comisión broker salida (${V('brokerExit')}%)</td><td class="neg">−${fmt(b.brokerCost)}</td></tr>
-    ${V('exitFixed')>0?`<tr><td class="indent neg">Plusvalía + notaría venta</td><td class="neg">−${fmt(V('exitFixed')+V('exitFixedAjuste'))}</td></tr>`:''}
+    ${V('exitFixed')>0?`<tr><td class="indent neg">Notaría venta + costes salida</td><td class="neg">−${fmt(V('exitFixed')+V('exitFixedAjuste'))}</td></tr>`:''}
     <tr class="sub"><td>Beneficio bruto operativo</td><td>${fmt(b.grossProfit)}</td></tr>
 
     <tr class="cat"><td colspan="2">CARRY RIVERWALK</td></tr>
@@ -959,7 +1095,7 @@ function render(m) {
   <tr class="cat"><td colspan="4">VENTA — Escenario Base (€${V('exitB').toLocaleString('es-ES')}/m²)</td></tr>
   <tr><td class="indent">Precio venta bruto (${m.surfCapex} m² × €${V('exitB').toLocaleString('es-ES')} construidos)</td><td colspan="2"></td><td>${fmt(b.saleGross)}</td></tr>
   <tr><td class="indent neg">Comisión broker salida (${V('brokerExit')}%)</td><td colspan="2"></td><td class="neg">−${fmt(b.brokerCost)}</td></tr>
-  <tr><td class="indent neg">Plusvalía + notaría venta</td><td colspan="2"></td><td class="neg">−${fmt(V('exitFixed')+V('exitFixedAjuste'))}</td></tr>
+  <tr><td class="indent neg">Notaría venta + costes salida</td><td colspan="2"></td><td class="neg">−${fmt(V('exitFixed')+V('exitFixedAjuste'))}</td></tr>
   <tr class="sub"><td>Beneficio bruto operativo</td><td colspan="2"></td><td>${fmt(b.grossProfit)}</td></tr>
 
   <tr class="cat"><td colspan="4">SUCCESS FEE RIVERWALK</td></tr>
@@ -1044,7 +1180,11 @@ function render(m) {
     <tr>`;
   priceColsFixed.forEach(p => {
     const isBase = p === V('exitB');
-    th1 += `<th style="min-width:90px;white-space:nowrap;padding:5px 8px${isBase?';color:var(--gold)':''}">${p.toLocaleString('es-ES')} €${isBase?' ←':''}</th>`;
+    const totalV1 = Math.round(p * m.surfCapex);
+    th1 += `<th style="min-width:100px;white-space:nowrap;padding:5px 8px;text-align:center${isBase?';color:var(--gold)':''}">
+      <div style="font-size:10px">${p.toLocaleString('es-ES')} €/m²${isBase?' ←':''}</div>
+      <div style="font-size:9px;font-family:'DM Mono',monospace;font-feature-settings:'tnum' 1;opacity:0.65;margin-top:2px;font-weight:400">${fmtK(totalV1)}</div>
+    </th>`;
   });
   th1 += `</tr>
     <tr style="background:var(--d4)">
@@ -1105,9 +1245,11 @@ function render(m) {
                 : irrVal < 0.18 ? 'c2'
                 : irrVal < 0.30 ? 'c3' : 'c4';
 
+      const saleGross1 = ep * m.surfCapex;
       tb1 += `<td class="${cls}" style="text-align:center;${isBaseCol ? 'background:rgba(196,151,90,0.08)' : ''}">
-        <div style="font-size:11px;font-family:'DM Mono',monospace;font-weight:500">${irrStr}</div>
+        <div style="font-size:12px;font-family:'DM Mono',monospace;font-weight:600">${irrStr}</div>
         <div style="font-size:8.5px;opacity:0.65;margin-top:1px">${(roiN*100).toFixed(1)}% ROI</div>
+        <div style="font-size:8px;font-family:'DM Mono',monospace;color:var(--text-d);margin-top:2px;font-feature-settings:'tnum' 1">${fmtK(saleGross1)}</div>
       </td>`;
     });
     tb1 += '</tr>';
@@ -1126,7 +1268,11 @@ function render(m) {
     <th style="min-width:120px;text-align:left;font-size:9px;padding:8px 12px">CapEx \\ Precio →</th>`;
   priceColsCapex.forEach(p => {
     const isBase = p === V('exitB');
-    th2 += `<th style="min-width:90px;white-space:nowrap${isBase?';color:var(--gold)':''}">${p.toLocaleString('es-ES')} €/m²${isBase?' ←':''}</th>`;
+    const totalV2 = Math.round(p * m.surfCapex);
+    th2 += `<th style="min-width:100px;white-space:nowrap;text-align:center${isBase?';color:var(--gold)':''}">
+      <div style="font-size:10px">${p.toLocaleString('es-ES')} €/m²${isBase?' ←':''}</div>
+      <div style="font-size:9px;font-family:'DM Mono',monospace;font-feature-settings:'tnum' 1;opacity:0.65;margin-top:2px;font-weight:400">${fmtK(totalV2)}</div>
+    </th>`;
   });
   th2 += '</tr></thead>';
 
@@ -1156,10 +1302,11 @@ function render(m) {
       const roiN     = netP / totAdj;
       const isBaseC  = ep === V('exitB');
       const cls      = roiN < 0.05 ? 'c1' : roiN < 0.18 ? 'c2' : roiN < 0.25 ? 'c3' : 'c4';
+      const saleGT   = Math.round(ep * m.surfCapex);
 
       tb2 += `<td class="${cls}" style="text-align:center;${isBaseC ? 'background:rgba(196,151,90,0.08)' : ''}">
-        <div style="font-size:11px;font-family:'DM Mono',monospace;font-weight:500">${(roiN*100).toFixed(1)}%</div>
-        <div style="font-size:8.5px;opacity:0.65;margin-top:1px">${fmt(totAdj).replace(' €','')}</div>
+        <div style="font-size:12px;font-family:'DM Mono',monospace;font-weight:600">${(roiN*100).toFixed(1)}%</div>
+        <div style="font-size:8px;font-family:'DM Mono',monospace;color:var(--text-d);margin-top:2px;font-feature-settings:'tnum' 1">${fmtK(saleGT)}</div>
       </td>`;
     });
     tb2 += '</tr>';
@@ -1226,6 +1373,7 @@ function syncSurfaces(changed) {
 }
 
 async function geocodeAddress() {
+  // API key managed server-side - proceed
   const address = ($('dealAddress')?.value || '').trim();
   const status  = $('geo-status');
   if (!address || address.length < 6) return;
@@ -1233,15 +1381,26 @@ async function geocodeAddress() {
   if (status) { status.textContent = '⟳ Buscando código postal…'; status.style.color = 'var(--text-d)'; }
 
   try {
-    const response = await fetch('/api/geocode', {
+    const response = await fetch('/api/anthropic', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ address })
+      headers: getAPIHeaders(),
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 100,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        messages: [{
+          role: 'user',
+          content: `¿Cuál es el código postal y municipio de "${address}" en España? Responde SOLO con este JSON sin texto extra: {"cp":"28014","municipio":"Madrid"}`
+        }]
+      })
     });
 
-    if (!response.ok) throw new Error('api error');
-    const parsed = await response.json();
+    const data = await response.json();
+    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    const match = text.match(/\{[^}]+\}/);
+    if (!match) throw new Error('no json');
 
+    const parsed = JSON.parse(match[0]);
     if (parsed.cp && $('dealCP')) {
       $('dealCP').value = parsed.cp;
       // Auto-populate registro search CP
@@ -1416,6 +1575,2032 @@ function fmtDate(d) {
   if (!d) return '—';
   const [y,m,day] = d.split('-');
   return `${day}/${m}/${y}`;
+}
+
+// ══════════════════════════════════════════════════
+// DOSSIER DATA — photos + narratives per deal
+// ══════════════════════════════════════════════════
+function getCurrentDossier() {
+  if (!deals[activeDealIdx]) return { photos:[], narrative:{activo:'',zona:'',mercado:'',proyecto:'',tesis:''}, mapDataUrl:'' };
+  if (!deals[activeDealIdx].dossier) deals[activeDealIdx].dossier = { photos:[], plans:[], materials:[], narrative:{activo:'',zona:'',mercado:'',proyecto:'',tesis:''}, mapDataUrl:'', mapLat:null, mapLng:null };
+  return deals[activeDealIdx].dossier;
+}
+
+function saveDossierNarrative() {
+  const d = getCurrentDossier();
+  ['activo','zona','mercado','proyecto','tesis'].forEach(k => {
+    const el = $('narr-' + k);
+    if (el) d.narrative[k] = el.value;
+  });
+}
+
+function loadDossierToForm() {
+  const d = getCurrentDossier();
+  ['activo','zona','mercado','proyecto','tesis'].forEach(k => {
+    const el = $('narr-' + k);
+    if (el) el.value = d.narrative[k] || '';
+  });
+  renderDossierPhotos();
+}
+
+function handlePhotoUpload(input) {
+  const d = getCurrentDossier();
+  const available = 6 - d.photos.length;
+  if (available <= 0) { alert('Máximo 6 fotos por operación.'); return; }
+  const files = Array.from(input.files).slice(0, available);
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxW = 1200, maxH = 900;
+        const scale = Math.min(1, maxW / img.width, maxH / img.height);
+        canvas.width  = Math.round(img.width  * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+        d.photos.push({ dataUrl, caption: file.name.replace(/\.[^.]+$/, ''), category: 'general' });
+        renderDossierPhotos();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function renderDossierPhotos() {
+  const d = getCurrentDossier();
+  const el = $('dossier-photos-grid');
+  if (!el) return;
+  const labelEl = $('photo-upload-label');
+  if (labelEl) labelEl.style.display = d.photos.length >= 6 ? 'none' : '';
+  el.innerHTML = d.photos.map((p, i) => `
+    <div style="position:relative;aspect-ratio:4/3;overflow:hidden;background:var(--d4)">
+      <img src="${p.dataUrl}" style="width:100%;height:100%;object-fit:cover">
+      <div style="position:absolute;bottom:0;left:0;right:0;padding:4px 6px;background:rgba(0,0,0,0.6);display:flex;align-items:center;gap:4px">
+        <input value="${p.caption}" placeholder="Descripción…"
+          oninput="getCurrentDossier().photos[${i}].caption=this.value"
+          style="flex:1;background:none;border:none;color:#fff;font-size:9px;outline:none;min-width:0">
+        <button onclick="removeDossierPhoto(${i})" style="background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;font-size:14px;padding:0;line-height:1">×</button>
+      </div>
+    </div>`).join('');
+}
+
+function removeDossierPhoto(i) {
+  getCurrentDossier().photos.splice(i, 1);
+  renderDossierPhotos();
+}
+
+// ══════════════════════════════════════════════════
+// PRESENTATION MODE
+// ══════════════════════════════════════════════════
+let presSlideIdx = 0;
+let presSlides   = [];
+let presKeyHandler = null;
+
+// SLIDE_DEFS moved to buildSlides section
+
+async function openPresentation() {
+  saveDossierNarrative();
+  const d = getCurrentDossier();
+
+  // Always reset coords so a changed address triggers fresh geocoding
+  d.mapLat = null; d.mapLng = null;
+
+  // Show presentation immediately, then geocode in background and refresh map slide
+  const m = calc();
+  presSlides = buildSlides(m, d);
+  presSlideIdx = 0;
+  const pm = $('presentation-mode');
+  if (!pm) return;
+  pm.style.display = 'block';
+  renderPresSlide();
+  renderPresDots();
+  presKeyHandler = e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') presNav(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   presNav(-1);
+    if (e.key === 'Escape') closePresentation();
+  };
+  document.addEventListener('keydown', presKeyHandler);
+
+  // Geocode and refresh the map slide once coords arrive
+  if (S('dealAddress')) {
+    await geocodeForMap(S('dealAddress'), S('dealCP'), S('dealMunicipio'));
+    // Re-init the map if currently on the location slide
+    const currentSlide = presSlides[presSlideIdx];
+    if (currentSlide && currentSlide.needsMap) initPresMap();
+    else if (presSlides.some(s => s.needsMap)) {
+      // Map slide exists — re-render it so it picks up new coords when navigated to
+      const mapIdx = presSlides.findIndex(s => s.needsMap);
+      if (mapIdx > -1) presSlides[mapIdx]._mapReady = true;
+    }
+  }
+}
+
+function closePresentation() {
+  const pm = $('presentation-mode');
+  if (pm) pm.style.display = 'none';
+  if (presKeyHandler) document.removeEventListener('keydown', presKeyHandler);
+}
+
+function presNav(dir) {
+  presSlideIdx = Math.max(0, Math.min(presSlides.length - 1, presSlideIdx + dir));
+  renderPresSlide();
+  renderPresDots();
+}
+
+function renderPresSlide() {
+  const slide = presSlides[presSlideIdx];
+  if (!slide) return;
+  const el = $('pres-slide');
+  if (el) el.innerHTML = slide.html;
+
+  const lbl = $('pres-slide-label');
+  if (lbl) lbl.textContent = String(presSlideIdx+1).padStart(2,'0') + ' / ' + presSlides.length;
+  const ttl = $('pres-slide-title');
+  if (ttl) ttl.textContent = SLIDE_DEFS[presSlideIdx] ? SLIDE_DEFS[presSlideIdx].label : '';
+
+  // Init Leaflet map if needed — wait for coords if geocoding is still in flight
+  if (slide.needsMap) {
+    const d = getCurrentDossier();
+    if (d.mapLat) {
+      // Coords already available — init immediately
+      setTimeout(initPresMap, 150);
+    } else if (S('dealAddress')) {
+      // Geocode first, then init
+      geocodeForMap(S('dealAddress'), S('dealCP'), S('dealMunicipio')).then(() => {
+        if ($('pres-slide')) initPresMap(); // only if still on this slide
+      });
+    }
+  }
+
+  // Init Chart.js if needed
+  if (slide.needsChart) {
+    setTimeout(() => {
+      const cp = parseInt(S('dealCP')) || 0;
+      if (cp) initPresRegistroChart(cp);
+    }, 100);
+  }
+}
+
+function renderPresDots() {
+  const el = $('pres-dots');
+  if (!el) return;
+  el.innerHTML = presSlides.map((_, i) =>
+    `<div class="pres-dot${i===presSlideIdx?' active':''}" onclick="presSlideIdx=${i};renderPresSlide();renderPresDots()"></div>`
+  ).join('');
+}
+
+// ══════════════════════════════════════════════════
+// PLANS & MATERIALS UPLOAD
+// ══════════════════════════════════════════════════
+function handlePlanUpload(input) {
+  const d = getCurrentDossier();
+  if (!d.plans) d.plans = [];
+  const avail = 3 - d.plans.length;
+  if (avail <= 0) { alert('Máximo 3 planos.'); return; }
+  Array.from(input.files).slice(0, avail).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const scale = Math.min(1, 1600 / img.width, 1200 / img.height);
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        d.plans.push({ dataUrl: canvas.toDataURL('image/jpeg', 0.8), caption: file.name.replace(/\.[^.]+$/, '') });
+        renderDossierPlans();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function handleMaterialUpload(input) {
+  const d = getCurrentDossier();
+  if (!d.materials) d.materials = [];
+  const avail = 9 - d.materials.length;
+  if (avail <= 0) { alert('Máximo 9 materiales.'); return; }
+  Array.from(input.files).slice(0, avail).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const size = 600;
+        const scale = Math.min(1, size / img.width, size / img.height);
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        d.materials.push({ dataUrl: canvas.toDataURL('image/jpeg', 0.82), label: file.name.replace(/\.[^.]+$/, '') });
+        renderDossierMaterials();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function renderDossierPlans() {
+  const d = getCurrentDossier();
+  const el = $('dossier-plans-grid');
+  if (!el) return;
+  const lbl = $('plans-upload-label');
+  if (lbl) lbl.style.display = (d.plans||[]).length >= 3 ? 'none' : '';
+  el.innerHTML = (d.plans||[]).map((p, i) => `
+    <div style="position:relative;aspect-ratio:4/3;overflow:hidden;background:var(--d4)">
+      <img src="${p.dataUrl}" style="width:100%;height:100%;object-fit:cover">
+      <div style="position:absolute;bottom:0;left:0;right:0;padding:3px 6px;background:rgba(0,0,0,0.65);display:flex;align-items:center;gap:4px">
+        <input value="${p.caption}" placeholder="Plano…" oninput="getCurrentDossier().plans[${i}].caption=this.value"
+          style="flex:1;background:none;border:none;color:#fff;font-size:9px;outline:none;min-width:0">
+        <button onclick="getCurrentDossier().plans.splice(${i},1);renderDossierPlans()" style="background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;font-size:13px;padding:0;line-height:1">×</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderDossierMaterials() {
+  const d = getCurrentDossier();
+  const el = $('dossier-materials-grid');
+  if (!el) return;
+  const lbl = $('materials-upload-label');
+  if (lbl) lbl.style.display = (d.materials||[]).length >= 9 ? 'none' : '';
+  el.innerHTML = (d.materials||[]).map((m, i) => `
+    <div style="position:relative;aspect-ratio:1;overflow:hidden;background:var(--d4)">
+      <img src="${m.dataUrl}" style="width:100%;height:100%;object-fit:cover">
+      <div style="position:absolute;bottom:0;left:0;right:0;padding:3px 6px;background:rgba(0,0,0,0.7);display:flex;align-items:center;gap:4px">
+        <input value="${m.label}" placeholder="Mármol…" oninput="getCurrentDossier().materials[${i}].label=this.value"
+          style="flex:1;background:none;border:none;color:#fff;font-size:9px;outline:none;min-width:0">
+        <button onclick="getCurrentDossier().materials.splice(${i},1);renderDossierMaterials()" style="background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;font-size:13px;padding:0;line-height:1">×</button>
+      </div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════
+// PRESENTATION — MAP + CHART SUPPORT
+// ══════════════════════════════════════════════════
+let presMapInstance = null;
+let presChartInstance = null;
+
+function initPresMap() {
+  const container = document.getElementById('pres-map-container');
+  if (!container) return;
+  if (presMapInstance) { presMapInstance.remove(); presMapInstance = null; }
+  const d = getCurrentDossier();
+  const lat = d.mapLat || 40.4168;
+  const lng = d.mapLng || -3.7038;
+  presMapInstance = L.map(container, { zoomControl: true, attributionControl: false, scrollWheelZoom: false });
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(presMapInstance);
+  const icon = L.divIcon({
+    html: '<div style="width:16px;height:16px;background:#C4975A;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 3px rgba(196,151,90,0.4)"></div>',
+    iconSize: [16,16], iconAnchor: [8,8], className: ''
+  });
+  L.marker([lat, lng], { icon }).addTo(presMapInstance);
+  presMapInstance.setView([lat, lng], 15);
+  setTimeout(() => presMapInstance && presMapInstance.invalidateSize(), 200);
+}
+
+// ══════════════════════════════════════════════════
+// ADDRESS AUTOCOMPLETE — Photon (Komoot / OSM)
+// No API key required. Best Spanish street coverage.
+// ══════════════════════════════════════════════════
+let rwAcTimer = null;
+let rwAcIdx   = -1;
+let rwAcItems = [];
+
+async function rwAcQuery(val) {
+  clearTimeout(rwAcTimer);
+  const q = (val || '').trim();
+  if (q.length < 3) { rwAcHide(); return; }
+
+  rwAcTimer = setTimeout(async () => {
+    try {
+      const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lang=es&limit=6&bbox=-9.4,35.9,4.3,43.8`;
+      const res  = await fetch(url);
+      const data = await res.json();
+
+      rwAcItems = (data.features || []).filter(f => {
+        const p = f.properties;
+        // Only show results with a street (house number optional)
+        return p.street || p.name;
+      }).map(f => {
+        const p  = f.properties;
+        const [lon, lat] = f.geometry.coordinates;
+        const street = [p.name && !p.street ? p.name : p.street, p.housenumber].filter(Boolean).join(' ');
+        const city   = [p.postcode, p.city || p.town || p.village].filter(Boolean).join(' ');
+        const label  = [street, p.city || p.town || p.village, p.country].filter(Boolean).join(', ');
+        return { label, street, postcode: p.postcode || '', city: p.city || p.town || p.village || '', lat, lon };
+      });
+
+      rwAcRender();
+    } catch(e) { rwAcHide(); }
+  }, 280);
+}
+
+function rwAcRender() {
+  const drop = $('rw-ac-dropdown');
+  if (!drop) return;
+  if (!rwAcItems.length) { rwAcHide(); return; }
+
+  rwAcIdx = -1;
+  drop.innerHTML = rwAcItems.map((item, i) =>
+    `<div class="rw-ac-item" data-i="${i}" onmousedown="rwAcSelect(${i})">
+      ${item.street || item.label.split(',')[0]}
+      <small>${[item.postcode, item.city].filter(Boolean).join(' · ')}</small>
+    </div>`
+  ).join('');
+  drop.style.display = 'block';
+}
+
+function rwAcSelect(i) {
+  const item = rwAcItems[i];
+  if (!item) return;
+
+  const inp = $('dealAddress');
+  if (inp) inp.value = item.street || item.label.split(',')[0];
+
+  if (item.postcode && $('dealCP'))    $('dealCP').value    = item.postcode;
+  if (item.city    && $('dealMunicipio')) $('dealMunicipio').value = item.city;
+
+  // Store coords immediately — no geocoding needed
+  const d = getCurrentDossier();
+  d.mapLat = item.lat;
+  d.mapLng = item.lon;
+
+  const status = $('geo-status');
+  if (status) {
+    status.textContent = `✓ ${item.label}`;
+    status.style.color = 'var(--green)';
+    setTimeout(() => { if (status) status.textContent = ''; }, 3000);
+  }
+
+  rwAcHide();
+  update();
+  // Kick off orientation calculation in background
+  rwFetchAndStoreOrientation();
+}
+
+function rwAcKey(e) {
+  const drop = $('rw-ac-dropdown');
+  if (!drop || drop.style.display === 'none') return;
+  const items = drop.querySelectorAll('.rw-ac-item');
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    rwAcIdx = Math.min(rwAcIdx + 1, items.length - 1);
+    items.forEach((el, i) => el.classList.toggle('active', i === rwAcIdx));
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    rwAcIdx = Math.max(rwAcIdx - 1, 0);
+    items.forEach((el, i) => el.classList.toggle('active', i === rwAcIdx));
+  } else if (e.key === 'Enter' && rwAcIdx >= 0) {
+    e.preventDefault();
+    rwAcSelect(rwAcIdx);
+  } else if (e.key === 'Escape') {
+    rwAcHide();
+  }
+}
+
+function rwAcHide() {
+  const drop = $('rw-ac-dropdown');
+  if (drop) drop.style.display = 'none';
+  rwAcIdx = -1;
+}
+
+// ══════════════════════════════════════════════════
+// ORIENTATION ENGINE — Overpass API + solar description
+// ══════════════════════════════════════════════════
+
+function rwSolarDesc(cardinal) {
+  const D = {
+    N:  { icon:'↑', color:'#7bafd4', label:'Norte',
+          short:'Sin sol directo',
+          lines:['Luz fría y difusa todo el año','Fresco en verano · húmedo en invierno','Sin calor solar directo en ningún mes'] },
+    NE: { icon:'↗', color:'#a8c8e8', label:'Noreste',
+          short:'Sol de primera mañana',
+          lines:['Sol entre las 7–10h en verano','Sin sol directo en invierno','Luminoso al amanecer · tardes frescas'] },
+    E:  { icon:'→', color:'#f4c87a', label:'Este',
+          short:'Sol de mañana todo el año',
+          lines:['Sol 7–13h todo el año sin excepción','Tardes siempre en sombra','Fresco en verano · luminoso al despertar'] },
+    SE: { icon:'↘', color:'#e8a83c', label:'Sureste',
+          short:'Sol de mañana a mediodía',
+          lines:['Sol 7–15h — orientación muy cotizada','Cálido en invierno · no sofocante en verano','Máxima luz natural sin sobrecalentamiento'] },
+    S:  { icon:'↓', color:'#c49156', label:'Sur',
+          short:'Sol pleno de mediodía',
+          lines:['Sol directo 10–17h todo el año','Máxima luminosidad · muy cálido en verano','Prime en el mercado residencial español'] },
+    SO: { icon:'↙', color:'#d4924a', label:'Suroeste',
+          short:'Sol de tarde',
+          lines:['Sol desde mediodía hasta las ~20h','Caluroso en tardes de julio y agosto','Luminoso para cenas en terraza en invierno'] },
+    O:  { icon:'←', color:'#bf7a3c', label:'Oeste',
+          short:'Sol de tarde intenso',
+          lines:['Sol 14–20h todo el año','Muy caluroso en tardes de verano','Mañanas siempre en sombra y frescas'] },
+    NO: { icon:'↖', color:'#8fb8d0', label:'Noroeste',
+          short:'Sol de última tarde en verano',
+          lines:['Sol sólo en verano tras las 17h','Sin sol directo de otoño a primavera','Fresco y moderado — bueno en climas cálidos'] },
+  };
+  return D[cardinal] || D['N'];
+}
+
+async function rwCalcOrientation(lat, lon, address) {
+  try {
+    // Query Overpass: ways near point with highway tag
+    const q = `[out:json][timeout:8];way(around:100,${lat},${lon})[highway~"^(residential|primary|secondary|tertiary|unclassified|living_street|pedestrian|service|trunk)$"];out geom;`;
+    const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(q)}`);
+    const data = await res.json();
+
+    const ways = data.elements?.filter(e => e.geometry?.length >= 2) || [];
+    if (!ways.length) return null;
+
+    // Pick way whose geometry is closest to our point
+    let bestWay = null, bestDist = Infinity;
+    for (const way of ways) {
+      for (let i = 0; i < way.geometry.length - 1; i++) {
+        const mLat = (way.geometry[i].lat + way.geometry[i+1].lat) / 2;
+        const mLon = (way.geometry[i].lon + way.geometry[i+1].lon) / 2;
+        const d = Math.hypot(mLat - lat, mLon - lon);
+        if (d < bestDist) { bestDist = d; bestWay = way; }
+      }
+    }
+    if (!bestWay) return null;
+
+    // Find closest segment in best way
+    const geom = bestWay.geometry;
+    let minD = Infinity, segIdx = 0;
+    for (let i = 0; i < geom.length - 1; i++) {
+      const mLat = (geom[i].lat + geom[i+1].lat) / 2;
+      const mLon = (geom[i].lon + geom[i+1].lon) / 2;
+      const d = Math.hypot(mLat - lat, mLon - lon);
+      if (d < minD) { minD = d; segIdx = i; }
+    }
+
+    const p1 = geom[segIdx], p2 = geom[segIdx + 1];
+    const cosLat = Math.cos(lat * Math.PI / 180);
+    const dLat = p2.lat - p1.lat;
+    const dLon = (p2.lon - p1.lon) * cosLat;
+    // Street bearing (direction the street runs)
+    const streetBearing = (Math.atan2(dLon, dLat) * 180 / Math.PI + 360) % 360;
+
+    // Facade = perpendicular to street
+    // House number parity → side of street
+    // Spain convention: odd = right side ascending street numbers
+    const houseNum = parseInt((address.match(/\b(\d+)\b/) || [0,'0'])[1]);
+    let facadeAngle;
+    const uncertain = !houseNum;
+    if (houseNum % 2 === 1) {
+      facadeAngle = (streetBearing + 90) % 360;  // right side
+    } else if (houseNum % 2 === 0 && houseNum > 0) {
+      facadeAngle = (streetBearing - 90 + 360) % 360;  // left side
+    } else {
+      facadeAngle = (streetBearing + 90) % 360; // fallback
+    }
+
+    const cardinals = ['N','NE','E','SE','S','SO','O','NO'];
+    const cardinal = cardinals[Math.round(facadeAngle / 45) % 8];
+    const solar = rwSolarDesc(cardinal);
+
+    return { angle: Math.round(facadeAngle), cardinal, solar, streetBearing: Math.round(streetBearing), uncertain, streetName: bestWay.tags?.name || '' };
+  } catch(e) {
+    console.warn('rwCalcOrientation error:', e);
+    return null;
+  }
+}
+
+async function rwFetchAndStoreOrientation() {
+  const d = getCurrentDossier();
+  if (!d.mapLat || !d.mapLng) return;
+  const addr = $('dealAddress')?.value || '';
+  const result = await rwCalcOrientation(d.mapLat, d.mapLng, addr);
+  if (result) {
+    d.orientation = result;
+    // Update geo-status to show orientation too
+    const status = $('geo-status');
+    if (status && !status.textContent.startsWith('✓')) return;
+    if (status) {
+      const prev = status.textContent;
+      status.textContent = prev ? prev + ` · Fachada ${result.solar.label} (${result.angle}°)` : `Fachada ${result.solar.label} (${result.angle}°)`;
+    }
+  }
+}
+
+
+async function geocodeForMap(addr, cp, municipio) {
+  if (!addr) return;
+  try {
+    const coords = await rwGeocode(addr, cp || S('dealCP'), municipio || S('dealMunicipio'));
+    if (coords) {
+      const d = getCurrentDossier();
+      d.mapLat = coords.lat;
+      d.mapLng = coords.lon;
+      rwFetchAndStoreOrientation();
+    }
+  } catch(e) { console.log('geocodeForMap error:', e); }
+}
+
+function initPresRegistroChart(cp) {
+  const canvas = document.getElementById('pres-registro-chart');
+  if (!canvas || typeof Chart === 'undefined') return;
+  if (presChartInstance) { presChartInstance.destroy(); presChartInstance = null; }
+  const records = REGISTRO_DATA.filter(r => r[0] === parseInt(cp));
+  if (!records.length) return;
+  const pm2s = records.map(r => r[2]).filter(v => v > 1000 && v < 30000);
+  // Build histogram buckets of 1000€
+  const min = Math.floor(Math.min(...pm2s) / 1000) * 1000;
+  const max = Math.ceil(Math.max(...pm2s) / 1000) * 1000;
+  const buckets = []; const labels = [];
+  for (let v = min; v <= max; v += 1000) {
+    labels.push(v.toLocaleString('es-ES'));
+    buckets.push(pm2s.filter(p => p >= v && p < v + 1000).length);
+  }
+  const mediana = [...pm2s].sort((a,b)=>a-b)[Math.floor(pm2s.length/2)];
+  const exitB = V('exitB');
+  const bgColors = labels.map((l,i) => {
+    const v = min + i * 1000;
+    if (Math.abs(v - exitB) < 500) return 'rgba(196,151,90,0.9)';
+    if (Math.abs(v - mediana) < 500) return 'rgba(82,192,122,0.6)';
+    return 'rgba(255,255,255,0.18)';
+  });
+  presChartInstance = new Chart(canvas, {
+    type: 'bar',
+    data: { labels, datasets: [{ data: buckets, backgroundColor: bgColors, borderWidth: 0 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 9 }, maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.06)' } },
+        y: { ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.06)' } }
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════
+// PRESENTATION SLIDES — FULL REBUILD
+// ══════════════════════════════════════════════════
+const SLIDE_DEFS = [
+  { id:'portada',      label:'Portada' },
+  { id:'activo',       label:'01 · El activo' },
+  { id:'ubicacion',    label:'02 · Ubicación' },
+  { id:'zona',         label:'03 · La zona' },
+  { id:'mercado',      label:'04 · El mercado' },
+  { id:'testigos',     label:'05 · Proyección de venta' },
+  { id:'proyecto',     label:'06 · El proyecto' },
+  { id:'numeros',      label:'07 · Los números' },
+  { id:'carry',        label:'08 · Alineación' },
+  { id:'timeline',     label:'09 · Calendario' },
+  { id:'sensibilidad', label:'10 · Protección capital' },
+];
+
+function buildSlides(m, d) {
+  const fmt2 = v => (v||0).toLocaleString('es-ES',{maximumFractionDigits:0}) + ' €';
+  const fmtP = v => ((v||0)*100).toFixed(1) + '%';
+  const fmtK2 = v => v >= 1000000 ? (v/1000000).toFixed(2) + 'M €' : Math.round(v/1000) + 'K €';
+  const photo = (arr, idx, style='') => (arr||[])[idx]
+    ? `<img src="${arr[idx].dataUrl}" style="object-fit:cover;${style}">`
+    : `<div style="${style};background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:rgba(255,255,255,0.15)">Sin imagen</span></div>`;
+
+  const addr    = [S('dealAddress'), S('dealCP'), S('dealMunicipio')].filter(Boolean).join(' · ');
+  const mz      = document.getElementById('microzona')?.value || '';
+  const mzData  = MICROZONE_DATA.find(z => z.z === mz);
+  const mzTier  = mzData?.tier || '';
+  const buyPm2  = m.surfCapex > 0 ? Math.round(m.buyPrice / m.surfCapex) : 0;
+  const exitPm2B = V('exitB');
+  const cp      = S('dealCP');
+  const reforComp = comps.filter(c => c.precio > 0 && c.m2 > 0 && c.tipo === 'reformado');
+  const reformarComp = comps.filter(c => c.precio > 0 && c.m2 > 0 && c.tipo === 'reformar');
+  const medRefPm2 = reforComp.length ? Math.round(reforComp.reduce((s,c)=>s+c.precio/c.m2,0)/reforComp.length) : 0;
+  const medRfmPm2 = reformarComp.length ? Math.round(reformarComp.reduce((s,c)=>s+c.precio/c.m2,0)/reformarComp.length) : 0;
+  const descuento = medRfmPm2 > 0 && buyPm2 > 0 ? ((medRfmPm2 - buyPm2) / medRfmPm2 * 100).toFixed(1) : null;
+
+  // CSS for all slides
+  const baseCSS = `<style>
+    .ps-tag{font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:rgba(196,151,90,0.8);margin-bottom:10px;font-weight:600}
+    .ps-h1{font-family:'Cormorant Garamond',serif;font-size:48px;font-weight:300;color:#fff;line-height:1.1;margin-bottom:8px}
+    .ps-h2{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:300;color:#fff;line-height:1.15;margin-bottom:16px}
+    .ps-body{font-size:13px;color:rgba(255,255,255,0.6);line-height:1.8}
+    .ps-div{width:36px;height:1px;background:rgba(196,151,90,0.45);margin:18px 0}
+    .ps-kv{display:flex;flex-direction:column}
+    .ps-kv-v{font-family:'DM Mono',monospace;font-size:20px;color:#fff;font-feature-settings:'tnum' 1;font-weight:500}
+    .ps-kv-l{font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-top:3px}
+    .ps-data{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);padding:12px 16px}
+    .ps-data-l{font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:4px}
+    .ps-data-v{font-family:'DM Mono',monospace;font-size:13px;color:#fff;font-feature-settings:'tnum' 1}
+    .inner{padding:44px 56px;height:100%;box-sizing:border-box;display:flex;flex-direction:column}
+    .full{position:relative;height:100%;overflow:hidden}
+    @keyframes tl-grow{from{width:0}to{width:100%}}
+    @keyframes tl-pop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+    @keyframes fade-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    .ps-anim{animation:fade-up 0.5s ease forwards}
+  </style>`;
+
+  const slides = [];
+
+  // ── PORTADA ──────────────────────────────────────────────────────────────
+  slides.push({ id:'portada', html: baseCSS + `
+    <div class="full">
+      ${d.photos[0] ? `<img src="${d.photos[0].dataUrl}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.2">` : ''}
+      <div style="position:absolute;inset:0;background:linear-gradient(160deg,rgba(10,11,15,0.97) 45%,rgba(10,11,15,0.75))"></div>
+      <div class="inner" style="position:relative;justify-content:space-between">
+        <div style="opacity:0.7">
+          <svg viewBox="0 0 220 32" style="width:140px"><text x="0" y="26" font-family="Cormorant Garamond,serif" font-size="26" fill="#C4975A" font-weight="300" letter-spacing="2">Riverwalk</text></svg>
+        </div>
+        <div>
+          <div class="ps-tag ps-anim" style="animation-delay:0.1s">Oportunidad de inversión</div>
+          <div class="ps-h1 ps-anim" style="animation-delay:0.2s;font-size:56px">${S('dealName') || 'Activo prime Madrid'}</div>
+          <div style="font-size:14px;color:rgba(255,255,255,0.4);margin-top:4px" class="ps-anim" style="animation-delay:0.3s">${addr}</div>
+          ${mz ? `<div class="ps-anim" style="animation-delay:0.35s;margin-top:12px;display:inline-flex;align-items:center;gap:8px;padding:5px 14px;background:rgba(139,105,20,0.18);border:1px solid rgba(196,151,90,0.4)">
+            <span style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(196,151,90,0.8)">${mz}</span>
+            <span style="width:1px;height:12px;background:rgba(196,151,90,0.3)"></span>
+            <span style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(196,151,90,0.55)">Tier ${mzTier}</span>
+          </div>` : ''}
+        </div>
+        <div class="ps-div"></div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:40px" class="ps-anim" style="animation-delay:0.4s">
+          ${[
+            ['Inversión total', fmt2(m.totalInvest)],
+            ['Precio salida base', fmt2(m.base.saleGross)],
+            ['ROI bruto', fmtP(m.base.roiGross)],
+          ].map(([l,v],i) => `<div class="ps-kv"><div class="ps-kv-v" style="${i===2?'color:rgba(196,151,90,0.9)':''}">${v}</div><div class="ps-kv-l">${l}</div></div>`).join('')}
+        </div>
+        <div style="font-size:9px;color:rgba(255,255,255,0.2);letter-spacing:0.1em">${new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'})}</div>
+      </div>
+    </div>` });
+
+  // ── EL ACTIVO ──────────────────────────────────────────────────────────────
+  slides.push({ id:'activo', html: baseCSS + `
+    <div class="inner" style="flex-direction:row;gap:44px;padding:36px 48px">
+      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:0">
+        <div class="ps-tag">El activo</div>
+        <div class="ps-h2">${S('dealName') || '—'}</div>
+        <div class="ps-body" style="margin-bottom:20px">${d.narrative?.activo || '<span style="opacity:0.25">Genera la descripción con ✦ Narrativa IA</span>'}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          ${[
+            ['Superficie', m.surfCapex + ' m²'],
+            ['Precio compra', fmt2(m.buyPrice)],
+            ['€/m² compra', buyPm2.toLocaleString('es-ES') + ' €/m²'],
+            ['Microzona', mz || '—'],
+          ].map(([l,v]) => `<div class="ps-data"><div class="ps-data-l">${l}</div><div class="ps-data-v">${v}</div></div>`).join('')}
+        </div>
+      </div>
+      <div style="flex:0 0 42%;display:flex;flex-direction:column;gap:6px">
+        <div style="flex:2;overflow:hidden;min-height:0">${photo(d.photos, 0, 'width:100%;height:100%')}</div>
+        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:6px;min-height:0">
+          ${photo(d.photos, 1, 'width:100%;height:100%')}
+          ${(d.plans||[]).length > 0
+            ? `<img src="${d.plans[0].dataUrl}" style="width:100%;height:100%;object-fit:contain;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">`
+            : photo(d.photos, 2, 'width:100%;height:100%')}
+        </div>
+      </div>
+    </div>` });
+
+  // ── UBICACIÓN ──────────────────────────────────────────────────────────────
+  // ── UBICACIÓN ──────────────────────────────────────────────────────────────
+  const ori = d.orientation || null;
+  const oriPanel = ori ? (() => {
+    const sd = ori.solar;
+    const ang = ori.angle;
+    // Draw compass needle as inline SVG
+    const compassSVG = `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="32" cy="32" r="30" fill="none" stroke="rgba(196,151,90,0.25)" stroke-width="1"/>
+      <circle cx="32" cy="32" r="1.5" fill="rgba(196,151,90,0.8)"/>
+      ${['N','NE','E','SE','S','SO','O','NO'].map((l,i) => {
+        const a = i * 45 * Math.PI / 180;
+        const r = 24, tr = 28;
+        const x = 32 + Math.sin(a)*r, y = 32 - Math.cos(a)*r;
+        const tx = 32 + Math.sin(a)*tr, ty = 32 - Math.cos(a)*tr + 1;
+        const isMain = i % 2 === 0;
+        return `<line x1="32" y1="32" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,${isMain?0.25:0.1})" stroke-width="${isMain?1:0.5}"/>
+                <text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" fill="rgba(255,255,255,${l==='N'?0.9:0.3})" font-size="${isMain?6:0}" text-anchor="middle" dominant-baseline="middle" font-family="Raleway,sans-serif" font-weight="600">${l}</text>`;
+      }).join('')}
+      <!-- needle: points toward facade direction -->
+      <g transform="rotate(${ang}, 32, 32)">
+        <polygon points="32,8 29.5,32 32,28 34.5,32" fill="${sd.color}" opacity="0.9"/>
+        <polygon points="32,56 29.5,32 32,36 34.5,32" fill="rgba(255,255,255,0.2)"/>
+      </g>
+    </svg>`;
+    return `
+    <div style="position:absolute;bottom:36px;right:40px;z-index:10;background:rgba(10,11,15,0.88);border:1px solid rgba(196,151,90,0.3);padding:20px 24px;max-width:300px;backdrop-filter:blur(4px)">
+      <div style="font-size:8.5px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(196,151,90,0.6);margin-bottom:10px">Orientación fachada</div>
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">
+        ${compassSVG}
+        <div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:26px;color:${sd.color};line-height:1">${sd.label}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.45);margin-top:2px">${ang}° · ${ori.uncertain ? 'estimado' : 'nº '+($('dealAddress')?.value?.match(/\b(\d+)\b/)||['','?'])[1]}</div>
+        </div>
+      </div>
+      <div style="font-size:10.5px;color:rgba(255,255,255,0.7);font-weight:600;margin-bottom:6px">${sd.short}</div>
+      ${sd.lines.map(l => `<div style="font-size:9.5px;color:rgba(255,255,255,0.4);line-height:1.6">· ${l}</div>`).join('')}
+    </div>`;
+  })() : '';
+
+  slides.push({ id:'ubicacion', needsMap:true, html: baseCSS + `
+    <div class="full">
+      <div id="pres-map-container" style="position:absolute;inset:0;z-index:0"></div>
+      <div style="position:absolute;top:36px;left:40px;z-index:10;background:rgba(10,11,15,0.88);border:1px solid rgba(196,151,90,0.3);padding:20px 26px;max-width:360px;backdrop-filter:blur(4px)">
+        <div class="ps-tag">Ubicación</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:#fff;margin-bottom:6px">${S('dealAddress') || '—'}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.45)">${S('dealCP') || ''} ${S('dealMunicipio') || ''}</div>
+        ${mz ? `<div style="margin-top:10px;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(196,151,90,0.75)">${mz} · Tier ${mzTier}</div>` : ''}
+      </div>
+      ${oriPanel}
+    </div>` });
+
+  // ── LA ZONA ──────────────────────────────────────────────────────────────
+  slides.push({ id:'zona', needsChart:true, html: baseCSS + `
+    <div class="inner" style="padding:36px 48px">
+      <div class="ps-tag">La zona · ${mz || 'Madrid prime'}</div>
+      <div class="ps-h2" style="margin-bottom:12px">Contexto de mercado</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:36px;flex:1;min-height:0">
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="ps-body">${d.narrative?.zona || '<span style="opacity:0.25">Genera el contexto de zona con ✦ Narrativa IA</span>'}</div>
+          ${mzData ? `<div style="background:rgba(139,105,20,0.1);border:1px solid rgba(196,151,90,0.25);padding:16px 20px">
+            <div class="ps-data-l">Prima microzona</div>
+            <div style="font-family:'DM Mono',monospace;font-size:24px;color:rgba(196,151,90,0.9);margin:4px 0">${mzData.base >= 0 ? '+' : ''}${mzData.base}%</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.35)">sobre precio medio del CP · Tier ${mzTier}</div>
+          </div>` : ''}
+          ${medRefPm2 > 0 ? `<div class="ps-data"><div class="ps-data-l">Media testigos reformados</div><div class="ps-data-v">${medRefPm2.toLocaleString('es-ES')} €/m²</div></div>` : ''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;min-height:0">
+          <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:4px">Distribución €/m² en CP ${cp} · Registro Q1 2025</div>
+          <div style="flex:1;position:relative;min-height:180px">
+            <canvas id="pres-registro-chart"></canvas>
+          </div>
+          <div style="display:flex;gap:12px;font-size:9px;color:rgba(255,255,255,0.4)">
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:rgba(196,151,90,0.9);display:inline-block"></span>Precio salida base</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:rgba(82,192,122,0.6);display:inline-block"></span>Mediana CP</span>
+          </div>
+        </div>
+      </div>
+    </div>` });
+
+  // ── EL MERCADO ──────────────────────────────────────────────────────────────
+  slides.push({ id:'mercado', html: baseCSS + `
+    <div class="inner" style="padding:36px 48px">
+      <div class="ps-tag">El mercado</div>
+      <div class="ps-h2">La oportunidad de adquisición</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:36px;flex:1;align-items:start">
+        <div>
+          <div class="ps-body" style="margin-bottom:20px">${d.narrative?.mercado || '<span style="opacity:0.25">Genera el análisis de mercado con ✦ Narrativa IA</span>'}</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            ${medRfmPm2 > 0 ? `<div style="display:flex;justify-content:space-between;padding:12px 16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07)">
+              <span style="font-size:12px;color:rgba(255,255,255,0.5)">Precio mercado (a reformar)</span>
+              <span style="font-family:'DM Mono',monospace;color:rgba(255,255,255,0.65)">${medRfmPm2.toLocaleString('es-ES')} €/m²</span>
+            </div>` : ''}
+            <div style="display:flex;justify-content:space-between;padding:14px 16px;background:rgba(139,105,20,0.1);border:1px solid rgba(196,151,90,0.35)">
+              <span style="font-size:12px;color:rgba(255,255,255,0.8)">Nuestro precio compra</span>
+              <span style="font-family:'DM Mono',monospace;color:rgba(196,151,90,0.9);font-size:16px">${buyPm2.toLocaleString('es-ES')} €/m²</span>
+            </div>
+            ${descuento ? `<div style="display:flex;justify-content:space-between;padding:14px 16px;background:rgba(30,122,69,0.1);border:1px solid rgba(82,192,122,0.3)">
+              <span style="font-size:12px;color:rgba(255,255,255,0.8)">Descuento sobre mercado</span>
+              <span style="font-family:'DM Mono',monospace;color:#52C07A;font-size:18px;font-weight:600">−${descuento}%</span>
+            </div>` : ''}
+          </div>
+        </div>
+        <div>
+          ${reformarComp.length > 0 ? `<div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:8px">Comparables a reformar (${reformarComp.length})</div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            ${reformarComp.slice(0,6).map(c=>`<div style="display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:8px 12px;background:rgba(255,255,255,0.03);font-size:11.5px">
+              <div style="color:rgba(255,255,255,0.55);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.desc||'—'}</div>
+              <div style="font-family:'DM Mono',monospace;color:rgba(255,255,255,0.35);font-size:10px">${c.m2}m²</div>
+              <div style="font-family:'DM Mono',monospace;color:rgba(255,255,255,0.75)">${Math.round(c.precio/c.m2).toLocaleString('es-ES')} €/m²</div>
+            </div>`).join('')}
+          </div>` : `<div style="color:rgba(255,255,255,0.2);font-size:12px;font-style:italic">Añade comparables a reformar en la sección Testigos.</div>`}
+        </div>
+      </div>
+    </div>` });
+
+  // ── TESTIGOS ──────────────────────────────────────────────────────────────
+  slides.push({ id:'testigos', html: baseCSS + `
+    <div class="inner" style="padding:36px 48px">
+      <div class="ps-tag">Proyección de venta</div>
+      <div class="ps-h2">Escenarios de precio de salida</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:36px;flex:1;min-height:0">
+        <div>
+          ${reforComp.length > 0 ? `<div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:8px">Testigos reformados (${reforComp.length})</div>
+          <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:16px">
+            ${reforComp.slice(0,6).map(c=>`<div style="display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:7px 12px;background:rgba(255,255,255,0.03);font-size:11.5px">
+              <div style="color:rgba(255,255,255,0.55);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.desc||'—'}</div>
+              <div style="font-family:'DM Mono',monospace;color:rgba(255,255,255,0.35);font-size:10px">${c.m2}m²</div>
+              <div style="font-family:'DM Mono',monospace;color:rgba(255,255,255,0.75)">${Math.round(c.precio/c.m2).toLocaleString('es-ES')} €/m²</div>
+            </div>`).join('')}
+          </div>` : ''}
+          ${medRefPm2 > 0 ? `<div style="padding:14px 18px;background:rgba(139,105,20,0.1);border:1px solid rgba(196,151,90,0.3)">
+            <div class="ps-data-l">Media testigos reformados</div>
+            <div style="font-family:'DM Mono',monospace;font-size:22px;color:rgba(196,151,90,0.9);margin-top:4px">${medRefPm2.toLocaleString('es-ES')} €/m²</div>
+          </div>` : ''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;justify-content:center">
+          ${[
+            {lbl:'Pesimista · P25',  ep:V('exitP'), sc:m.pess, col:'#E05555',  bg:'rgba(192,57,43,0.06)'},
+            {lbl:'Base · Mediana',   ep:V('exitB'), sc:m.base, col:'rgba(196,151,90,0.95)', bg:'rgba(139,105,20,0.12)', bold:true},
+            {lbl:'Optimista · P75',  ep:V('exitO'), sc:m.opt,  col:'#52C07A',  bg:'rgba(30,122,69,0.06)'},
+          ].map(({lbl,ep,sc,col,bg,bold})=>`<div style="padding:18px 20px;background:${bg};border:1px solid ${bold?'rgba(196,151,90,0.4)':'rgba(255,255,255,0.07)'}">
+            <div style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:${col};margin-bottom:8px">${lbl}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:${bold?28:22}px;color:#fff;font-feature-settings:'tnum' 1;font-weight:${bold?600:400}">${ep.toLocaleString('es-ES')} €/m²</div>
+            <div style="font-family:'DM Mono',monospace;font-size:12px;color:rgba(255,255,255,0.4);margin-top:5px">${fmt2(ep*m.surfCapex)} · ROI bruto <span style="color:${col}">${fmtP(sc.roiGross)}</span></div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>` });
+
+  // ── EL PROYECTO ──────────────────────────────────────────────────────────
+  const mats = d.materials || [];
+  slides.push({ id:'proyecto', html: baseCSS + `
+    <div class="inner" style="padding:36px 48px">
+      <div class="ps-tag">El proyecto</div>
+      <div class="ps-h2">Reforma integral · Paleta de calidades</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:36px;flex:1;align-items:start">
+        <div>
+          <div class="ps-body" style="margin-bottom:20px">${d.narrative?.proyecto || '<span style="opacity:0.25">Genera la tesis del proyecto con ✦ Narrativa IA</span>'}</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            ${[
+              ['Obra', V('obraM2').toLocaleString('es-ES') + ' €/m² + IVA'],
+              ['Interiorismo', V('decoM2').toLocaleString('es-ES') + ' €/m² + IVA'],
+              ['CapEx total', fmt2(m.capexNet * (1 + V('ivaObra')/100))],
+              ['Superficie reforma', m.surfCapex + ' m²'],
+            ].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:9px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);font-size:12px">
+              <span style="color:rgba(255,255,255,0.45)">${l}</span>
+              <span style="font-family:'DM Mono',monospace;color:#fff">${v}</span>
+            </div>`).join('')}
+          </div>
+          ${(d.plans||[]).length > 0 ? `<div style="margin-top:14px;overflow:hidden;aspect-ratio:16/9">
+            <img src="${d.plans[0].dataUrl}" style="width:100%;height:100%;object-fit:contain;background:rgba(255,255,255,0.02)">
+          </div>` : ''}
+        </div>
+        <div>
+          ${mats.length > 0 ? `<div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:10px">Selección de acabados</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">
+            ${mats.slice(0,9).map(mat=>`<div style="position:relative;aspect-ratio:1;overflow:hidden;background:rgba(255,255,255,0.03)">
+              <img src="${mat.dataUrl}" style="width:100%;height:100%;object-fit:cover">
+              <div style="position:absolute;bottom:0;left:0;right:0;padding:4px 6px;background:rgba(0,0,0,0.7)">
+                <div style="font-size:9px;color:rgba(255,255,255,0.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mat.label||'Material'}</div>
+              </div>
+            </div>`).join('')}
+          </div>` : `<div style="color:rgba(255,255,255,0.2);font-size:12px;font-style:italic;padding:20px 0">Sube fotos de materiales en el Dossier → Paleta de calidades.</div>`}
+        </div>
+      </div>
+    </div>` });
+
+  // ── LOS NÚMEROS — 3 escenarios full screen ─────────────────────────────────
+  slides.push({ id:'numeros', html: baseCSS + `
+    <div class="full" style="display:grid;grid-template-columns:280px 1fr 1fr 1fr">
+      <!-- Left panel: investment breakdown -->
+      <div style="background:rgba(0,0,0,0.5);border-right:1px solid rgba(255,255,255,0.06);padding:36px 28px;display:flex;flex-direction:column;justify-content:center;gap:14px">
+        <div class="ps-tag">Estructura</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:26px;color:#fff;margin-bottom:4px">La operación</div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          ${[
+            ['Precio compra', fmt2(m.buyPrice), ''],
+            ['ITP + Notaría', fmt2(m.itp + m.notaria), ''],
+            ['CapEx + IVA', fmt2(m.capexNet * (1+V('ivaObra')/100)), ''],
+            ['Management fee', fmt2(m.mgmtFee * (1+V('ivaObra')/100)), ''],
+          ].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;background:rgba(255,255,255,0.03);font-size:11px">
+            <span style="color:rgba(255,255,255,0.4)">${l}</span>
+            <span style="font-family:'DM Mono',monospace;color:rgba(255,255,255,0.75);font-size:10.5px">${v}</span>
+          </div>`).join('')}
+          <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(139,105,20,0.12);border:1px solid rgba(196,151,90,0.3);margin-top:4px">
+            <span style="font-size:11px;color:rgba(255,255,255,0.7)">Total inversión</span>
+            <span style="font-family:'DM Mono',monospace;color:rgba(196,151,90,0.9);font-size:12px">${fmt2(m.totalInvest)}</span>
+          </div>
+        </div>
+      </div>
+      <!-- 3 scenario panels -->
+      ${[
+        {lbl:'Pesimista',  ep:V('exitP'), sc:m.pess, col:'#E05555',              bg:'rgba(192,57,43,0.04)',  border:'rgba(192,57,43,0.2)'},
+        {lbl:'Base case',  ep:V('exitB'), sc:m.base, col:'rgba(196,151,90,0.95)',bg:'rgba(139,105,20,0.1)', border:'rgba(196,151,90,0.4)'},
+        {lbl:'Optimista',  ep:V('exitO'), sc:m.opt,  col:'#52C07A',              bg:'rgba(30,122,69,0.05)', border:'rgba(30,122,69,0.25)'},
+      ].map(({lbl,ep,sc,col,bg,border})=>`<div style="background:${bg};border-left:1px solid ${border};padding:36px 32px;display:flex;flex-direction:column;justify-content:center">
+        <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:${col};margin-bottom:20px;font-weight:600">${lbl}</div>
+        <!-- Hero ROI -->
+        <div style="font-family:'Cormorant Garamond',serif;font-size:72px;color:${col};line-height:1;margin-bottom:6px;font-weight:300">${fmtP(sc.roiGross)}</div>
+        <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:24px">ROI bruto operación</div>
+        <!-- Metrics -->
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${[
+            ['Precio salida', ep.toLocaleString('es-ES') + ' €/m²'],
+            ['Venta bruta', fmt2(ep*m.surfCapex)],
+            ['Beneficio bruto', fmt2(sc.grossProfit)],
+            ['TIR anual', isFinite(sc.irr) ? fmtP(sc.irr) : '—'],
+          ].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+            <span style="font-size:11px;color:rgba(255,255,255,0.35)">${l}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:12px;color:rgba(255,255,255,0.75)">${v}</span>
+          </div>`).join('')}
+        </div>
+        <!-- Carry deduction -->
+        <div style="margin-top:20px;padding:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07)">
+          <div style="font-size:9px;color:rgba(255,255,255,0.3);margin-bottom:6px;letter-spacing:0.1em;text-transform:uppercase">Carry Riverwalk</div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-family:'DM Mono',monospace;font-size:13px;color:rgba(196,151,90,0.7)">−${fmt2(sc.sf)}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:13px;color:rgba(255,255,255,0.6)">${fmt2(sc.afterSF)} al inversor</span>
+          </div>
+        </div>
+      </div>`).join('')}
+    </div>` });
+
+  // ── CARRY ──────────────────────────────────────────────────────────────────
+  const sf1T=V('sf1T'), sf2T=V('sf2T'), sf1P=V('sf1P'), sf2P=V('sf2P');
+  slides.push({ id:'carry', html: baseCSS + `
+    <div class="inner" style="padding:36px 48px">
+      <div class="ps-tag">Alineación de intereses</div>
+      <div class="ps-h2">Nuestro modelo de carry</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;flex:1;align-items:start">
+        <div>
+          <div class="ps-body" style="margin-bottom:20px"><strong style="color:rgba(255,255,255,0.85)">El carry solo se activa si la operación supera los umbrales.</strong> Riverwalk cobra exclusivamente cuando el inversor gana. Es nuestro skin in the game.</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            ${[
+              {lbl:`Hasta ROI ${sf1T}%`, carry:'0%', desc:'100% del beneficio para el inversor', col:'rgba(255,255,255,0.6)', bg:'rgba(255,255,255,0.03)'},
+              {lbl:`ROI ${sf1T}% → ${sf2T}%`, carry:`${sf1P}%`, desc:`${100-sf1P}% para el inversor`, col:'rgba(196,151,90,0.85)', bg:'rgba(139,105,20,0.1)'},
+              {lbl:`ROI > ${sf2T}%`, carry:`${sf2P}%`, desc:`${100-sf2P}% para el inversor`, col:'rgba(196,151,90,1)', bg:'rgba(139,105,20,0.15)'},
+            ].map(({lbl,carry,desc,col,bg})=>`<div style="padding:14px 18px;background:${bg};border:1px solid rgba(196,151,90,0.15)">
+              <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:${col};margin-bottom:6px">${lbl}</div>
+              <div style="font-family:'DM Mono',monospace;font-size:20px;color:#fff">${carry} carry Riverwalk</div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:3px">${desc}</div>
+            </div>`).join('')}
+          </div>
+        </div>
+        <div>
+          <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:10px">Escenario base — distribución</div>
+          ${[
+            {l:'Beneficio bruto', v:fmt2(m.base.grossProfit), col:'rgba(255,255,255,0.75)'},
+            {l:'Carry Riverwalk', v:'−'+fmt2(m.base.sf), col:'rgba(196,151,90,0.7)'},
+            {l:'Al inversor (pre-tax)', v:fmt2(m.base.afterSF), col:'#52C07A'},
+          ].map(({l,v,col})=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.05)">
+            <span style="font-size:12px;color:rgba(255,255,255,0.45)">${l}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:14px;color:${col}">${v}</span>
+          </div>`).join('')}
+          <div style="margin-top:16px;padding:18px;background:rgba(30,122,69,0.08);border:1px solid rgba(82,192,122,0.2)">
+            <div class="ps-data-l">ROI al inversor · escenario base</div>
+            <div style="font-family:'DM Mono',monospace;font-size:28px;color:#52C07A;margin-top:6px">${fmtP((m.base.afterSF)/m.totalInvest)}</div>
+          </div>
+          <div style="margin-top:10px;padding:14px 18px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">
+            <div class="ps-data-l">TIR anual base</div>
+            <div style="font-family:'DM Mono',monospace;font-size:20px;color:rgba(196,151,90,0.8);margin-top:4px">${isFinite(m.base.irr)?fmtP(m.base.irr):'—'}</div>
+          </div>
+        </div>
+      </div>
+    </div>` });
+
+  // ── TIMELINE ANIMADO ──────────────────────────────────────────────────────
+  const tlSteps = [
+    {lbl:'Arras',    m:0,                  sub:'Firma contrato',     icon:'◆'},
+    {lbl:'Escritura',m:m.arasMonths,       sub:m.arasMonths+'m',     icon:'◆'},
+    {lbl:'Inicio obra',m:m.arasMonths+1,   sub:'CapEx',               icon:'◆'},
+    {lbl:'Fin obra', m:m.arasMonths+Math.round(m.monthsSale*0.8), sub:'Entrega', icon:'◆'},
+    {lbl:'Venta',    m:m.totalMonths,      sub:m.totalMonths+'m total',icon:'◆'},
+  ];
+  slides.push({ id:'timeline', html: baseCSS + `
+    <div class="inner" style="justify-content:center;padding:48px 72px">
+      <div class="ps-tag" style="text-align:center">Calendario</div>
+      <div class="ps-h2" style="text-align:center;margin-bottom:48px">Temporalidad de la operación · ${m.totalMonths} meses</div>
+
+      <!-- Timeline track -->
+      <div style="position:relative;margin:0 40px 60px">
+        <div style="height:2px;background:rgba(255,255,255,0.08);position:relative;overflow:hidden">
+          <div style="position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,rgba(196,151,90,0.3),rgba(196,151,90,0.8));animation:tl-grow 1.2s ease forwards;animation-delay:0.3s;width:0"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;position:relative;margin-top:-6px">
+          ${tlSteps.map((s,i)=>`<div style="display:flex;flex-direction:column;align-items:center;animation:tl-pop 0.4s ease forwards;animation-delay:${0.3+i*0.18}s;opacity:0">
+            <div style="width:14px;height:14px;background:#C4975A;border-radius:50%;border:2px solid rgba(196,151,90,0.3);box-shadow:0 0 0 4px rgba(196,151,90,0.1)"></div>
+            <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(196,151,90,0.8);margin-top:12px;font-weight:600;text-align:center">${s.lbl}</div>
+            <div style="font-size:9px;color:rgba(255,255,255,0.35);margin-top:3px;text-align:center">${s.sub}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+
+      <!-- Summary grid -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:700px;margin:0 auto">
+        ${[
+          ['Período arras', m.arasMonths + ' meses'],
+          ['Reforma + venta', m.monthsSale + ' meses'],
+          ['Total operación', m.totalMonths + ' meses'],
+        ].map(([l,v])=>`<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);padding:20px;text-align:center">
+          <div class="ps-data-l" style="margin-bottom:8px">${l}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:28px;color:#fff">${v}</div>
+        </div>`).join('')}
+      </div>
+    </div>` });
+
+  // ── PROTECCIÓN CAPITAL ────────────────────────────────────────────────────
+  // ── SENSIBILIDAD ──────────────────────────────────────────────────────────
+  const beM2      = Math.round(m.bePriceM2);
+  const exitBase  = V('exitB');
+  const marginPct = exitBase > 0 ? ((exitBase - beM2) / exitBase * 100).toFixed(1) : '—';
+  const worstExit = Math.min(V('exitP'), ...(sensPrices || []));
+  const worstRoi  = (() => {
+    const ep = worstExit; const mo = m.totalMonths + 4;
+    const commAdj = V('comunidad')*mo, ibiAdj = V('ibi')*mo/12;
+    const totAdj = m.buyPrice+m.itp+m.notaria+commAdj+ibiAdj+m.intermediaryFee+m.brokerBuyFee+m.capexNet+m.totalFeesNet+m.totalIVA;
+    const gP = ep*m.surfCapex - ep*m.surfCapex*V('brokerExit')/100 - (V('exitFixed')+V('exitFixedAjuste')) - totAdj;
+    return gP/totAdj;
+  })();
+
+  // Duration columns: 4 scenarios
+  const durCols = [
+    { label: `${m.arasMonths + 2}m`, months: m.arasMonths + 2 },
+    { label: `${m.totalMonths}m`, months: m.totalMonths },
+    { label: `${m.totalMonths + 4}m`, months: m.totalMonths + 4 },
+    { label: `${m.totalMonths + 8}m`, months: m.totalMonths + 8 },
+  ];
+  // Price rows: use configured sensPrices (up to 6)
+  const priceCols = (sensPrices && sensPrices.length ? [...sensPrices] : [V('exitP'), V('exitB'), V('exitO')]).slice(0, 6);
+
+  function cellROI(ep, mo) {
+    const commAdj = V('comunidad')*mo, ibiAdj = V('ibi')*mo/12;
+    const totAdj = m.buyPrice+m.itp+m.notaria+commAdj+ibiAdj+m.intermediaryFee+m.brokerBuyFee+m.capexNet+m.totalFeesNet+m.totalIVA;
+    const brkCost = ep*m.surfCapex*V('brokerExit')/100 + (V('exitFixed')+V('exitFixedAjuste'));
+    const gP = ep*m.surfCapex - brkCost - totAdj;
+    return gP / totAdj;
+  }
+
+  function roiColor(roi) {
+    if (roi < 0)    return { bg: 'rgba(180,30,30,0.35)',  text: '#E05555', border: 'rgba(224,85,85,0.25)' };
+    if (roi < 0.08) return { bg: 'rgba(180,100,20,0.25)', text: 'rgba(255,165,0,0.9)', border: 'rgba(255,165,0,0.2)' };
+    if (roi < 0.15) return { bg: 'rgba(139,105,20,0.22)', text: 'rgba(196,151,90,0.95)', border: 'rgba(196,151,90,0.2)' };
+    return { bg: 'rgba(20,100,50,0.25)', text: '#52C07A', border: 'rgba(82,192,122,0.2)' };
+  }
+
+  const heatRows = priceCols.map(ep => {
+    const isBe = ep <= beM2 * 1.02 && ep >= beM2 * 0.98;
+    const isBase = Math.abs(ep - exitBase) < 200;
+    return `<tr>
+      <td style="padding:9px 14px;font-family:'DM Mono',monospace;font-size:11px;color:${isBase?'rgba(196,151,90,0.95)':'rgba(255,255,255,0.5)'};white-space:nowrap;border-right:1px solid rgba(255,255,255,0.06);${isBase?'background:rgba(139,105,20,0.08);':''}">
+        ${ep.toLocaleString('es-ES')} €/m²${isBase?' ·':isBe?' ≈ BE':''}
+      </td>
+      ${durCols.map(({months}) => {
+        const roi = cellROI(ep, months);
+        const {bg, text, border} = roiColor(roi);
+        return `<td style="padding:9px 10px;text-align:center;background:${bg};border:1px solid ${border};">
+          <div style="font-family:'DM Mono',monospace;font-size:13.5px;color:${text};font-weight:500;line-height:1;">${(roi*100).toFixed(1)}%</div>
+        </td>`;
+      }).join('')}
+    </tr>`;
+  }).join('');
+
+  slides.push({ id:'sensibilidad', html: baseCSS + `
+    <div class="inner" style="padding:32px 48px;gap:20px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:32px">
+        <!-- Left: breakeven hero -->
+        <div style="flex:1">
+          <div class="ps-tag">Protección de capital</div>
+          <div class="ps-h2" style="font-size:26px;margin-bottom:4px">Margen de seguridad</div>
+        </div>
+        <!-- Right: key stats row -->
+        <div style="display:flex;gap:12px;flex-shrink:0">
+          <div style="padding:14px 20px;background:rgba(139,105,20,0.12);border:1px solid rgba(196,151,90,0.3);text-align:center;min-width:110px">
+            <div style="font-family:'DM Mono',monospace;font-size:22px;color:rgba(196,151,90,0.95);line-height:1;margin-bottom:4px">${beM2.toLocaleString('es-ES')}<span style="font-size:12px"> €/m²</span></div>
+            <div style="font-size:8px;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.3)">Breakeven bruto</div>
+          </div>
+          <div style="padding:14px 20px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);text-align:center;min-width:110px">
+            <div style="font-family:'DM Mono',monospace;font-size:22px;color:#52C07A;line-height:1;margin-bottom:4px">${marginPct}<span style="font-size:12px">%</span></div>
+            <div style="font-size:8px;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.3)">Margen s/ base</div>
+          </div>
+          <div style="padding:14px 20px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);text-align:center;min-width:110px">
+            <div style="font-family:'DM Mono',monospace;font-size:22px;color:${worstRoi < 0 ? '#E05555' : '#52C07A'};line-height:1;margin-bottom:4px">${(worstRoi*100).toFixed(1)}<span style="font-size:12px">%</span></div>
+            <div style="font-size:8px;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.3)">Peor escenario</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Heat map -->
+      <div style="flex:1;overflow:hidden">
+        <table style="width:100%;border-collapse:separate;border-spacing:3px">
+          <thead>
+            <tr>
+              <th style="padding:6px 14px;text-align:left;font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.25);font-weight:400;border-bottom:1px solid rgba(255,255,255,0.08)">Precio €/m²</th>
+              ${durCols.map(({label, months}) => {
+                const isBase = months === m.totalMonths;
+                return `<th style="padding:6px 10px;text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:${isBase?'rgba(196,151,90,0.8)':'rgba(255,255,255,0.35)'};font-weight:400;border-bottom:1px solid rgba(255,255,255,0.08);">
+                  ${label}${isBase?' ·':''}
+                </th>`;
+              }).join('')}
+            </tr>
+          </thead>
+          <tbody>${heatRows}</tbody>
+        </table>
+        <!-- Legend -->
+        <div style="display:flex;gap:16px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">
+          ${[['#E05555','< 0% · Pérdidas'],['rgba(255,165,0,0.9)','0–8% · Ajustado'],['rgba(196,151,90,0.9)','8–15% · Aceptable'],['#52C07A','> 15% · Objetivo']].map(([c,l])=>`
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="width:10px;height:10px;background:${c};opacity:0.7;border-radius:1px;flex-shrink:0"></div>
+            <span style="font-size:9px;color:rgba(255,255,255,0.3);letter-spacing:0.06em">${l}</span>
+          </div>`).join('')}
+          <div style="margin-left:auto;font-size:9px;color:rgba(255,255,255,0.2);letter-spacing:0.06em">· = escenario base · BE = breakeven</div>
+        </div>
+      </div>
+    </div>` });
+
+  return slides;
+}
+
+// ══════════════════════════════════════════════════
+// AI TERMINAL
+// ══════════════════════════════════════════════════
+let aiHistory = [];
+let aiGenerating = false;
+
+function openAITerminal() {
+  const el = $('ai-terminal');
+  if (!el) return;
+  el.style.display = 'flex';
+  el.style.flexDirection = 'column';
+  $('ai-input')?.focus();
+  if (!aiHistory.length) {
+    addAIMessage('assistant', 'Hola. Soy tu asistente de narrativa para el dossier Riverwalk. Puedo generar textos para cada sección o refinar lo que ya tienes. Usa los botones de arriba para generación rápida, o escríbeme directamente.');
+  }
+}
+
+function closeAITerminal() {
+  const el = $('ai-terminal');
+  if (el) el.style.display = 'none';
+}
+
+function addAIMessage(role, text, showInsertBtns = false) {
+  const el = $('ai-messages');
+  if (!el) return;
+  const div = document.createElement('div');
+  div.className = role === 'user' ? 'ai-msg-user' : 'ai-msg-assistant';
+  div.innerHTML = text.replace(/\n/g, '<br>');
+  if (showInsertBtns && role === 'assistant') {
+    const btnsDiv = document.createElement('div');
+    btnsDiv.className = 'ai-insert';
+    const sections = [{id:'activo',lbl:'→ Activo'},{id:'zona',lbl:'→ Zona'},{id:'mercado',lbl:'→ Mercado'},{id:'proyecto',lbl:'→ Proyecto'},{id:'tesis',lbl:'→ Tesis'}];
+    sections.forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'ai-insert-btn';
+      btn.textContent = s.lbl;
+      btn.onclick = () => {
+        const field = $('narr-' + s.id);
+        if (field) { field.value = div.innerText.replace(/→.*$/m,'').trim(); saveDossierNarrative(); }
+        btn.textContent = '✓ Insertado';
+        setTimeout(() => btn.textContent = s.lbl, 2000);
+      };
+      btnsDiv.appendChild(btn);
+    });
+    div.appendChild(btnsDiv);
+  }
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function buildDealContext() {
+  const m = calc();
+  const mz = $('microzona')?.value || '';
+  return `DEAL CONTEXT:
+Activo: ${S('dealName')} — ${S('dealAddress')}, ${S('dealCP')} ${S('dealMunicipio')}
+Microzona: ${mz} (Tier: ${MICROZONE_DATA.find(z=>z.z===mz)?.tier||'—'})
+Superficie: ${m.surfCapex} m²
+Precio compra: ${m.buyPrice.toLocaleString('es-ES')} € (${Math.round(m.buyPrice/m.surfCapex).toLocaleString('es-ES')} €/m²)
+CapEx obra: ${V('obraM2')} €/m² · Decoración: ${V('decoM2')} €/m² · IVA: ${V('ivaObra')}%
+CapEx total: ${m.capexNet.toLocaleString('es-ES')} € neto
+Inversión total: ${m.totalInvest.toLocaleString('es-ES')} €
+Precio salida base: ${V('exitB').toLocaleString('es-ES')} €/m² → ${(V('exitB')*m.surfCapex).toLocaleString('es-ES')} €
+ROI bruto base: ${(m.base.roiGross*100).toFixed(1)}% · TIR: ${isFinite(m.base.irr)?(m.base.irr*100).toFixed(1)+'%':'—'}
+Duración total: ${m.totalMonths} meses
+Management fee: ${V('mgmtFeePct')}% · Carry tramos: 0% / ${V('sf1P')}% / ${V('sf2P')}% sobre umbrales ROI ${V('sf1T')}% / ${V('sf2T')}%
+Comparables reformados (${comps.filter(c=>c.tipo==='reformado').length}): media ${Math.round(comps.filter(c=>c.precio>0&&c.m2>0&&c.tipo==='reformado').reduce((s,c)=>s+c.precio/c.m2,0)/Math.max(1,comps.filter(c=>c.tipo==='reformado').length))} €/m²
+Comparables a reformar (${comps.filter(c=>c.tipo==='reformar').length}): media ${Math.round(comps.filter(c=>c.precio>0&&c.m2>0&&c.tipo==='reformar').reduce((s,c)=>s+c.precio/c.m2,0)/Math.max(1,comps.filter(c=>c.tipo==='reformar').length))} €/m²`;
+}
+
+const NARR_PROMPTS = {
+  activo: 'Escribe una descripción del activo inmobiliario para un dossier de inversión (2-3 frases, tono profesional y atractivo, menciona lo más relevante del inmueble).',
+  zona:   'Escribe un párrafo sobre el contexto de la microzona para inversores (evolución del mercado, demanda, por qué es una zona de interés).',
+  mercado:'Escribe un análisis de la oportunidad de mercado (por qué el precio de adquisición es atractivo, contexto vs. precio de mercado para activos a reformar).',
+  proyecto:'Escribe la tesis del proyecto de reforma (calidades premium, diferenciación, por qué esta reforma generará un activo líquido con demanda).',
+  tesis:  'Escribe la tesis de inversión de cierre (resumen ejecutivo del por qué es una buena oportunidad, qué aporta Riverwalk, el retorno esperado).',
+};
+
+async function generateNarrative(section) {
+  if (!checkAPIKey()) return;
+
+  const field = $('narr-' + section);
+  // Find the ✦ Generar button for this section
+  const btn = field?.closest('.field')?.querySelector('button[onclick*="generateNarrative"]');
+
+  const origBtnText = btn?.textContent || '✦ Generar';
+  if (btn) { btn.textContent = '⟳'; btn.disabled = true; btn.style.opacity = '0.5'; }
+  if (field) { field.style.opacity = '0.4'; }
+
+  const prompt = NARR_PROMPTS[section] || 'Genera texto para esta sección del dossier.';
+  const ctx = buildDealContext();
+  const fullPrompt = `Eres el equipo de comunicación de Riverwalk Real Estate Investments, una firma de inversión inmobiliaria de alta gama en Madrid. Escribes con tono profesional, discreto y sofisticado — sin exageraciones ni superlativos vacíos.\n\n${ctx}\n\n${prompt}\n\nEscribe directamente el texto, sin preámbulo ni explicación. Máximo 120 palabras.`;
+
+  try {
+    const res = await fetch('/api/anthropic', {
+      method: 'POST',
+      headers: getAPIHeaders(),
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 400,
+        messages: [{ role: 'user', content: fullPrompt }]
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const msg = err?.error?.message || `Error ${res.status}`;
+      if (res.status === 401) alert('API Key incorrecta o inválida. Revísala en la barra superior.');
+      else alert(`Error al generar: ${msg}`);
+      return;
+    }
+
+    const data = await res.json();
+    const text = data.content?.find(b => b.type === 'text')?.text || '';
+
+    if (field && text) {
+      field.value = text;
+      field.style.opacity = '1';
+      // Brief green flash to confirm
+      field.style.borderColor = 'rgba(82,192,122,0.6)';
+      setTimeout(() => { field.style.borderColor = ''; }, 1200);
+      saveDossierNarrative();
+    }
+  } catch(e) {
+    alert('No se pudo conectar con la API de Anthropic. Verifica tu conexión a internet y que la API Key esté introducida.');
+    console.error('generateNarrative error:', e);
+  } finally {
+    if (btn) { btn.textContent = origBtnText; btn.disabled = false; btn.style.opacity = ''; }
+    if (field) field.style.opacity = '1';
+  }
+}
+
+async function aiQuickGen(section) {
+  if (section === 'todo') {
+    for (const s of ['activo','zona','mercado','proyecto','tesis']) await generateNarrative(s);
+    return;
+  }
+  await generateNarrative(section);
+}
+
+async function sendAIMessage() {
+  if (aiGenerating) return;
+  if (!checkAPIKey()) return;
+  const inp = $('ai-input');
+  const text = inp?.value?.trim();
+  if (!text) return;
+  inp.value = '';
+  aiGenerating = true;
+  addAIMessage('user', text);
+  aiHistory.push({role:'user', content:text});
+  const ctx = buildDealContext();
+  const systemCtx = `Eres el asistente de narrativa de Riverwalk Real Estate Investments. Ayudas a generar y refinar textos para dossiers de inversión inmobiliaria en Madrid. Tono profesional, discreto, sofisticado, evita clichés.
+
+${ctx}`;
+
+  const messagesEl = $('ai-messages');
+  const loadDiv = document.createElement('div');
+  loadDiv.className = 'ai-msg-assistant';
+  loadDiv.innerHTML = '<span style="opacity:0.4">⟳ Generando…</span>';
+  if (messagesEl) { messagesEl.appendChild(loadDiv); messagesEl.scrollTop = messagesEl.scrollHeight; }
+
+  try {
+    // Inject system as first message in history (Anthropic best practice for direct browser calls)
+    const msgs2 = [];
+    if (aiHistory.length > 0) {
+      msgs2.push({ role: 'user', content: systemCtx + ' Responde siempre en espanol.' });
+      msgs2.push({ role: 'assistant', content: 'Listo, te ayudo con el dossier de Riverwalk.' });
+      aiHistory.slice(-6).forEach(function(m) { msgs2.push(m); });
+    } else {
+      msgs2.push({ role: 'user', content: systemCtx + ' Mi primera consulta: ' + text });
+    }
+
+    var res2 = await fetch('/api/anthropic', {
+      method: 'POST',
+      headers: getAPIHeaders(),
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 600, messages: msgs2 })
+    });
+
+    if (!res2.ok) {
+      var errData = {};
+      try { errData = await res2.json(); } catch(ex) {}
+      var errMsg = (errData.error && errData.error.message) ? errData.error.message : ('HTTP ' + res2.status);
+      throw new Error(errMsg);
+    }
+
+    var data2 = await res2.json();
+    var textBlocks = data2.content ? data2.content.filter(function(b){ return b.type === 'text'; }) : [];
+    var reply = textBlocks.length > 0 ? textBlocks[0].text : 'Sin respuesta.';
+    loadDiv.remove();
+    addAIMessage('assistant', reply, true);
+    aiHistory.push({ role: 'assistant', content: reply });
+  } catch(e) {
+    loadDiv.innerHTML = `<span style="color:#E05555">⚠ Error: ${e.message}</span><br><span style="font-size:10px;opacity:0.5">Verifica que la API Key es correcta y empieza por sk-ant-</span>`;
+  } finally { aiGenerating = false; }
+}
+
+// Extend saveDealSnapshot and applyDeal to include dossier
+// dossier hooks integrated into captureCurrentDeal and applyDeal below
+// ══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+// INTELLIGENCE PLATFORM
+// ══════════════════════════════════════════════════
+
+const LS_DNA   = 'rw_deal_dna';
+const LS_BENCH = 'rw_benchmarks';
+const LS_INV   = 'rw_investors';
+
+function lsGet(key) { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; } }
+function lsSet(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
+
+let intelActiveTab = 'dna';
+const INTEL_TABS = [
+  { id:'dna',       label:'Deal DNA' },
+  { id:'benchmark', label:'Prime Benchmark' },
+  { id:'investors', label:'Inversores' },
+];
+
+function openIntelligence() {
+  const el = document.getElementById('intel-overlay');
+  if (!el) return;
+  el.style.display = 'flex';
+  el.style.flexDirection = 'column';
+  renderIntelTabs();
+  renderIntelContent(intelActiveTab);
+}
+
+function closeIntelligence() {
+  const el = document.getElementById('intel-overlay');
+  if (el) el.style.display = 'none';
+}
+
+function renderIntelTabs() {
+  const el = document.getElementById('intel-tabs');
+  if (!el) return;
+  el.innerHTML = INTEL_TABS.map(t =>
+    `<button class="intel-tab${t.id===intelActiveTab?' active':''}" onclick="switchIntelTab('${t.id}')">${t.label}</button>`
+  ).join('');
+}
+
+function switchIntelTab(tab) {
+  intelActiveTab = tab;
+  renderIntelTabs();
+  renderIntelContent(tab);
+}
+
+function renderIntelContent(tab) {
+  const el = document.getElementById('intel-content');
+  if (!el) return;
+  if (tab === 'dna')       el.innerHTML = buildDNAView();
+  if (tab === 'benchmark') el.innerHTML = buildBenchmarkView();
+  if (tab === 'investors') el.innerHTML = buildInvestorsView();
+}
+
+// ── DEAL DNA ────────────────────────────────────────────────────────────────
+function buildDNAView() {
+  const db = lsGet(LS_DNA);
+  const fmt2 = v => (v||0).toLocaleString('es-ES',{maximumFractionDigits:0}) + ' €';
+  const fmtP = v => ((v||0)*100).toFixed(1) + '%';
+  const devStr = v => {
+    if (v == null) return '<span style="color:rgba(255,255,255,0.3)">—</span>';
+    const s = v > 0 ? '+' : '';
+    const col = v > 0.05 ? '#E05555' : v < -0.05 ? '#52C07A' : 'rgba(255,255,255,0.4)';
+    return `<span style="color:${col};font-family:'DM Mono',monospace">${s}${(v*100).toFixed(1)}%</span>`;
+  };
+  const closed = db.filter(d => d.actual);
+  const avg = (arr, fn) => arr.length ? arr.reduce((s,d) => s+(fn(d)||0), 0)/arr.length : null;
+  const avgCapex  = avg(closed, d => d.dev?.capex_dev);
+  const avgMonths = avg(closed, d => d.dev?.months_dev);
+  const avgRoi    = avg(closed, d => d.dev?.roi_dev);
+  const m = (() => { try { return calc(); } catch { return null; } })();
+
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div>
+        <div style="font-size:22px;font-family:'Cormorant Garamond',serif;color:#fff;margin-bottom:4px">Deal DNA</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.35)">${db.length} operaciones · la herramienta aprende de cada deal cerrado</div>
+      </div>
+      <button class="intel-btn gold" onclick="showArchiveForm()">+ Archivar deal activo</button>
+    </div>
+
+    ${closed.length > 0 ? `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px">
+      ${[
+        {v:db.length+'', l:'Deals archivados', col:'#fff'},
+        {v:avgCapex!=null?(avgCapex>=0?'+':'')+( avgCapex*100).toFixed(1)+'%':'—', l:'Desviación CapEx (media)', col:avgCapex>0.05?'#E05555':avgCapex<-0.05?'#52C07A':'#fff'},
+        {v:avgMonths!=null?(avgMonths>=0?'+':'')+( avgMonths*100).toFixed(1)+'%':'—', l:'Desviación plazos (media)', col:avgMonths>0.1?'#E05555':'#fff'},
+        {v:avgRoi!=null?(avgRoi>=0?'+':'')+( avgRoi*100).toFixed(1)+'pp':'—', l:'ROI real vs proyectado', col:avgRoi>0?'#52C07A':avgRoi<0?'#E05555':'#fff'},
+      ].map(k=>`<div class="intel-kpi"><div class="intel-kpi-val" style="color:${k.col}">${k.v}</div><div class="intel-kpi-lbl">${k.l}</div></div>`).join('')}
+    </div>` : ''}
+
+    ${db.length > 0 ? `<div class="intel-card" style="margin-bottom:16px;overflow-x:auto">
+      <div class="intel-h" style="color:rgba(196,151,90,0.8)">Histórico</div>
+      <table class="intel-table">
+        <thead><tr><th>Activo</th><th>Microzona</th><th>Inversión</th><th>ROI proy.</th><th>ROI real</th><th>Δ ROI</th><th>Δ CapEx</th><th>Δ Plazos</th><th></th></tr></thead>
+        <tbody>${db.map((d,i) => `<tr>
+          <td style="color:#fff;font-weight:500">${d.name}</td>
+          <td style="color:rgba(255,255,255,0.45)">${d.microzona||'—'}</td>
+          <td style="font-family:'DM Mono',monospace">${fmt2(d.proj?.totalInvest)}</td>
+          <td style="font-family:'DM Mono',monospace">${fmtP(d.proj?.roiGross)}</td>
+          <td style="font-family:'DM Mono',monospace">${d.actual?.roiReal!=null?fmtP(d.actual.roiReal):'—'}</td>
+          <td>${devStr(d.dev?.roi_dev)}</td>
+          <td>${devStr(d.dev?.capex_dev)}</td>
+          <td>${devStr(d.dev?.months_dev)}</td>
+          <td><button onclick="deleteDNADeal(${i})" style="background:none;border:none;color:rgba(224,85,85,0.45);font-size:13px;cursor:pointer;padding:0 4px">×</button></td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>` : `<div class="intel-card purple" style="text-align:center;padding:48px;margin-bottom:16px">
+      <div style="font-size:11px;color:rgba(255,255,255,0.25);line-height:1.9">Aún no hay deals archivados.<br>Cada operación cerrada alimenta la base de conocimiento.<br>Con el tiempo la herramienta aprenderá tus patrones reales.</div>
+    </div>`}
+
+    <div id="dna-archive-form" style="display:none" class="intel-card gold">
+      <div class="intel-h" style="color:rgba(196,151,90,0.8)">Actuals del deal activo</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+        ${[
+          ['dna-sale-real',   'Precio venta real (€)', m?Math.round(m.base.saleGross):'', 'number'],
+          ['dna-capex-real',  'CapEx real total (€)',  m?Math.round(m.capexNet):'', 'number'],
+          ['dna-months-real', 'Meses reales hasta venta', m?m.totalMonths:'', 'number'],
+          ['dna-date-close',  'Fecha cierre', new Date().toISOString().slice(0,10), 'date'],
+        ].map(([id,lbl,ph,type]) => `<div>
+          <label style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px">${lbl}</label>
+          <input class="intel-input" id="${id}" type="${type}" placeholder="${ph}" ${type==='date'?'value="'+ph+'"':''}>
+        </div>`).join('')}
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="intel-btn gold" onclick="saveDNADeal()">Guardar en Deal DNA</button>
+        <button onclick="document.getElementById('dna-archive-form').style.display='none'" style="background:none;border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.35);padding:7px 16px;cursor:pointer;font-size:9px;letter-spacing:0.12em;text-transform:uppercase">Cancelar</button>
+      </div>
+    </div>`;
+}
+
+function showArchiveForm() {
+  const el = document.getElementById('dna-archive-form');
+  if (el) { el.style.display = 'block'; el.scrollIntoView({behavior:'smooth'}); }
+}
+
+function saveDNADeal() {
+  const m = (() => { try { return calc(); } catch { return null; } })();
+  if (!m) return;
+  const saleReal   = parseFloat(document.getElementById('dna-sale-real')?.value) || m.base.saleGross;
+  const capexReal  = parseFloat(document.getElementById('dna-capex-real')?.value) || m.capexNet;
+  const monthsReal = parseFloat(document.getElementById('dna-months-real')?.value) || m.totalMonths;
+  const roiReal    = (saleReal - m.totalInvest - saleReal * (V('brokerExit')/100)) / m.totalInvest;
+  const db = lsGet(LS_DNA);
+  db.push({
+    id: Date.now(),
+    name: S('dealName') || 'Sin nombre',
+    address: S('dealAddress') || '',
+    microzona: document.getElementById('microzona')?.value || '',
+    date_archived: new Date().toISOString().slice(0,10),
+    proj: { totalInvest:m.totalInvest, buyPrice:m.buyPrice, capexNet:m.capexNet, roiGross:m.base.roiGross, irrBase:m.base.irr, months:m.totalMonths, surfCapex:m.surfCapex },
+    actual: { saleReal, capexReal, monthsReal, roiReal, dateClose: document.getElementById('dna-date-close')?.value || '' },
+    dev: { roi_dev: roiReal - m.base.roiGross, capex_dev: m.capexNet > 0 ? (capexReal-m.capexNet)/m.capexNet : 0, months_dev: m.totalMonths > 0 ? (monthsReal-m.totalMonths)/m.totalMonths : 0 },
+  });
+  lsSet(LS_DNA, db);
+  document.getElementById('dna-archive-form').style.display = 'none';
+  renderIntelContent('dna');
+}
+
+function deleteDNADeal(i) {
+  if (!confirm('¿Eliminar este deal del historial?')) return;
+  const db = lsGet(LS_DNA); db.splice(i, 1); lsSet(LS_DNA, db); renderIntelContent('dna');
+}
+
+// ── PRIME BENCHMARK ──────────────────────────────────────────────────────────
+let benchFetching = false;
+
+function buildBenchmarkView() {
+  const stored = lsGet(LS_BENCH);
+  const last = stored.length ? stored[stored.length-1] : null;
+  const m = (() => { try { return calc(); } catch { return null; } })();
+  const dealPm2 = m && m.surfCapex > 0 ? Math.round(m.base.saleGross / m.surfCapex) : 0;
+  const mz = document.getElementById('microzona')?.value || 'Madrid prime';
+
+  const pctVs = (a, b) => b && a ? ((a/b-1)*100).toFixed(0) + '%' : '—';
+
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div>
+        <div style="font-size:22px;font-family:'Cormorant Garamond',serif;color:#fff;margin-bottom:4px">Prime Benchmark</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.35)">Madrid · Miami Beach · Londres prime · ${last ? 'actualizado ' + last.date : 'sin datos — pulsa actualizar'}</div>
+      </div>
+      <button class="intel-btn" onclick="fetchBenchmarks()" id="bench-btn">${benchFetching ? '⟳ Consultando…' : '⬡ Actualizar benchmarks'}</button>
+    </div>
+
+    ${dealPm2 > 0 ? `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,0.06);margin-bottom:16px">
+      ${[
+        {lbl:'Este activo · '+mz, val:dealPm2.toLocaleString('es-ES')+' €/m²', sub:'escenario base', col:'rgba(160,100,240,0.9)'},
+        {lbl:'Miami Beach prime', val:last?.miami ? last.miami.toLocaleString('es-ES')+' €/m²' : '—', sub: last?.miami ? pctVs(dealPm2,last.miami)+' vs Miami' : 'pulsa actualizar', col:'rgba(196,151,90,0.85)'},
+        {lbl:'Londres prime', val:last?.london ? last.london.toLocaleString('es-ES')+' €/m²' : '—', sub: last?.london ? pctVs(dealPm2,last.london)+' vs Londres' : 'pulsa actualizar', col:'rgba(82,192,122,0.85)'},
+      ].map(k=>`<div style="background:#0a0b0f;padding:22px;text-align:center">
+        <div style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:${k.col};opacity:0.75;margin-bottom:8px">${k.lbl}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:26px;color:${k.col};font-feature-settings:'tnum' 1">${k.val}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.3);margin-top:5px">${k.sub}</div>
+      </div>`).join('')}
+    </div>` : ''}
+
+    <div class="intel-card" style="margin-bottom:14px;min-height:72px;font-size:13px;color:rgba(255,255,255,0.65);line-height:1.85">
+      ${last?.narrative || '<span style="color:rgba(255,255,255,0.2);font-style:italic">El análisis comparativo aparece aquí tras pulsar "Actualizar benchmarks" — requiere API Key y conexión a internet.</span>'}
+    </div>
+
+    ${last ? `<div style="font-size:10px;color:rgba(255,255,255,0.25);margin-bottom:16px">Fuentes: ${last.sources||'web search'} · €/$ ${last.usdEur||'—'} · €/£ ${last.gbpEur||'—'} · BCE ${last.ecbRate||'—'}%</div>` : ''}
+
+    ${stored.length > 1 ? `<div class="intel-card">
+      <div class="intel-h" style="color:rgba(255,255,255,0.35)">Histórico de snapshots</div>
+      <table class="intel-table">
+        <thead><tr><th>Fecha</th><th>Miami Beach</th><th>Londres prime</th><th>BCE</th></tr></thead>
+        <tbody>${stored.slice(-5).reverse().map(s => `<tr>
+          <td>${s.date}</td>
+          <td style="font-family:'DM Mono',monospace">${s.miami ? s.miami.toLocaleString('es-ES')+' €/m²' : '—'}</td>
+          <td style="font-family:'DM Mono',monospace">${s.london ? s.london.toLocaleString('es-ES')+' €/m²' : '—'}</td>
+          <td style="font-family:'DM Mono',monospace">${s.ecbRate ? s.ecbRate+'%' : '—'}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>` : ''}`;
+}
+
+async function fetchBenchmarks() {
+  if (benchFetching || !checkAPIKey()) return;
+  benchFetching = true;
+  const btn = document.getElementById('bench-btn');
+  if (btn) btn.textContent = '⟳ Consultando mercados…';
+  const m = (() => { try { return calc(); } catch { return null; } })();
+  const mz = document.getElementById('microzona')?.value || 'Madrid prime';
+  const dealPm2 = m && m.surfCapex > 0 ? Math.round(m.base.saleGross / m.surfCapex) : 0;
+
+  const prompt = `Eres analista de mercado inmobiliario prime. Busca datos actualizados de precios en los siguientes mercados y responde SOLO con JSON, sin texto adicional:
+
+{
+  "miami": precio medio €/m² luxury condos Miami Beach (Brickell, South Beach, Edgewater) — convierte $/sqft al tipo actual,
+  "london": precio medio €/m² prime residential Londres (Mayfair, Knightsbridge, South Kensington) — convierte £/sqft al tipo actual,
+  "madrid_ref": precio medio €/m² referencia Madrid prime (Recoletos, Jerónimos, Almagro) según datos recientes,
+  "ecbRate": tipo BCE actual como string "X.XX",
+  "usdEur": tipo €/$ actual como número,
+  "gbpEur": tipo €/£ actual como número,
+  "narrative": párrafo 3-4 frases en español tono Savills/Knight Frank contextualizando Madrid prime (${mz}) vs Miami y Londres, mencionando arbitraje de precio para inversor internacional${dealPm2 ? ' — el activo en análisis está a ' + dealPm2.toLocaleString('es-ES') + ' €/m²' : ''},
+  "sources": "fuentes usadas"
+}`;
+
+  try {
+    const res = await fetch('/api/anthropic', {
+      method: 'POST', headers: getAPIHeaders(),
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514', max_tokens: 900,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+    const match = text.match(/\{[\s\S]*\}/);
+    if (match) {
+      const parsed = JSON.parse(match[0]);
+      const db = lsGet(LS_BENCH);
+      db.push({ date: new Date().toLocaleDateString('es-ES'), ...parsed, fetched: new Date().toISOString() });
+      lsSet(LS_BENCH, db);
+    }
+  } catch(e) {
+    const errEl = document.getElementById('bench-narrative');
+    if (errEl) errEl.innerHTML = `<span style="color:#E05555">⚠ Error: ${e.message}</span><br><span style="font-size:10px;opacity:0.5">Verifica la API Key y la conexión a internet.</span>`;
+  } finally { benchFetching = false; renderIntelContent('benchmark'); }
+}
+
+// ── INVESTORS ────────────────────────────────────────────────────────────────
+function buildInvestorsView() {
+  const investors = lsGet(LS_INV);
+  const m = (() => { try { return calc(); } catch { return null; } })();
+  const matches = m ? investors.filter(inv =>
+    (!inv.ticket_min || m.totalInvest >= inv.ticket_min) &&
+    (!inv.ticket_max || m.totalInvest <= inv.ticket_max) &&
+    (!inv.roi_min    || m.base.roiGross >= inv.roi_min/100) &&
+    (!inv.plazo_max  || m.totalMonths <= inv.plazo_max)
+  ) : [];
+
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div>
+        <div style="font-size:22px;font-family:'Cormorant Garamond',serif;color:#fff;margin-bottom:4px">Inversores</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.35)">${investors.length} perfiles · ${matches.length} encajan con el deal activo</div>
+      </div>
+      <button class="intel-btn" onclick="showAddInvestor()">+ Nuevo perfil</button>
+    </div>
+
+    ${matches.length > 0 && m ? `<div class="intel-card purple" style="margin-bottom:16px">
+      <div class="intel-h" style="color:rgba(160,100,240,0.8)">Encajan con este deal · ${m.totalInvest.toLocaleString('es-ES')} € · ROI ${(m.base.roiGross*100).toFixed(1)}% · ${m.totalMonths}m</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${matches.map(inv => `<div style="background:rgba(120,60,200,0.1);border:1px solid rgba(160,100,240,0.25);padding:10px 16px;display:flex;align-items:center;gap:14px">
+          <div>
+            <div style="font-size:13px;font-weight:500;color:#fff">${inv.name}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.4)">${inv.tipo||''}</div>
+          </div>
+          <button onclick="generateInvestorEmail('${inv.name}')" class="intel-btn" style="font-size:8px;padding:5px 12px">✉ Email</button>
+        </div>`).join('')}
+      </div>
+    </div>` : ''}
+
+    ${investors.length > 0 ? `<div class="intel-card" style="margin-bottom:16px;overflow-x:auto">
+      <table class="intel-table">
+        <thead><tr><th>Nombre</th><th>Tipo</th><th>Ticket</th><th>ROI mín</th><th>Plazo máx</th><th>Notas</th><th></th></tr></thead>
+        <tbody>${investors.map((inv,i) => `<tr>
+          <td style="color:#fff;font-weight:500">${inv.name}</td>
+          <td style="color:rgba(255,255,255,0.45)">${inv.tipo||'—'}</td>
+          <td style="font-family:'DM Mono',monospace;font-size:10.5px">${inv.ticket_min?inv.ticket_min.toLocaleString('es-ES')+'€':'—'}${inv.ticket_max?' – '+inv.ticket_max.toLocaleString('es-ES')+'€':''}</td>
+          <td style="font-family:'DM Mono',monospace">${inv.roi_min?inv.roi_min+'%':'—'}</td>
+          <td style="font-family:'DM Mono',monospace">${inv.plazo_max?inv.plazo_max+'m':'—'}</td>
+          <td style="font-size:10px;color:rgba(255,255,255,0.4);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${inv.notas||'—'}</td>
+          <td><button onclick="deleteInvestor(${i})" style="background:none;border:none;color:rgba(224,85,85,0.45);font-size:13px;cursor:pointer;padding:0 4px">×</button></td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>` : `<div class="intel-card" style="text-align:center;padding:48px;margin-bottom:16px">
+      <div style="font-size:11px;color:rgba(255,255,255,0.25);line-height:1.9">Añade perfiles de inversor para que la herramienta<br>detecte quién encaja con cada deal y genere el email personalizado.</div>
+    </div>`}
+
+    <div id="inv-add-form" style="display:none" class="intel-card blue">
+      <div class="intel-h" style="color:rgba(85,136,204,0.9)">Nuevo perfil</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+        ${[
+          ['inv-name',       'Nombre / firma',          '', 'text'],
+          ['inv-tipo-sel',   'Tipo',                    '', 'select'],
+          ['inv-ticket-min', 'Ticket mínimo (€)',        '', 'number'],
+          ['inv-ticket-max', 'Ticket máximo (€)',        '', 'number'],
+          ['inv-roi-min',    'ROI bruto mínimo (%)',     '', 'number'],
+          ['inv-plazo-max',  'Plazo máximo (meses)',     '', 'number'],
+        ].map(([id,lbl,ph,type]) => `<div>
+          <label style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px">${lbl}</label>
+          ${type==='select'
+            ? `<select class="intel-select" id="${id}" style="width:100%"><option>HNW</option><option>Family office</option><option>Institucional</option><option>HNWI internacional</option><option>LP privado</option></select>`
+            : `<input class="intel-input" id="${id}" type="${type}" placeholder="${ph}">`}
+        </div>`).join('')}
+        <div style="grid-column:span 2">
+          <label style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px">Notas (apetito, zonas, contacto)</label>
+          <input class="intel-input" id="inv-notas" placeholder="Prefiere Salamanca, conoce el mercado, ticket habitual 1-2M€…">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="intel-btn" style="border-color:rgba(85,136,204,0.5);color:rgba(85,136,204,0.9)" onclick="saveInvestor()">Guardar perfil</button>
+        <button onclick="document.getElementById('inv-add-form').style.display='none'" style="background:none;border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.35);padding:7px 16px;cursor:pointer;font-size:9px;letter-spacing:0.12em;text-transform:uppercase">Cancelar</button>
+      </div>
+    </div>`;
+}
+
+function showAddInvestor() {
+  const el = document.getElementById('inv-add-form');
+  if (el) { el.style.display='block'; el.scrollIntoView({behavior:'smooth'}); }
+}
+
+function saveInvestor() {
+  const name = document.getElementById('inv-name')?.value?.trim();
+  if (!name) { alert('Introduce un nombre.'); return; }
+  const db = lsGet(LS_INV);
+  db.push({
+    id: Date.now(), name,
+    tipo:       document.getElementById('inv-tipo-sel')?.value || 'HNW',
+    ticket_min: parseFloat(document.getElementById('inv-ticket-min')?.value) || null,
+    ticket_max: parseFloat(document.getElementById('inv-ticket-max')?.value) || null,
+    roi_min:    parseFloat(document.getElementById('inv-roi-min')?.value) || null,
+    plazo_max:  parseFloat(document.getElementById('inv-plazo-max')?.value) || null,
+    notas:      document.getElementById('inv-notas')?.value || '',
+    created:    new Date().toISOString().slice(0,10),
+  });
+  lsSet(LS_INV, db);
+  document.getElementById('inv-add-form').style.display = 'none';
+  renderIntelContent('investors');
+}
+
+function deleteInvestor(i) {
+  if (!confirm('¿Eliminar este perfil?')) return;
+  const db = lsGet(LS_INV); db.splice(i,1); lsSet(LS_INV, db); renderIntelContent('investors');
+}
+
+async function generateInvestorEmail(invName) {
+  if (!checkAPIKey()) return;
+  const m = (() => { try { return calc(); } catch { return null; } })();
+  if (!m) return;
+  const investors = lsGet(LS_INV);
+  const inv = investors.find(i => i.name === invName);
+  const bench = lsGet(LS_BENCH);
+  const lastB = bench.length ? bench[bench.length-1] : null;
+  const dealPm2 = m.surfCapex > 0 ? Math.round(m.base.saleGross/m.surfCapex) : 0;
+
+  const prompt = `Eres el equipo de relaciones con inversores de Riverwalk Real Estate Investments, Madrid. Escribe un email profesional, conciso y sofisticado (máx. 180 palabras) para presentar esta oportunidad a ${invName} (${inv?.tipo||'inversor'}).
+
+Activo: ${S('dealName')||'Activo prime Madrid'} · ${S('dealAddress')||''} · ${document.getElementById('microzona')?.value||'Madrid prime'}
+Inversión: ${m.totalInvest.toLocaleString('es-ES')} € · ROI bruto ${(m.base.roiGross*100).toFixed(1)}% · TIR ${isFinite(m.base.irr)?(m.base.irr*100).toFixed(1)+'%':'—'} · ${m.totalMonths} meses
+Precio salida base: ${dealPm2.toLocaleString('es-ES')} €/m²${lastB?.london ? ' (Londres prime: '+lastB.london.toLocaleString('es-ES')+' €/m²)' : ''}
+Perfil inversor: ${inv?.notas||'Inversor prime Madrid'}
+
+Estructura: Asunto + cuerpo. Firma: Riverwalk Real Estate Investments.`;
+
+  openAITerminal();
+  addAIMessage('user', `Genera email de presentación para ${invName}`);
+  try {
+    const res = await fetch('/api/anthropic', {
+      method:'POST', headers:getAPIHeaders(),
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:500, messages:[{role:'user',content:prompt}] })
+    });
+    const data = await res.json();
+    const text = data.content?.find(b=>b.type==='text')?.text || '⚠ Sin respuesta.';
+    addAIMessage('assistant', text, false);
+  } catch(e) { addAIMessage('assistant','⚠ Error generando email.',false); }
+}
+
+// ══════════════════════════════════════════════════
+// PDF DOSSIER — A4 page-by-page export
+// ══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+// PDF DOSSIER — html2canvas + jsPDF
+// Renderiza los slides de presentación página a página
+
+
+function initBookmarklet() {
+  const bmCode = `(function(){
+var price=null,m2=null,desc='',planta=null,ext=null,asc=null,source='';
+if(location.href.includes('idealista')){
+  source='Idealista';
+  var priceSelectors=['.price-features__price .txt-bold','.price-features__price','.info-data-price .txt-bold','.info-data-price span','.main-info__title-price'];
+  for(var i=0;i<priceSelectors.length;i++){var pe=document.querySelector(priceSelectors[i]);if(pe){var n=parseInt(pe.textContent.replace(/[^0-9]/g,''));if(n>10000){price=n;break;}}}
+  var featureEls=document.querySelectorAll('.details-property-feature-one li,.info-features .feature-block span,.info-features li,li');
+  featureEls.forEach(function(el){
+    var t=el.textContent.trim();
+    var mMatch=t.match(/^(\d{2,4})\s*m[xb2\u00b2]/);
+    if(mMatch&&!t.toLowerCase().includes('parcela')&&!t.toLowerCase().includes('terreno')){var n=parseInt(mMatch[1]);if(n>20&&n<2000&&!m2)m2=n;}
+  });
+  featureEls.forEach(function(el){
+    var t=el.textContent.toLowerCase().trim();
+    if(t.includes('planta')){var fm=t.match(/(\d+)[a\u00aa\u00b0]?\s*planta/);if(fm)planta=parseInt(fm[1]);else if(t.includes('bajo'))planta=0;else if(t.includes('entrepl'))planta=-1;}
+    if(t.includes('exterior')&&ext===null)ext=true;
+    if(t.includes('interior sin')&&ext===null)ext=false;
+    if(t.includes('ascensor'))asc=true;
+  });
+  var h1=document.querySelector('span.main-info__title-main,h1.main-info__title,h1');
+  if(h1)desc=h1.textContent.trim().substring(0,80);
+}else if(location.href.includes('fotocasa')){
+  source='Fotocasa';
+  var fp=document.querySelector('[class*="re-DetailHeader-price"],[class*="price-features__price"]');
+  if(fp)price=parseInt(fp.textContent.replace(/[^0-9]/g,''));
+  document.querySelectorAll('[class*="re-DetailInfo"] li,[class*="feature"] li,li').forEach(function(el){
+    var t=el.textContent.trim();var tl=t.toLowerCase();
+    var mMatch=t.match(/^(\d{2,4})\s*m[xb2\u00b2]/);
+    if(mMatch&&!m2){var n=parseInt(mMatch[1]);if(n>20&&n<2000)m2=n;}
+    if(tl.includes('planta')){var fm=tl.match(/(\d+)/);if(fm)planta=parseInt(fm[1]);}
+    if(tl.includes('exterior')&&ext===null)ext=true;
+    if(tl.includes('interior')&&ext===null)ext=false;
+    if(tl.includes('ascensor'))asc=true;
+  });
+  var fh1=document.querySelector('h1');if(fh1)desc=fh1.textContent.trim().substring(0,80);
+}
+if(!price&&!m2){alert('No se encontraron datos. Abre la ficha completa del inmueble (no el listado).');return;}
+var ppmText=price&&m2?Math.round(price/m2).toLocaleString('es-ES')+' \u20ac/m\u00b2':'';
+var data='RW_COMP::'+JSON.stringify({precio:price,m2:m2,desc:desc,planta:planta,exterior:ext,ascensor:asc,source:source,url:location.href});
+if(navigator.clipboard){
+  navigator.clipboard.writeText(data).then(function(){alert('\u2713 Copiado ('+source+'):\n'+(price?price.toLocaleString('es-ES')+' \u20ac':'\u2014')+' \u00b7 '+(m2?m2+' m\u00b2':'\u2014')+' \u00b7 '+ppmText+'\n\nVuelve a Riverwalk y pulsa "\ud83d\udccb Pegar testigo"');});
+}else{window.prompt('Copia y pega en Riverwalk:',data);}
+})();`;
+  const el = document.getElementById('bookmarklet-link');
+  if (el) el.href = 'javascript:' + encodeURIComponent(bmCode);
+}
+
+// Read RW_COMP:: data from clipboard → add as comp
+async function rwPasteComp() {
+  const status = $('comp-extract-status');
+  const setStatus = (msg, col) => { if(status){ status.textContent = msg; status.style.color = col || 'var(--text-d)'; } };
+  if (!navigator.clipboard) { setStatus('Tu navegador no soporta portapapeles. Usa Chrome.', 'var(--red)'); return; }
+  let text = '';
+  try { text = await navigator.clipboard.readText(); }
+  catch(e) { setStatus('Permite el acceso al portapapeles cuando Chrome lo solicite.', 'var(--amber)'); return; }
+  text = text.trim();
+  if (!text.startsWith('RW_COMP::')) { setStatus('Portapapeles sin datos de bookmarklet. Pulsa primero el bookmarklet en Idealista.', 'var(--amber)'); return; }
+  let parsed;
+  try { parsed = JSON.parse(text.slice('RW_COMP::'.length)); }
+  catch(e) { setStatus('Datos corruptos. Vuelve a pulsar el bookmarklet.', 'var(--red)'); return; }
+  const { precio, m2, desc, planta, exterior, ascensor, source, url } = parsed;
+  if (!precio && !m2) { setStatus('El bookmarklet no extrajo precio ni m². Abre la ficha completa del anuncio.', 'var(--amber)'); return; }
+  comps.push({ id:compNextId++, desc:desc||`${source||'Idealista'}`, url:url||'', source:source||'Idealista',
+    tipo:'reformado', precio:precio||0, m2:m2||0, planta:planta??null, exterior:exterior??true, ascensor:ascensor??true });
+  renderCompInputs(); renderCompOutput(); renderPricingEngine(); update();
+  const ppm = precio&&m2 ? Math.round(precio/m2).toLocaleString('es-ES')+' €/m²' : '';
+  setStatus(`✓ ${source||'Testigo'} añadido — ${precio?precio.toLocaleString('es-ES')+' €':'—'} · ${m2?m2+' m²':'—'}${ppm?' · '+ppm:''}`, 'var(--green)');
+  setTimeout(() => setStatus(''), 4000);
+}
+
+// MOBILE QUICK ENTRY
+// ══════════════════════════════════════════════════
+let qeExt = true, qeAsc = true;
+
+function toggleQuickEntry() {
+  const panel = $('quick-entry-panel'), arr = $('quick-entry-arr');
+  if (!panel) return;
+  const open = panel.style.display !== 'none';
+  panel.style.display = open ? 'none' : '';
+  if (arr) arr.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+function setQEExt(v) {
+  qeExt = v;
+  const styleFn = (btn, active) => {
+    if (!btn) return;
+    btn.style.background = active ? 'rgba(30,122,69,0.25)' : 'var(--d4)';
+    btn.style.borderColor = active ? 'var(--green)' : 'var(--d6)';
+    btn.style.color = active ? 'var(--green)' : 'var(--text-d)';
+  };
+  styleFn($('qe-ext-btn'), v); styleFn($('qe-int-btn'), !v);
+  updateQEPreview();
+}
+
+function setQEAsc(v) {
+  qeAsc = v;
+  const styleFn = (btn, active) => {
+    if (!btn) return;
+    btn.style.background = active ? 'rgba(30,122,69,0.25)' : 'var(--d4)';
+    btn.style.borderColor = active ? 'var(--green)' : 'var(--d6)';
+    btn.style.color = active ? 'var(--green)' : 'var(--text-d)';
+  };
+  styleFn($('qe-asc-si'), v); styleFn($('qe-asc-no'), !v);
+  updateQEPreview();
+}
+
+function updateQEPreview() {
+  const precio = parseFloat($('qe-precio')?.value) || 0;
+  const m2v    = parseFloat($('qe-m2')?.value) || 0;
+  const prev   = $('qe-preview');
+  if (!prev) return;
+  if (precio && m2v) {
+    const ppm = Math.round(precio / m2v);
+    prev.textContent = `${precio.toLocaleString('es-ES')} €  ·  ${m2v} m²  ·  ${ppm.toLocaleString('es-ES')} €/m²`;
+    prev.style.color = 'var(--gold)';
+  } else {
+    prev.textContent = precio || m2v ? 'Falta ' + (!precio ? 'precio' : 'm²') : '';
+    prev.style.color = 'var(--amber)';
+  }
+}
+
+function addQuickEntry() {
+  const precio = parseFloat($('qe-precio')?.value) || 0;
+  const m2v    = parseFloat($('qe-m2')?.value) || 0;
+  if (!precio || !m2v) { alert('Introduce precio y m² antes de añadir.'); return; }
+  comps.push({
+    id: compNextId++,
+    desc: $('qe-desc')?.value || `${$('qe-source')?.value||'Manual'} ${Math.round(precio/m2v).toLocaleString('es-ES')}€/m²`,
+    url: '', source: $('qe-source')?.value || 'Manual',
+    tipo: $('qe-tipo')?.value || 'reformado',
+    precio, m2: m2v,
+    planta: parseFloat($('qe-planta')?.value) || null,
+    exterior: qeExt, ascensor: qeAsc
+  });
+  ['qe-precio','qe-m2','qe-desc','qe-planta'].forEach(id => { const el=$(id); if(el) el.value=''; });
+  updateQEPreview();
+  renderCompInputs(); renderCompOutput(); renderPricingEngine(); update();
+  const prev = $('qe-preview');
+  if (prev) { prev.textContent = '✓ Añadido'; prev.style.color = 'var(--green)'; setTimeout(() => { prev.textContent = ''; }, 2000); }
+}
+
+function handleRWCompPaste(text) {
+  if (!text.startsWith('RW_COMP::')) return false;
+  try {
+    const data = JSON.parse(text.replace('RW_COMP::', ''));
+    if (!data.precio && !data.m2) return false;
+    comps.push({
+      id: compNextId++,
+      desc: data.desc || `${data.source||'Portal'} — importado`,
+      url: data.url || '', source: data.source || 'Portal',
+      tipo: 'reformado', precio: data.precio || 0, m2: data.m2 || 0,
+      planta: data.planta || null, exterior: data.exterior, ascensor: data.ascensor
+    });
+    renderCompInputs(); renderCompOutput(); renderPricingEngine(); update();
+    return true;
+  } catch { return false; }
+}
+
+// ══════════════════════════════════════════════════
+// PRICING ENGINE
+// ══════════════════════════════════════════════════
+const PORTAL_DISCOUNT_DEFAULT = 8;
+
+// Planta adjustment map
+const PLANTA_ADJ = { bajo:-0.12, entre:-0.07, '1sin':-0.05, base:0, alta:0.04, muyalta:0.07 };
+// Orientation adjustment map
+const ORIENT_ADJ = { ext_sur:0.06, ext_norte:0.02, int_luminoso:0, int_oscuro:-0.08 };
+
+function getMicrozoneAdj() {
+  const mz = $('microzona')?.value || '';
+  if (!mz) return { base:0, atico:0, atico_sin:0, zone:null };
+  return MICROZONE_DATA.find(z => z.z === mz) || { base:0, atico:0, atico_sin:0, zone:null };
+}
+
+function getPropertyAdjs() {
+  const tipo    = $('prop-tipo')?.value || 'piso';
+  const orient  = $('prop-orient')?.value || 'ext_sur';
+  const planta  = $('prop-planta')?.value || 'base';
+  const mz      = getMicrozoneAdj();
+
+  const mzBase  = mz.base / 100;
+  const aticoAdj = tipo === 'atico_terraza' ? mz.atico / 100
+                 : tipo === 'atico_sin'     ? mz.atico_sin / 100
+                 : 0;
+  const orientAdj = ORIENT_ADJ[orient] || 0;
+  const plantaAdj = PLANTA_ADJ[planta] || 0;
+
+  // Ático already incorporates height — don't double-count floor premium
+  const effectivePlanta = tipo !== 'piso' ? 0 : plantaAdj;
+
+  const total = mzBase + aticoAdj + orientAdj + effectivePlanta;
+
+  // Update adj display
+  const adjEl = $('prop-adj-text');
+  if (adjEl) {
+    const parts = [];
+    if (mz.z)          parts.push(`Microzona ${mz.z}: ${mz.base >= 0 ? '+' : ''}${mz.base}%`);
+    if (aticoAdj)      parts.push(`Ático: +${(aticoAdj*100).toFixed(0)}%`);
+    if (orientAdj)     parts.push(`Orientación: ${orientAdj >= 0 ? '+' : ''}${(orientAdj*100).toFixed(0)}%`);
+    if (effectivePlanta) parts.push(`Planta: ${effectivePlanta >= 0 ? '+' : ''}${(effectivePlanta*100).toFixed(0)}%`);
+    const totalSign = total >= 0 ? '+' : '';
+    adjEl.innerHTML = parts.length
+      ? parts.join(' · ') + `<br><strong style="color:var(--gold)">Total ajuste nuestro activo: ${totalSign}${(total*100).toFixed(0)}%</strong>`
+      : '—';
+  }
+
+  return { total, mzBase, aticoAdj, orientAdj, plantaAdj: effectivePlanta };
+}
+
+function renderPricingEngine() {
+  const el = $('pricing-engine-output');
+  if (!el) return;
+
+  const valid = comps.filter(c => c.precio > 0 && c.m2 > 0);
+  if (valid.length < 3) {
+    el.innerHTML = `<div style="font-size:10.5px;color:var(--text-d);font-style:italic;padding:8px 0">
+      Añade al menos 3 testigos para calcular precio sugerido de salida.</div>`;
+    return;
+  }
+
+  const surf     = V('surfCapex') || 100;
+  const discount = (parseFloat($('portal-discount')?.value) || PORTAL_DISCOUNT_DEFAULT) / 100;
+
+  // Get our activo's adjustments
+  const ourAdj = getPropertyAdjs();
+
+  const adjPpm = valid.map(c => {
+    const raw     = c.precio / c.m2;
+    const isReg   = c.source === 'Registro Q1 2025' || c.source === 'Registro';
+    // Apply portal discount to normalize to closed price
+    const portAdj = isReg ? raw : raw * (1 - discount);
+    // Normalize comparable to "standard" (reformado, 2-3ª exterior, con ascensor)
+    const stateAdj = c.tipo === 'reformar' ? 0.78 : c.tipo === 'estreno' ? 1.05 : 1.0;
+    const floorAdj = c.planta === 0 ? 0.92 : c.planta === 1 ? 0.94 :
+                     c.planta >= 6 ? 1.07 : c.planta >= 4 ? 1.04 : 1.0;
+    const extAdj   = c.exterior === false ? 0.93 : c.exterior === true ? 1.04 : 1.0;
+    const ascAdj   = c.ascensor === false && (c.planta || 0) > 2 ? 0.94 : 1.0;
+    // Normalized = what this comp would cost as a standard piso
+    const normalized = portAdj / (stateAdj * floorAdj * extAdj * ascAdj);
+    return normalized;
+  }).sort((a, b) => a - b);
+
+  const n      = adjPpm.length;
+  const p25    = adjPpm[Math.floor(n * 0.25)];
+  const median = n % 2 === 0 ? (adjPpm[n/2-1] + adjPpm[n/2])/2 : adjPpm[Math.floor(n/2)];
+  const p75    = adjPpm[Math.floor(n * 0.75)];
+  // Apply our activo's adjustments to get final suggested price
+  const applyOurAdj = v => v * (1 + ourAdj.total);
+  const r500   = v => Math.round(v / 500) * 500;
+  const [sugP, sugB, sugO] = [r500(applyOurAdj(p25)), r500(applyOurAdj(median)), r500(applyOurAdj(p75))];
+
+  el.innerHTML = `
+    <div style="font-size:8.5px;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;font-weight:600">
+      Precio sugerido de salida · ${valid.length} testigos · ${n} ajustados
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);margin-bottom:12px">
+      ${[
+        {lbl:'Pesimista · P25',    val:sugP, col:'var(--red)',   sc:'P', bg:'rgba(192,57,43,0.1)'},
+        {lbl:'Base · Mediana',     val:sugB, col:'var(--gold)',  sc:'B', bg:'rgba(139,105,20,0.12)', bold:true},
+        {lbl:'Optimista · P75',    val:sugO, col:'var(--green)', sc:'O', bg:'rgba(30,122,69,0.08)'},
+      ].map(({lbl,val,col,sc,bg,bold}) => `
+        <div style="background:var(--d3);padding:14px;text-align:center${bold?';border:1px solid rgba(139,105,20,0.3)':''}">
+          <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:${col};margin-bottom:6px;font-weight:600">${lbl}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:${bold?22:19}px;color:${col};font-feature-settings:'tnum' 1;font-weight:${bold?700:600}">${val.toLocaleString('es-ES')} €/m²</div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-d);margin-top:4px;font-feature-settings:'tnum' 1">${fmt(val * surf)}</div>
+          <button onclick="applyExitPrice(${val},'${sc}')"
+            style="margin-top:8px;background:${bg};border:1px solid ${col};color:${col};
+                   font-family:'Raleway',sans-serif;font-size:8.5px;letter-spacing:0.12em;
+                   text-transform:uppercase;padding:5px 10px;cursor:pointer;width:100%;font-weight:${bold?700:500}">
+            ${bold?'✓ ':''}Aplicar al modelo
+          </button>
+        </div>`).join('')}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:9px 12px;background:var(--d4);font-size:10.5px;color:var(--text-d);margin-bottom:8px">
+      <span>Descuento oferta→cierre (portales):</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="number" id="portal-discount" value="${(discount*100).toFixed(0)}" min="0" max="25" step="1"
+          oninput="renderPricingEngine()"
+          style="width:52px;background:var(--d2);border:1px solid var(--d6);color:var(--text-b);
+                 font-family:'DM Mono',monospace;font-size:13px;padding:5px 8px;text-align:center;font-feature-settings:'tnum' 1">
+        <span>%</span>
+      </div>
+      <span style="color:var(--text-d);opacity:0.7">· Registro = precio cierre real (sin descuento)</span>
+    </div>
+    <div style="font-size:9.5px;color:var(--text-d);line-height:1.7;padding:8px 12px;background:var(--d4);border-left:2px solid var(--line)">
+      <strong style="color:var(--text-b)">Metodología:</strong>
+      (1) Normalizar comparables a "piso estándar" descontando portal ${(discount*100).toFixed(0)}%, estado, planta, orientación y ascensor ·
+      (2) Calcular percentiles P25/mediana/P75 ·
+      (3) Aplicar ajuste de nuestro activo (microzona + tipo + orientación + planta) ·
+      Ajuste total aplicado: <strong style="color:var(--gold)">${ourAdj.total >= 0 ? '+' : ''}${(ourAdj.total*100).toFixed(0)}%</strong>
+    </div>`;
+}
+
+function applyExitPrice(pm2, scenario) {
+  const fieldMap = { P: 'exitP', B: 'exitB', O: 'exitO' };
+  const el = $(fieldMap[scenario]);
+  if (el) { el.value = pm2; update(); }
 }
 
 function calcDetailedCF(m) {
@@ -1783,11 +3968,11 @@ function renderCarryEngine(m) {
 // COMPARABLES
 // ══════════════════════════════════════════════════
 let comps = [
-  { id:1, desc:'Casa Lamar — Cedaceros 9 (mismo bloque)',  url:'', source:'Idealista', tipo:'estreno',   precio:3937500, m2:225 },
-  { id:2, desc:'Comparable A — Centro prime',              url:'', source:'Idealista', tipo:'reformado', precio:3850000, m2:200 },
-  { id:3, desc:'Comparable B — Centro prime',              url:'', source:'Idealista', tipo:'reformado', precio:4300000, m2:234 },
-  { id:4, desc:'Comparable C — mismo edificio',            url:'', source:'Idealista', tipo:'reformado', precio:2200000, m2:120 },
-  { id:5, desc:'Comparable D — a reformar',                url:'', source:'Fotocasa',  tipo:'reformar',  precio:1690000, m2:200 },
+  { id:1, desc:'Casa Lamar — Cedaceros 9 (mismo bloque)',  url:'', source:'Idealista', tipo:'estreno',   precio:3937500, m2:225, planta:4, exterior:true, ascensor:true },
+  { id:2, desc:'Comparable A — Centro prime',              url:'', source:'Idealista', tipo:'reformado', precio:3850000, m2:200, planta:3, exterior:true, ascensor:true },
+  { id:3, desc:'Comparable B — Centro prime',              url:'', source:'Idealista', tipo:'reformado', precio:4300000, m2:234, planta:5, exterior:true, ascensor:true },
+  { id:4, desc:'Comparable C — mismo edificio',            url:'', source:'Idealista', tipo:'reformado', precio:2200000, m2:120, planta:2, exterior:false, ascensor:true },
+  { id:5, desc:'Comparable D — a reformar',                url:'', source:'Fotocasa',  tipo:'reformar',  precio:1690000, m2:200, planta:1, exterior:false, ascensor:false },
 ];
 let compNextId = 6;
 let extracting  = false;
@@ -1813,6 +3998,7 @@ function detSrc(url) {
 // ── AI EXTRACTION ─────────────────────────────────
 async function extractComp() {
   if (extracting) return;
+  if (!checkAPIKey()) return;
   const urlInput = $('comp-url-input');
   const url      = (urlInput.value || '').trim();
   const status   = $('comp-extract-status');
@@ -1832,14 +4018,48 @@ async function extractComp() {
   status.style.color = 'var(--text-d)';
 
   try {
-    const response = await fetch('/api/extract-comp', {
+    const prompt = `Analiza este anuncio inmobiliario y extrae exactamente estos datos en JSON sin ningún texto extra:
+URL: ${url}
+
+Devuelve SOLO este JSON (sin markdown, sin explicación):
+{
+  "precio": número entero en euros (sin puntos ni símbolos),
+  "m2": número entero de metros cuadrados útiles,
+  "descripcion": string corto descriptivo del piso (máximo 60 caracteres, incluye calle/zona si aparece),
+  "planta": string o null,
+  "habitaciones": número o null
+}
+
+Si no puedes extraer el precio o los m², devuelve los campos como null. No inventes datos.`;
+
+    const response = await fetch('/api/anthropic', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url })
+      headers: getAPIHeaders(),
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 400,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        messages: [{ role: 'user', content: prompt }]
+      })
     });
 
-    if (!response.ok) throw new Error(`api error ${response.status}`);
-    const parsed = await response.json();
+    const data = await response.json();
+
+    // Extract text from response (may include tool_use blocks)
+    const textBlock = data.content?.find(b => b.type === 'text');
+    const raw = textBlock?.text || '';
+
+    // Parse JSON — strip any markdown fences just in case
+    const cleaned = raw.replace(/```json|```/g, '').trim();
+    let parsed;
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch {
+      // Try to find JSON object in text
+      const match = cleaned.match(/\{[\s\S]*\}/);
+      if (match) parsed = JSON.parse(match[0]);
+      else throw new Error('No JSON in response');
+    }
 
     if (!parsed.precio && !parsed.m2) {
       status.textContent = '⚠ No se pudieron extraer datos del enlace. Rellena precio y m² manualmente.';
@@ -1889,11 +4109,47 @@ async function extractComp() {
   }
 }
 
-// Enter key on URL input triggers extract
 document.addEventListener('DOMContentLoaded', () => {
+  // URL input: Enter triggers extract, RW_COMP:: prefix triggers direct import
   const inp = $('comp-url-input');
   if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') extractComp(); });
+  if (inp) inp.addEventListener('paste', e => {
+    setTimeout(() => {
+      const v = inp.value.trim();
+      if (handleRWCompPaste(v)) { inp.value = ''; }
+    }, 50);
+  });
+
+  // Global paste: catch RW_COMP:: from anywhere on the page (e.g. after mobile bookmarklet)
+  document.addEventListener('paste', e => {
+    const text = e.clipboardData?.getData('text') || '';
+    if (text.startsWith('RW_COMP::')) {
+      handleRWCompPaste(text);
+      e.preventDefault();
+    }
+  });
+
+  // Init bookmarklet href
+  initBookmarklet();
+  loadAPIKey();
+  // checkLocalhostRequired() — removed: API works directly from browser with anthropic-dangerous-direct-browser-access
+
+  // Initial pricing engine render
+  renderPricingEngine();
 });
+
+function detectSourceFromUrl(url) {
+  if (!url) return null;
+  const u = url.toLowerCase();
+  if (u.includes('idealista'))  return 'Idealista';
+  if (u.includes('fotocasa'))   return 'Fotocasa';
+  if (u.includes('pisos.com'))  return 'Pisos.com';
+  if (u.includes('habitaclia')) return 'Habitaclia';
+  if (u.includes('kyero'))      return 'Kyero';
+  if (u.includes('rightmove'))  return 'Rightmove';
+  if (u.includes('yaencontré') || u.includes('yaencontre')) return 'Yaencontré';
+  return null;
+}
 
 function renderCompInputs() {
   const container = $('comp-rows-input');
@@ -1903,12 +4159,24 @@ function renderCompInputs() {
     const ppmStr = ppm ? `<span class="${tipoClass[c.tipo]}">${ppm.toLocaleString('es-ES')} €</span>` : '<span style="color:var(--text-d)">—</span>';
     const urlEl  = c.url ? `<a href="${c.url}" target="_blank" rel="noopener" class="comp-link" title="${c.url}">↗ ${c.source}</a>` : `<span style="font-size:9px;color:var(--text-d)">${c.source}</span>`;
     return `<div class="comp-row" id="ci-${c.id}">
-      <div style="font-size:9px;color:var(--text-d);text-align:center;font-family:'DM Mono',monospace">${c.id}</div>
       <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
         <input type="text" value="${c.desc.replace(/"/g,'&quot;')}" placeholder="Descripción breve…"
           oninput="comps.find(x=>x.id===${c.id}).desc=this.value;renderCompOutput()"
           style="font-family:'Raleway',sans-serif;font-size:11px;padding:4px 7px">
-        <div style="padding-left:2px">${urlEl}</div>
+        <input type="url" value="${(c.url||'').replace(/"/g,'&quot;')}" placeholder="Enlace anuncio (opcional)"
+          oninput="(function(el){
+            const url=el.value.trim();
+            const comp=comps.find(x=>x.id===${c.id});
+            if(!comp)return;
+            comp.url=url;
+            const detected=detectSourceFromUrl(url);
+            if(detected){ comp.source=detected; }
+          })(this)"
+          style="font-family:'DM Mono',monospace;font-size:9px;padding:3px 7px;color:var(--text-d);border-color:var(--line2)">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:0 2px">
+          <span style="font-size:9px;color:var(--text-d)">${c.source || 'Manual'}</span>
+          ${c.url ? `<a href="${c.url}" target="_blank" rel="noopener" style="font-size:9px;color:var(--gold);text-decoration:none;letter-spacing:0.06em">↗ abrir</a>` : ''}
+        </div>
       </div>
       <div>
         <select class="tipo-select"
@@ -1936,7 +4204,7 @@ function renderCompInputs() {
       </div>
       <div class="comp-ppm">${ppmStr}</div>
       <div>
-        <button class="comp-del-btn" onclick="removeComp(${c.id})" title="Eliminar">×</button>
+        <button type="button" class="comp-del-btn" onclick="removeComp(${c.id})" title="Eliminar">×</button>
       </div>
     </div>`;
   }).join('') || `<div style="font-size:11px;color:var(--text-d);padding:12px 0;font-style:italic">Sin testigos aún. Pega un enlace arriba o usa "+ Añadir testigo manual".</div>`;
@@ -1955,6 +4223,7 @@ function removeComp(id) {
 }
 
 function renderCompOutput() {
+  renderPricingEngine();
   const el = $('comp-output');
   if (!el) return;
 
@@ -2243,50 +4512,17 @@ function calcPlusvalia(precioCompra, precioVenta, vcTotal, vcSuelo, anyoAdquisic
   };
 }
 
-function renderNotariaAndPlusvalia(buyPrice, exitPriceBase, vcTotal, vcSuelo, anyoAdq, anyoVenta, tipoPlus) {
-  // ── Notaría compra ────────────────────────────────────────────────────
+function renderNotariaCompra(buyPrice) {
   const nc = calcArancel(buyPrice);
   const nd = $('notaria-calc-display');
   if (nd && nc) {
-    nd.innerHTML = `
-      Arancel notario compra: <strong>${nc.notario.toLocaleString('es-ES')} €</strong> &nbsp;·&nbsp;
+    nd.innerHTML = `Arancel notario: <strong>${nc.notario.toLocaleString('es-ES')} €</strong> &nbsp;·&nbsp;
       Registro est.: <strong>${nc.registro.toLocaleString('es-ES')} €</strong> &nbsp;·&nbsp;
       <strong style="color:var(--gold)">Total: ${nc.total.toLocaleString('es-ES')} €</strong>
       <br><span style="color:var(--text-d);font-size:9px">Arancel RD 1426/1989 · escala progresiva sobre ${buyPrice.toLocaleString('es-ES')} €</span>`;
-    // Auto-fill notaria field if user hasn't manually adjusted
     if (V('notariaAjuste') === 0) {
       const el = $('notaria');
-      if (el && !el.dataset.manualOverride) {
-        el.value = nc.total.toLocaleString('es-ES');
-      }
-    }
-  }
-
-  // ── Notaría venta ────────────────────────────────────────────────────
-  const nv = calcArancel(exitPriceBase);
-
-  // ── Plusvalía ────────────────────────────────────────────────────────
-  const pv = plusvaliaOn ? calcPlusvalia(buyPrice, exitPriceBase, vcTotal, vcSuelo, anyoAdq, anyoVenta, tipoPlus) : null;
-  const pd = $('plusvalia-calc-display');
-  if (pd && plusvaliaOn) {
-    if (!vcSuelo || vcSuelo <= 0) {
-      pd.innerHTML = `<span style="color:var(--amber)">⚠ Introduce el valor catastral del suelo para calcular la plusvalía automáticamente</span>`;
-    } else if (pv) {
-      const metodo = pv.usaObjetivo ? 'objetivo ✓' : 'real ✓';
-      const alt    = pv.usaObjetivo ? `real ${pv.cuotaReal !== null ? pv.cuotaReal.toLocaleString('es-ES')+' €' : 'n/a (sin ganancia)'}` : `objetivo ${pv.cuotaObjetivo.toLocaleString('es-ES')} €`;
-      pd.innerHTML = `
-        Tenencia vendedor: <strong>${pv.anos} años</strong> · Coef. ${pv.coef} · VC suelo: ${vcSuelo.toLocaleString('es-ES')} €<br>
-        Método <strong style="color:var(--green)">${metodo}</strong>: base ${pv.usaObjetivo?pv.baseObjetivo.toLocaleString('es-ES'):pv.baseReal.toLocaleString('es-ES')} € × ${tipoPlus}% = <strong style="color:var(--gold)">${pv.cuotaFinal.toLocaleString('es-ES')} €</strong>
-        <span style="color:var(--text-d)"> (alternativa ${alt})</span><br>
-        Notaría venta est.: <strong>${nv ? nv.total.toLocaleString('es-ES') : '—'} €</strong>
-        <br><span style="color:var(--text-d);font-size:9px">RDL 26/2021 · Se aplica el método más favorable para el contribuyente</span>`;
-
-      // Auto-fill exitFixed
-      const ef = $('exitFixed');
-      if (ef && V('exitFixedAjuste') === 0) {
-        const total = pv.cuotaFinal + (nv ? nv.total : 0);
-        ef.value = total.toLocaleString('es-ES');
-      }
+      if (el && !el.dataset.manualOverride) el.value = nc.total.toLocaleString('es-ES');
     }
   }
 }
@@ -2466,15 +4702,9 @@ function renderInvBreakdown(m) {
 // ══════════════════════════════════════════════════
 function update() {
   try {
-    // Calculate and display notaria + plusvalia before main calc
+    // Auto-calculate notaría compra
     const buyPrice    = V('buyPrice');
-    const exitBase    = V('exitB');
-    const vcTotal     = V('vcTotal');
-    const vcSuelo     = V('vcSuelo');
-    const anyoAdq     = parseInt($('vcAnyoAdq')?.value) || 2010;
-    const anyoVenta   = new Date().getFullYear() + Math.round(V('arasMonths') + V('monthsToSale') / 12);
-    const tipoPlus    = V('plusvaliaTipo') || 29;
-    renderNotariaAndPlusvalia(buyPrice, exitBase, vcTotal, vcSuelo, anyoAdq, anyoVenta, tipoPlus);
+    renderNotariaCompra(buyPrice);
 
     const m = calc();
     render(m);
@@ -2560,7 +4790,7 @@ const DEAL_FIELDS = [
   'taxRate','taxStructure',
   'ampliacionMeses','ampliacionPctCal',
   'cfDateAmpliacion','cfDateEscrituraAmp',
-  'vcTotal','vcSuelo','vcAnyoAdq','plusvaliaTipo',
+  // vcTotal, vcSuelo, vcAnyoAdq, plusvaliaTipo removed (plusvalia simplified)
   'notariaAjuste','exitFixedAjuste'
 ];
 
@@ -2570,6 +4800,9 @@ const DEAL_STATES = [
 
 let deals = [];        // array of { name, fields:{}, states:{}, comps:[], sensPrices:[] }
 let activeDealIdx = 0;
+let projects = [];          // [{id, name}]
+let projectIdCounter = 1;
+let activeConsolProjId = null;
 
 function captureCurrentDeal() {
   const fields = {};
@@ -2578,10 +4811,19 @@ function captureCurrentDeal() {
     if (el) fields[id] = el.value;
   });
   const states = { sfMode, sfCarryMode, zcOn, dealMode, ampliacionOn, taxOn, plusvaliaOn, levMode, sensPrices: [...sensPrices] };
-  return { fields, states, comps: JSON.parse(JSON.stringify(comps)) };
+  saveDossierNarrative();
+  const dossier = JSON.parse(JSON.stringify(getCurrentDossier()));
+  return { fields, states, comps: JSON.parse(JSON.stringify(comps)), dossier };
 }
 
 function applyDeal(deal) {
+  // Restore dossier data first
+  if (deal.dossier) {
+    deals[activeDealIdx].dossier = JSON.parse(JSON.stringify(deal.dossier));
+  } else {
+    if (!deals[activeDealIdx].dossier) deals[activeDealIdx].dossier = { photos:[], plans:[], materials:[], narrative:{activo:'',zona:'',mercado:'',proyecto:'',tesis:''}, mapDataUrl:'', mapLat:null, mapLng:null };
+  }
+  loadDossierToForm();
   // Fields
   DEAL_FIELDS.forEach(id => {
     const el = $(id);
@@ -2629,7 +4871,18 @@ function saveDealSnapshot() {
 }
 
 function switchTab(idx) {
-  if (idx === activeDealIdx) return;
+  // Always restore normal layout first (in case we were in consolidado view)
+  const ip = document.querySelector('.input-panel');
+  const op = document.querySelector('.output-panel');
+  const cv = $('consol-view');
+  const layout = document.querySelector('.layout');
+  if (ip) ip.style.display = '';
+  if (op) op.style.display = '';
+  if (cv) cv.classList.remove('active');
+  if (layout) layout.style.gridTemplateColumns = '';
+  activeConsolProjId = null;
+
+  if (idx === activeDealIdx) { renderTabs(); return; }
   saveDealSnapshot();
   activeDealIdx = idx;
   applyDeal(deals[idx]);
@@ -2638,10 +4891,21 @@ function switchTab(idx) {
 }
 
 function addDeal(name) {
+  // Exit consolidado view if active
+  const ip = document.querySelector('.input-panel');
+  const op = document.querySelector('.output-panel');
+  const cv = $('consol-view');
+  const layout = document.querySelector('.layout');
+  if (ip) ip.style.display = '';
+  if (op) op.style.display = '';
+  if (cv) cv.classList.remove('active');
+  if (layout) layout.style.gridTemplateColumns = '';
+  activeConsolProjId = null;
+
   saveDealSnapshot();
   const newDeal = {
     name: name || `Deal ${deals.length+1}`,
-    fields: {}, states: { sfMode:'tramos', sfCarryMode:'irr', zcOn:false, dealMode:'reforma', ampliacionOn:false, taxOn:true, sensPrices:[12000,13000,14000,15000,16000,17000] },
+    fields: {}, states: { sfMode:'tramos', sfCarryMode:'roi', zcOn:false, dealMode:'reforma', ampliacionOn:false, taxOn:true, plusvaliaOn:false, levMode:'ltv', sensPrices:[12000,13000,14000,15000,16000,17000] },
     comps: []
   };
   // Defaults
@@ -2649,7 +4913,7 @@ function addDeal(name) {
     dealName:newDeal.name, dealAddress:'', dealCP:'', dealMunicipio:'Madrid',
     dealFloor:'', dealPuerta:'', dealCatastro:'',
     surfCapex:236,
-    exitP:13000, exitB:15000, exitO:17000, brokerExit:3, exitFixed:15000,
+    exitP:13000, exitB:15000, exitO:17000, brokerExit:3, exitFixed:8000, exitFixedAjuste:0,
     arasAmt:100000, arasPct:10, arasMonths:2, monthsToSale:12,
     cfDateArras:'', cfDateEscritura:'', cfDateCert50:'', cfDateCert70:'', cfDateEntrega:'', cfDateVenta:'',
     buyPrice:1000000, itpPct:2, notaria:3000, comunidad:290, ibi:0,
@@ -2671,9 +4935,18 @@ function addDeal(name) {
 
 function removeDeal(idx, e) {
   e.stopPropagation();
-  if (deals.length <= 1) return; // always keep at least one
+  if (deals.length <= 1) return;
   deals.splice(idx, 1);
   if (activeDealIdx >= deals.length) activeDealIdx = deals.length - 1;
+  activeConsolProjId = null;
+  const ip = document.querySelector('.input-panel');
+  const op = document.querySelector('.output-panel');
+  const cv = $('consol-view');
+  const layout = document.querySelector('.layout');
+  if (ip) ip.style.display = '';
+  if (op) op.style.display = '';
+  if (cv) cv.classList.remove('active');
+  if (layout) layout.style.gridTemplateColumns = '';
   applyDeal(deals[activeDealIdx]);
   renderTabs();
   update();
@@ -2703,15 +4976,171 @@ function finishRename(idx, inp) {
 function renderTabs() {
   const bar = $('tabs-bar');
   if (!bar) return;
-  bar.innerHTML = deals.map((d, i) =>
-    `<div class="tab-item${i===activeDealIdx?' active':''}" data-idx="${i}"
+
+  const standalones = deals.map((d, i) => ({ d, i })).filter(x => !x.d.projectId);
+  const projGroups  = {};
+  deals.forEach((d, i) => {
+    if (d.projectId) {
+      if (!projGroups[d.projectId]) projGroups[d.projectId] = [];
+      projGroups[d.projectId].push({ d, i });
+    }
+  });
+
+  let html = '';
+  standalones.forEach(({ d, i }) => {
+    const isActive = i === activeDealIdx && !activeConsolProjId;
+    html += `<div class="tab-item${isActive ? ' active' : ''}" data-idx="${i}"
       onclick="switchTab(${i})" ondblclick="startRenameTab(${i},event)">
-      <span class="tab-name" title="Doble clic para renombrar">${d.name}</span>
-      ${deals.length > 1 ? `<button class="tab-close" onclick="removeDeal(${i},event)" title="Cerrar">×</button>` : ''}
-    </div>`
-  ).join('') +
-  `<button class="tab-add" onclick="addDeal()" title="Nueva operación">+</button>`;
+      <span class="tab-name">${d.name}</span>
+      ${deals.length > 1 ? `<button class="tab-close" onclick="removeDeal(${i},event)">×</button>` : ''}
+    </div>`;
+  });
+
+  Object.entries(projGroups).forEach(([projId, units]) => {
+    const proj = projects.find(p => p.id === projId);
+    if (!proj) return;
+    const isConsolActive = activeConsolProjId === projId;
+    html += `<div class="proj-group">
+      <div class="proj-label" ondblclick="renameProject('${projId}',event)">🏢 ${proj.name}</div>`;
+    units.forEach(({ d, i }) => {
+      const isActive = i === activeDealIdx && !activeConsolProjId;
+      html += `<div class="tab-item${isActive ? ' active' : ''}" data-idx="${i}"
+        onclick="exitConsol();switchTab(${i})" ondblclick="startRenameTab(${i},event)">
+        <span class="tab-name">${d.name}</span>
+        <button class="tab-close" onclick="removeDealFromProject(${i},event)">×</button>
+      </div>`;
+    });
+    html += `<div class="tab-item" style="color:var(--gold);opacity:0.8;font-size:16px;padding:0 8px" onclick="addUnitPrompt('${projId}')" title="Añadir unidad">+</div>`;
+    html += `<div class="tab-item tab-consol${isConsolActive ? ' active' : ''}" onclick="switchToConsol('${projId}')">📊 Consolidado</div>`;
+    html += `</div>`;
+  });
+
+  html += `<button class="tab-add" onclick="addDeal()" title="Nueva operación">+</button>`;
+  html += `<button class="tab-add" onclick="promptNewProject()" title="Nuevo proyecto multi-unidad" style="font-size:14px">🏢</button>`;
+  bar.innerHTML = html;
 }
+
+function renameProject(projId, e) {
+  e.stopPropagation();
+  const proj = projects.find(p => p.id === projId);
+  if (!proj) return;
+  const name = window.prompt('Nombre del proyecto:', proj.name);
+  if (name !== null && name.trim()) { proj.name = name.trim(); renderTabs(); }
+}
+
+function removeDealFromProject(idx, e) {
+  e.stopPropagation();
+  const projId = deals[idx].projectId;
+  deals.splice(idx, 1);
+  // If project now empty, remove it
+  if (projId && !deals.some(d => d.projectId === projId)) {
+    const pi = projects.findIndex(p => p.id === projId);
+    if (pi !== -1) projects.splice(pi, 1);
+  }
+  if (activeDealIdx >= deals.length) activeDealIdx = deals.length - 1;
+  activeConsolProjId = null;
+  exitConsol();
+  applyDeal(deals[activeDealIdx]);
+  renderTabs();
+  update();
+}
+
+// ══════════════════════════════════════════════════
+// EDIFICIO MODE
+// ══════════════════════════════════════════════════
+let edificioUnits = [
+  { id:1, name:'Piso 1º A', m2:80, pm2:0, capexOverride:null, isAmenity:false },
+  { id:2, name:'Piso 2º B', m2:75, pm2:0, capexOverride:null, isAmenity:false },
+  { id:3, name:'Ático',     m2:90, pm2:0, capexOverride:null, isAmenity:false },
+];
+let edifUnitId = 4;
+
+function addEdificioUnit() {
+  edificioUnits.push({ id:edifUnitId++, name:`Unidad ${edificioUnits.length+1}`, m2:70, pm2:0, capexOverride:null, isAmenity:false });
+  renderEdificioUnits();
+  updateEdificio();
+}
+
+function removeEdificioUnit(id) {
+  edificioUnits = edificioUnits.filter(u => u.id !== id);
+  renderEdificioUnits();
+  updateEdificio();
+}
+
+function renderEdificioUnits() {
+  const el = $('edificio-units-rows');
+  if (!el) return;
+  el.innerHTML = edificioUnits.map(u => `
+    <div class="eu-row" id="eu-row-${u.id}">
+      <input type="text" value="${u.name}" oninput="edificioUnits.find(x=>x.id===${u.id}).name=this.value;updateEdificio()"
+        style="background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-size:11px;padding:4px 7px;width:100%">
+      <input type="number" value="${u.m2}" oninput="edificioUnits.find(x=>x.id===${u.id}).m2=parseFloat(this.value)||0;updateEdificio()"
+        style="text-align:center;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-size:11px;padding:4px 6px;width:100%">
+      <input type="number" value="${u.pm2||''}" placeholder="auto" oninput="edificioUnits.find(x=>x.id===${u.id}).pm2=parseFloat(this.value)||0;updateEdificio()"
+        style="text-align:right;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-size:11px;padding:4px 6px;width:100%">
+      <input type="number" value="${u.capexOverride||''}" placeholder="pro-rata"
+        oninput="edificioUnits.find(x=>x.id===${u.id}).capexOverride=parseFloat(this.value)||null;updateEdificio()"
+        style="text-align:right;background:var(--d4);border:1px solid var(--line);color:${u.isAmenity?'var(--amber)':'var(--text-b)'};font-size:11px;padding:4px 6px;width:100%"
+        title="${u.isAmenity?'Amenity — CapEx propio':'Vacío = pro-rata automático'}">
+      <div id="eu-venta-${u.id}" style="text-align:right;font-family:'DM Mono',monospace;font-size:11px;color:var(--text-d)">—</div>
+      <div style="display:flex;gap:3px">
+        <button onclick="edificioUnits.find(x=>x.id===${u.id}).isAmenity=!edificioUnits.find(x=>x.id===${u.id}).isAmenity;renderEdificioUnits();updateEdificio()"
+          style="background:${u.isAmenity?'rgba(139,105,20,0.2)':'var(--d4)'};border:1px solid ${u.isAmenity?'var(--gold)':'var(--d6)'};
+                 color:${u.isAmenity?'var(--gold)':'var(--text-d)'};font-size:8px;padding:3px 5px;cursor:pointer"
+          title="${u.isAmenity?'Amenity activo':'Marcar como amenity'}">A</button>
+        <button onclick="removeEdificioUnit(${u.id})"
+          style="background:none;border:none;color:var(--text-d);font-size:14px;cursor:pointer;padding:0 3px">×</button>
+      </div>
+    </div>`).join('');
+}
+
+function updateEdificio() {
+  const buyPrice  = parseFloat($('edifBuyPrice')?.value?.replace(/\./g,'').replace(',','.')) || 0;
+  const itpPct    = parseFloat($('edifItpPct')?.value) || 6;
+  const obraM2    = parseFloat($('edifObraM2')?.value) || 1800;
+  const decoM2    = parseFloat($('edifDecoM2')?.value) || 400;
+  const capexPm2  = obraM2 + decoM2;
+  const mesesObra = parseFloat($('edifMesesObra')?.value) || 14;
+  const interval  = parseFloat($('edifMesesIntervalo')?.value) || 2;
+
+  const totalM2   = edificioUnits.reduce((s, u) => s + u.m2, 0);
+  const itp       = buyPrice * itpPct / 100;
+
+  let totalCapex = 0, totalVenta = 0;
+
+  edificioUnits.forEach(u => {
+    const proRataFrac = totalM2 > 0 ? u.m2 / totalM2 : 0;
+    const compra      = buyPrice * proRataFrac;
+    const itpUnit     = itp * proRataFrac;
+    const capex       = u.capexOverride !== null ? u.capexOverride : capexPm2 * u.m2;
+    const exitPm2     = u.pm2 || 0;
+    const venta       = exitPm2 * u.m2;
+    totalCapex += capex;
+    totalVenta += venta;
+    const ventaEl = $(`eu-venta-${u.id}`);
+    if (ventaEl) ventaEl.textContent = venta > 0 ? venta.toLocaleString('es-ES') + ' €' : '—';
+  });
+
+  // Summary
+  const sumEl = $('edificio-summary');
+  if (sumEl) {
+    const fmtN = v => v.toLocaleString('es-ES', {maximumFractionDigits:0}) + ' €';
+    const grossProfit = totalVenta - buyPrice - itp - totalCapex;
+    sumEl.innerHTML = `
+      Precio compra: <strong>${fmtN(buyPrice)}</strong> · ITP ${itpPct}%: <strong>${fmtN(itp)}</strong><br>
+      CapEx total (estimado): <strong>${fmtN(totalCapex)}</strong><br>
+      Superficie total: <strong>${totalM2} m²</strong><br>
+      Precio venta total (base): <strong style="color:var(--gold)">${fmtN(totalVenta)}</strong><br>
+      Beneficio bruto estimado: <strong style="color:${grossProfit>0?'var(--green)':'var(--red)'}">${fmtN(grossProfit)}</strong>
+      ${totalVenta>0 ? ` · ROI bruto <strong>${((grossProfit/(buyPrice+itp+totalCapex))*100).toFixed(1)}%</strong>` : ''}`;
+  }
+
+  // Totals row
+  $('edif-total-m2').textContent = totalM2 + ' m²';
+  $('edif-total-capex').textContent = totalCapex.toLocaleString('es-ES',{maximumFractionDigits:0}) + ' €';
+  $('edif-total-venta').textContent = totalVenta > 0 ? totalVenta.toLocaleString('es-ES',{maximumFractionDigits:0}) + ' €' : '—';
+}
+
 
 // ══════════════════════════════════════════════════
 // INIT
@@ -2778,5 +5207,819 @@ function exportPDF() {
   if (el('print-footer-right')) el('print-footer-right').textContent = S('dealName') || '';
 
   window.print();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DOSSIER PDF v2 — Riverwalk · 8 slides · A4 Portrait
+// Fotos, planos, mapa OSM, escenarios, narrativa
+// ══════════════════════════════════════════════════════════════════
+
+// ── IMAGEN STORAGE ─────────────────────────────────────────────
+const rwDossierImages = {
+  fachada:       null,
+  interiores:    [null, null, null, null],
+  planoActual:   null,
+  planoObjetivo: null,
+};
+
+function rwPickImage(slot, idx) {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'image/*';
+  inp.onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = ev => rwSetImage(slot, idx, ev.target.result);
+    r.readAsDataURL(f);
+  };
+  inp.click();
+}
+
+function rwDropImage(e, slot, idx) {
+  e.preventDefault(); e.stopPropagation();
+  const f = e.dataTransfer.files[0];
+  if (!f || !f.type.startsWith('image/')) return;
+  const r = new FileReader();
+  r.onload = ev => rwSetImage(slot, idx, ev.target.result);
+  r.readAsDataURL(f);
+}
+
+// Sync rwDossierImages → d.photos / d.plans so the presentation mode sees them
+function rwSyncToDossier() {
+  const d = getCurrentDossier();
+  // Rebuild photos array: [fachada, interior0, interior1, interior2, interior3]
+  const photoSlots = [
+    rwDossierImages.fachada,
+    ...rwDossierImages.interiores
+  ];
+  d.photos = photoSlots
+    .filter(Boolean)
+    .map((dataUrl, i) => ({ dataUrl, caption: ['Fachada','Interior 1','Interior 2','Interior 3','Interior 4'][i] || '', category: 'general' }));
+
+  // Rebuild plans array: [planoActual, planoObjetivo]
+  if (!d.plans) d.plans = [];
+  d.plans = [rwDossierImages.planoActual, rwDossierImages.planoObjetivo]
+    .filter(Boolean)
+    .map((dataUrl, i) => ({ dataUrl, caption: i === 0 ? 'Distribución actual' : 'Distribución objetivo' }));
+}
+
+function rwSetImage(slot, idx, dataUrl) {
+  let dzId;
+  if (slot === 'interior') {
+    rwDossierImages.interiores[idx] = dataUrl;
+    dzId = `rw-dz-int-${idx}`;
+  } else if (slot === 'planoActual') {
+    rwDossierImages.planoActual = dataUrl;
+    dzId = 'rw-dz-plano-actual';
+  } else if (slot === 'planoObjetivo') {
+    rwDossierImages.planoObjetivo = dataUrl;
+    dzId = 'rw-dz-plano-obj';
+  } else {
+    rwDossierImages.fachada = dataUrl;
+    dzId = 'rw-dz-fachada';
+  }
+  const dz = document.getElementById(dzId);
+  if (dz) {
+    dz.style.backgroundImage = `url(${dataUrl})`;
+    dz.style.backgroundSize  = slot === 'planoActual' || slot === 'planoObjetivo' ? 'contain' : 'cover';
+    dz.style.backgroundPosition = 'center';
+    dz.style.backgroundRepeat = 'no-repeat';
+    const lbl = dz.querySelector('.rw-dz-lbl');
+    if (lbl) lbl.style.display = 'none';
+    const del = dz.querySelector('.rw-dz-del');
+    if (del) del.style.display = 'flex';
+  }
+  rwSyncToDossier();
+}
+
+function rwClearImage(slot, idx, e) {
+  e.stopPropagation();
+  let dzId;
+  if (slot === 'interior') {
+    rwDossierImages.interiores[idx] = null; dzId = `rw-dz-int-${idx}`;
+  } else if (slot === 'planoActual') {
+    rwDossierImages.planoActual = null; dzId = 'rw-dz-plano-actual';
+  } else if (slot === 'planoObjetivo') {
+    rwDossierImages.planoObjetivo = null; dzId = 'rw-dz-plano-obj';
+  } else {
+    rwDossierImages.fachada = null; dzId = 'rw-dz-fachada';
+  }
+  const dz = document.getElementById(dzId);
+  if (dz) {
+    dz.style.backgroundImage = '';
+    const lbl = dz.querySelector('.rw-dz-lbl');
+    if (lbl) lbl.style.display = 'flex';
+    const del = dz.querySelector('.rw-dz-del');
+    if (del) del.style.display = 'none';
+  }
+  rwSyncToDossier();
+}
+
+// ── LOADER ─────────────────────────────────────────────────────
+function rwShowLoader() {
+  let el = document.getElementById('rw-pdf-loader');
+  if (el) el.remove();
+  el = document.createElement('div');
+  el.id = 'rw-pdf-loader';
+  el.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(10,11,16,0.97);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(12px);';
+  el.innerHTML = `
+    <div style="text-align:center;width:320px;">
+      <svg viewBox="0 0 80 80" width="48" height="48" style="margin-bottom:20px;display:block;margin-left:auto;margin-right:auto;">
+        <rect x="10" y="10" width="22" height="22" fill="none" stroke="rgba(196,151,90,0.3)" stroke-width="1"/>
+        <rect x="48" y="10" width="22" height="22" fill="none" stroke="rgba(196,151,90,0.3)" stroke-width="1"/>
+        <rect x="10" y="48" width="22" height="22" fill="rgba(196,151,90,0.15)" stroke="rgba(196,151,90,0.6)" stroke-width="1"/>
+        <rect x="48" y="48" width="22" height="22" fill="rgba(196,151,90,0.08)" stroke="rgba(196,151,90,0.4)" stroke-width="1"/>
+        <circle cx="21" cy="21" r="3" fill="rgba(196,151,90,0.4)"/>
+        <circle cx="59" cy="21" r="3" fill="rgba(196,151,90,0.25)"/>
+        <circle cx="21" cy="59" r="3" fill="rgba(196,151,90,0.9)"/>
+        <circle cx="59" cy="59" r="3" fill="rgba(196,151,90,0.6)"/>
+      </svg>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:11px;font-weight:300;letter-spacing:0.45em;color:rgba(196,151,90,0.7);text-transform:uppercase;margin-bottom:18px;">Riverwalk</div>
+      <div id="rw-loader-title" style="font-family:'Raleway',sans-serif;font-size:14px;font-weight:400;color:rgba(255,255,255,0.85);letter-spacing:0.05em;margin-bottom:8px;">Generando dossier</div>
+      <div id="rw-loader-msg" style="font-family:'Raleway',sans-serif;font-size:9.5px;color:rgba(255,255,255,0.3);letter-spacing:0.1em;min-height:14px;margin-bottom:24px;"></div>
+      <div style="position:relative;width:100%;height:1px;background:rgba(255,255,255,0.06);">
+        <div id="rw-loader-bar" style="position:absolute;left:0;top:0;height:1px;width:0%;background:linear-gradient(90deg,rgba(139,101,32,0.8),rgba(196,151,90,1));transition:width 0.5s ease;"></div>
+      </div>
+      <div id="rw-loader-pg" style="font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,0.15);letter-spacing:0.12em;margin-top:10px;"></div>
+    </div>`;
+  document.body.appendChild(el);
+}
+
+function rwUpdateLoader(msg, pct, pg) {
+  const m = document.getElementById('rw-loader-msg');
+  const b = document.getElementById('rw-loader-bar');
+  const p = document.getElementById('rw-loader-pg');
+  if (m) m.textContent = msg;
+  if (b) b.style.width = Math.min(100, Math.round(pct * 100)) + '%';
+  if (p && pg != null) p.textContent = `Slide ${pg.cur} de ${pg.total}`;
+}
+
+function rwHideLoader() {
+  const el = document.getElementById('rw-pdf-loader');
+  if (!el) return;
+  el.style.transition = 'opacity 0.7s ease';
+  el.style.opacity = '0';
+  setTimeout(() => el.remove(), 750);
+}
+
+// ── HELPERS ────────────────────────────────────────────────────
+const rwFmt  = v => (v || 0).toLocaleString('es-ES', {maximumFractionDigits:0}) + ' €';
+const rwFmtK = v => {
+  const a = Math.abs(v || 0);
+  if (a >= 1e6) return (v/1e6).toFixed(2).replace('.',',').replace(/,?0+$/,'') + ' M€';
+  return Math.round(v||0).toLocaleString('es-ES') + ' €';
+};
+const rwPct  = v => ((v||0)*100).toFixed(1).replace('.',',') + '%';
+
+// ── GEOCODE (Nominatim) ────────────────────────────────────────
+async function rwGeocode(dealAddr, dealCP, dealMunicipio) {
+  if (!dealAddr) return null;
+  const headers = { 'Accept-Language': 'es', 'User-Agent': 'RiverwalkDealModeler/3.0' };
+
+  // Strategy 1: structured query — most precise, separates street / postalcode / country
+  try {
+    const params = new URLSearchParams({
+      street:     dealAddr,
+      countrycodes: 'es',
+      format:     'json',
+      limit:      '1',
+      addressdetails: '1',
+    });
+    if (dealCP)         params.set('postalcode', dealCP);
+    if (dealMunicipio)  params.set('city', dealMunicipio);
+
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, { headers });
+    const d = await r.json();
+    if (d && d.length > 0) {
+      console.log('Geocode structured hit:', d[0].display_name);
+      return { lat: parseFloat(d[0].lat), lon: parseFloat(d[0].lon) };
+    }
+  } catch(e) { console.warn('Geocode structured failed:', e); }
+
+  // Strategy 2: free-form fallback with countrycodes restriction
+  try {
+    const parts = [dealAddr, dealCP, dealMunicipio || 'Madrid'].filter(Boolean);
+    const params = new URLSearchParams({
+      q:            parts.join(', '),
+      countrycodes: 'es',
+      format:       'json',
+      limit:        '1',
+    });
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, { headers });
+    const d = await r.json();
+    if (d && d.length > 0) {
+      console.log('Geocode freeform hit:', d[0].display_name);
+      return { lat: parseFloat(d[0].lat), lon: parseFloat(d[0].lon) };
+    }
+  } catch(e) { console.warn('Geocode freeform failed:', e); }
+
+  return null;
+}
+
+// ── MAP RENDER ─────────────────────────────────────────────────
+// ── TILE MAP RENDERER ─────────────────────────────────────────
+// Draws CartoDB tiles directly onto a canvas — no Leaflet, no html2canvas.
+// Tiles support CORS (Access-Control-Allow-Origin: *) so crossOrigin='anonymous' works.
+async function rwRenderMap(lat, lon) {
+  const ZOOM  = 16;
+  const SCALE = 2;           // retina: each CSS px = 2 canvas px
+  const MAP_W = 794;
+  const MAP_H = 480;
+  const TW    = 256;         // tile size in px
+
+  // lat/lon → fractional tile coordinates at given zoom
+  function ll2tile(lat, lon, z) {
+    const n = Math.pow(2, z);
+    const x = (lon + 180) / 360 * n;
+    const latR = lat * Math.PI / 180;
+    const y = (1 - Math.log(Math.tan(latR) + 1 / Math.cos(latR)) / Math.PI) / 2 * n;
+    return { x, y };
+  }
+
+  const center = ll2tile(lat, lon, ZOOM);
+
+  // canvas in physical pixels
+  const cW = MAP_W * SCALE;
+  const cH = MAP_H * SCALE;
+  const canvas = document.createElement('canvas');
+  canvas.width  = cW;
+  canvas.height = cH;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#f5f2eb';
+  ctx.fillRect(0, 0, cW, cH);
+
+  // How many tiles we need in each direction
+  const tilesX = Math.ceil(cW / TW) + 2;
+  const tilesY = Math.ceil(cH / TW) + 2;
+
+  // Top-left tile index (may be fractional, so floor)
+  const t0x = Math.floor(center.x - cW / 2 / TW);
+  const t0y = Math.floor(center.y - cH / 2 / TW);
+
+  // Pixel offset of the top-left tile corner on the canvas
+  const ox = Math.round((t0x - center.x) * TW + cW / 2);
+  const oy = Math.round((t0y - center.y) * TW + cH / 2);
+
+  // Load one tile image
+  function loadTile(tx, ty) {
+    return new Promise(resolve => {
+      // Wrap tile x (longitude wraps around)
+      const n  = Math.pow(2, ZOOM);
+      const wx = ((tx % n) + n) % n;
+      const sub = ['a','b','c'][Math.abs(tx + ty) % 3];
+      const url = `https://${sub}.basemaps.cartocdn.com/light_all/${ZOOM}/${wx}/${ty}.png`;
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload  = () => resolve({ img, tx, ty });
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  }
+
+  // Load all needed tiles in parallel
+  const jobs = [];
+  for (let dx = 0; dx < tilesX; dx++) {
+    for (let dy = 0; dy < tilesY; dy++) {
+      jobs.push(loadTile(t0x + dx, t0y + dy).then(res => {
+        if (!res) return;
+        const px = ox + dx * TW;
+        const py = oy + dy * TW;
+        ctx.drawImage(res.img, px, py, TW, TW);
+      }));
+    }
+  }
+  await Promise.allSettled(jobs);
+
+  // Marker pixel position on canvas
+  const mx = Math.round((center.x - t0x) * TW + ox);
+  const my = Math.round((center.y - t0y) * TW + oy);
+
+  // Outer ring
+  ctx.beginPath();
+  ctx.arc(mx, my, 22, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(196,151,90,0.5)';
+  ctx.lineWidth   = 2;
+  ctx.stroke();
+
+  // White halo
+  ctx.beginPath();
+  ctx.arc(mx, my, 13, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.fill();
+
+  // Gold fill
+  ctx.beginPath();
+  ctx.arc(mx, my, 10, 0, Math.PI * 2);
+  ctx.fillStyle = '#C4975A';
+  ctx.fill();
+
+  return { url: canvas.toDataURL('image/jpeg', 0.93), w: MAP_W, h: MAP_H };
+}
+
+// ── PAGE WRAPPER ──────────────────────────────────────────────
+const pg = (inner, bg = '#F7F4EE') =>
+  `<div style="width:794px;height:1123px;overflow:hidden;background:${bg};font-family:'Raleway',sans-serif;position:relative;box-sizing:border-box;">${inner}</div>`;
+
+// ── COMMON HEADER ─────────────────────────────────────────────
+const hdr = (cap, sub, num, light) => `
+  <div style="padding:28px 48px 18px;display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid ${light?'rgba(255,255,255,0.1)':'rgba(196,151,90,0.2)'};">
+    <div>
+      <div style="font-size:7px;letter-spacing:0.24em;text-transform:uppercase;color:${light?'rgba(196,151,90,0.7)':'#C4975A'};font-weight:600;margin-bottom:3px;">${cap}</div>
+      <div style="font-size:9.5px;color:${light?'rgba(255,255,255,0.3)':'#8B8074'};letter-spacing:0.03em;">${sub}</div>
+    </div>
+    <div style="font-family:'DM Mono',monospace;font-size:8px;color:${light?'rgba(196,151,90,0.3)':'#C0B8AD'};letter-spacing:0.1em;">0${num}</div>
+  </div>`;
+
+function ftr(light) {
+  return `<div style="position:absolute;bottom:0;left:0;right:0;padding:12px 48px;border-top:1px solid ${light?'rgba(255,255,255,0.07)':'rgba(196,151,90,0.15)'};display:flex;justify-content:space-between;align-items:center;">
+    <div style="font-size:7px;color:${light?'rgba(255,255,255,0.15)':'rgba(160,148,130,0.85)'};letter-spacing:0.16em;text-transform:uppercase;">Riverwalk Real Estate · Documento Confidencial</div>
+    <div style="font-size:7px;color:${light?'rgba(196,151,90,0.3)':'rgba(196,151,90,0.55)'};letter-spacing:0.12em;">${new Date().getFullYear()}</div>
+  </div>`;
+}
+
+// ── SLIDE 1: PORTADA ──────────────────────────────────────────
+function rwSlide1(dealName, dealAddr, dealType, dateStr, fachada) {
+  const tipo = dealType === 'pase' ? 'Pase · Asignación' : dealType === 'edificio' ? 'Promoción · Edificio' : 'Fix & Flip · Reforma integral';
+  const bgStyle = fachada
+    ? `background:linear-gradient(to right, rgba(10,11,16,0.92) 52%, rgba(10,11,16,0.55) 100%), url(${fachada}) center/cover no-repeat;`
+    : `background:#0F1014;`;
+
+  return pg(`
+    <div style="position:absolute;inset:0;${bgStyle}"></div>
+    <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#8B6520,#C4975A,#8B6520);"></div>
+    <!-- Logo top -->
+    <div style="position:absolute;top:40px;left:44px;right:44px;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:12px;font-weight:300;letter-spacing:0.5em;color:rgba(196,151,90,0.85);text-transform:uppercase;">Riverwalk</div>
+        <div style="font-size:6.5px;letter-spacing:0.3em;color:rgba(255,255,255,0.2);text-transform:uppercase;margin-top:2px;">Real Estate Investments</div>
+      </div>
+      <div style="border:0.5px solid rgba(196,151,90,0.3);padding:5px 14px;">
+        <span style="font-size:7px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(196,151,90,0.65);">${tipo}</span>
+      </div>
+    </div>
+    <!-- Main -->
+    <div style="position:absolute;top:50%;left:44px;right:${fachada?'50%':'44px'};transform:translateY(-55%);">
+      <div style="width:28px;height:0.5px;background:rgba(196,151,90,0.6);margin-bottom:24px;"></div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:${dealName.length>22?38:48}px;font-weight:300;color:#FAFAF8;line-height:1.1;letter-spacing:0.02em;margin-bottom:14px;">${dealName}</div>
+      ${dealAddr ? `<div style="font-size:10.5px;font-weight:300;color:rgba(255,255,255,0.4);letter-spacing:0.06em;">${dealAddr}</div>` : ''}
+      <div style="width:100%;height:0.5px;background:rgba(196,151,90,0.15);margin-top:28px;"></div>
+    </div>
+    <!-- Bottom -->
+    <div style="position:absolute;bottom:36px;left:44px;right:44px;display:flex;justify-content:space-between;">
+      <div style="font-size:7.5px;color:rgba(255,255,255,0.15);letter-spacing:0.12em;">Documento de inversión privado</div>
+      <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(196,151,90,0.4);letter-spacing:0.08em;">${dateStr}</div>
+    </div>
+  `, '#0F1014');
+}
+
+// ── SLIDE 2: EL ACTIVO ────────────────────────────────────────
+function rwSlide2(dealName, dealAddr, m, narr, fachada) {
+  const HEADER_H = 74;
+  const FOOTER_H = 40;
+  const BODY_H   = 1123 - HEADER_H - FOOTER_H;
+
+  const dataItems = [
+    { l: 'Superficie', v: `${m.surfCapex} m²` },
+    { l: 'Precio compra', v: rwFmtK(m.buyPrice) },
+    { l: 'Inversión total', v: rwFmtK(m.totalInvest) },
+    { l: 'Objetivo venta', v: `${(V('exitB')||0).toLocaleString('es-ES')} €/m²` },
+    { l: 'ROI base', v: rwPct(m.base.roiNet) },
+    { l: 'Duración', v: `${m.totalMonths} meses` },
+  ];
+
+  const photoCol = fachada ? `
+    <div style="width:42%;flex-shrink:0;height:${BODY_H}px;overflow:hidden;position:relative;">
+      <img src="${fachada}" style="width:100%;height:100%;object-fit:cover;display:block;">
+      <div style="position:absolute;inset:0;background:linear-gradient(to right,transparent 70%,rgba(247,244,238,0.15) 100%);"></div>
+    </div>` : `
+    <div style="width:42%;flex-shrink:0;height:${BODY_H}px;background:linear-gradient(135deg,#1A1D23 0%,#2A2D35 100%);display:flex;align-items:center;justify-content:center;">
+      <div style="font-size:8px;letter-spacing:0.2em;color:rgba(196,151,90,0.3);text-transform:uppercase;">Sin fotografía</div>
+    </div>`;
+
+  const rightCol = `
+    <div style="flex:1;padding:40px 48px 40px 44px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;">
+      <!-- Title block -->
+      <div>
+        <div style="font-size:7px;letter-spacing:0.28em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:12px;">El activo</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:${dealName.length>22?32:40}px;font-weight:300;color:#1A1D23;line-height:1.1;margin-bottom:6px;">${dealName}</div>
+        ${dealAddr ? `<div style="font-size:10px;color:rgba(90,82,72,0.55);letter-spacing:0.04em;margin-bottom:28px;">${dealAddr}</div>` : '<div style="margin-bottom:28px;"></div>'}
+        <!-- Data grid -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(196,151,90,0.12);border:1px solid rgba(196,151,90,0.12);">
+          ${dataItems.map(d => `
+          <div style="padding:14px 16px;background:#F7F4EE;">
+            <div style="font-family:'DM Mono',monospace;font-size:16px;color:#1A1D23;font-weight:500;margin-bottom:4px;line-height:1;">${d.v}</div>
+            <div style="font-size:7px;letter-spacing:0.18em;text-transform:uppercase;color:#A09282;">${d.l}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+      <!-- Narrative -->
+      ${narr.activo && narr.activo.length > 15 ? `
+      <div style="border-top:1px solid rgba(196,151,90,0.2);padding-top:18px;">
+        <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">Descripción</div>
+        <div style="font-size:11px;line-height:1.82;color:rgba(50,44,36,0.85);font-weight:300;">${(narr.activo).substring(0,320)}${narr.activo.length>320?'…':''}</div>
+      </div>` : `
+      <div style="border-top:1px solid rgba(196,151,90,0.2);padding-top:18px;">
+        <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">Datos principales</div>
+        <div style="font-size:11px;line-height:1.82;color:rgba(100,90,78,0.6);font-style:italic;">Añade una descripción del activo en el panel de dossier.</div>
+      </div>`}
+    </div>`;
+
+  return pg(`
+    ${hdr('El Activo', dealAddr || dealName, 2)}
+    <div style="display:flex;height:${BODY_H}px;">
+      ${photoCol}
+      ${rightCol}
+    </div>
+    ${ftr()}
+  `);
+}
+
+// ── SLIDE 3: ESTADO ACTUAL ────────────────────────────────────
+function rwSlide3(dealName, interiores) {
+  const imgs = interiores.filter(Boolean);
+  if (imgs.length === 0) return null;
+
+  const labels = ['Salón · estado actual', 'Cocina · estado actual', 'Dormitorio principal', 'Baño'];
+  const grid = imgs.slice(0,4).map((src, i) => `
+    <div style="position:relative;overflow:hidden;background:#1A1D23;aspect-ratio:4/3;">
+      <img src="${src}" style="width:100%;height:100%;object-fit:cover;display:block;">
+      <div style="position:absolute;bottom:0;left:0;right:0;padding:8px 12px;background:linear-gradient(transparent,rgba(0,0,0,0.6));">
+        <div style="font-size:7.5px;color:rgba(255,255,255,0.7);letter-spacing:0.1em;text-transform:uppercase;">${labels[i] || ''}</div>
+      </div>
+    </div>`).join('');
+
+  const cols = imgs.length <= 2 ? `repeat(${imgs.length},1fr)` : 'repeat(2,1fr)';
+
+  return pg(`
+    ${hdr('Estado actual', dealName, 3)}
+    <div style="padding:18px 44px;height:calc(100% - 60px - 36px);">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;color:#1A1D23;margin-bottom:14px;">Estado actual del activo</div>
+      <div style="display:grid;grid-template-columns:${cols};gap:8px;height:calc(100% - 44px);">
+        ${grid}
+      </div>
+    </div>
+    ${ftr()}
+  `);
+}
+
+// ── SLIDE 4: LA OPORTUNIDAD ───────────────────────────────────
+function rwSlide4(dealName, m, narr) {
+  const lev = m.ltvPct > 0;
+  const mainRoi = lev ? m.lev0.roe : m.base.roiNet;
+  const mainLabel = lev ? 'ROE neto' : 'ROI neto';
+
+  const kpis = [
+    { v: rwFmtK(m.totalInvest), l: 'Inversión total', c: '#1A1D23' },
+    { v: rwFmtK(m.base.grossProfit), l: 'Margen bruto', c: '#1A6B3C' },
+    { v: rwPct(mainRoi), l: mainLabel, c: '#C4975A' },
+    { v: m.irrBase > 0 ? rwPct(m.irrBase) : '—', l: 'TIR anualizada', c: '#2A5298' },
+  ];
+
+  return pg(`
+    ${hdr('La oportunidad', dealName, 4)}
+    <div style="padding:26px 44px 0;">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:300;color:#1A1D23;margin-bottom:28px;">La oportunidad</div>
+      <!-- KPI row -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:32px;">
+        ${kpis.map(k => `
+        <div style="padding:22px 18px 18px;background:#F4F1EB;border-top:2px solid ${k.c};">
+          <div style="font-family:'DM Mono',monospace;font-size:24px;font-weight:500;color:${k.c};margin-bottom:6px;line-height:1;">${k.v}</div>
+          <div style="font-size:7.5px;letter-spacing:0.16em;text-transform:uppercase;color:#8B8074;">${k.l}</div>
+        </div>`).join('')}
+      </div>
+      <!-- Secondary row -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:28px;">
+        ${[
+          ['Precio compra', rwFmtK(m.buyPrice)],
+          ['Precio salida base', rwFmt(m.base.saleGross)],
+          ['Duración operación', m.totalMonths + ' meses'],
+        ].map(([l,v]) => `
+        <div style="padding:12px 16px;border:0.5px solid #E0DAD0;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:9px;color:#8B8074;letter-spacing:0.06em;">${l}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:11px;color:#1A1D23;font-weight:500;">${v}</span>
+        </div>`).join('')}
+      </div>
+      ${narr.tesis ? `
+      <div style="border-left:2px solid #C4975A;padding:14px 18px;background:#FAF7F2;">
+        <div style="font-size:7px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;margin-bottom:8px;font-weight:600;">Tesis inversora</div>
+        <div style="font-size:11px;line-height:1.78;color:#3D3730;font-weight:300;">${(narr.tesis).substring(0,400)}${narr.tesis.length>400?'…':''}</div>
+      </div>` : ''}
+    </div>
+    ${ftr()}
+  `);
+}
+
+// ── SLIDE 5: PLANOS ───────────────────────────────────────────
+function rwSlide5(dealName, planoActual, planoObjetivo, narr) {
+  if (!planoActual && !planoObjetivo) return null;
+
+  const planoCard = (src, title, desc) => `
+    <div style="flex:1;display:flex;flex-direction:column;">
+      <div style="font-size:7.5px;letter-spacing:0.2em;text-transform:uppercase;color:#C4975A;font-weight:600;margin-bottom:10px;">${title}</div>
+      <div style="flex:1;background:#F0EDE6;overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:320px;">
+        ${src ? `<img src="${src}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;">` : `<div style="font-size:9px;color:#B0A898;letter-spacing:0.1em;">Sin imagen</div>`}
+      </div>
+      ${desc ? `<div style="font-size:9.5px;color:#6B7280;line-height:1.6;margin-top:10px;">${desc.substring(0,120)}</div>` : ''}
+    </div>`;
+
+  return pg(`
+    ${hdr('Distribución', dealName, 5)}
+    <div style="padding:22px 44px;height:calc(100% - 60px - 36px);display:flex;flex-direction:column;">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:300;color:#1A1D23;margin-bottom:20px;">Distribución · Actual y objetivo</div>
+      <div style="flex:1;display:flex;gap:18px;">
+        ${planoCard(planoActual, 'Distribución actual', '')}
+        <div style="width:1px;background:#E0DAD0;flex-shrink:0;align-self:stretch;"></div>
+        ${planoCard(planoObjetivo, 'Distribución objetivo', narr.proyecto ? narr.proyecto.substring(0,110) + '…' : '')}
+      </div>
+    </div>
+    ${ftr()}
+  `);
+}
+
+// ── SLIDE 6: LA ZONA ──────────────────────────────────────────
+function rwSlide6(dealName, dealAddr, mapData, narr, m) {
+  // mapData is { url, w, h } or null
+  const hasMap   = !!(mapData && mapData.url);
+  const hasNarr  = (narr.zona || '').length > 15 || (narr.mercado || '').length > 15;
+  const narrText = narr.zona || narr.mercado || '';
+
+  // Map is always 794px wide (same as slide) and 480px tall — no scaling/distortion
+  const MAP_H = 480;
+
+  return pg(`
+    ${hdr('La Zona', dealAddr || dealName, 6)}
+    <!-- map: exact 794×480px, displayed at natural size = pixel-perfect, no stretch -->
+    <div style="width:794px;height:${MAP_H}px;overflow:hidden;position:relative;background:#EDE9E0;flex-shrink:0;">
+      ${hasMap
+        ? `<img src="${mapData.url}" style="width:794px;height:${MAP_H}px;display:block;image-rendering:auto;">
+           <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 68%,#F7F4EE 100%);pointer-events:none;"></div>`
+        : `<div style="height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1A1D23,#2A2D35);">
+             <div style="text-align:center;">
+               <div style="font-size:9px;color:rgba(196,151,90,0.5);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:8px;">Mapa no disponible</div>
+               <div style="font-size:8.5px;color:rgba(255,255,255,0.3);letter-spacing:0.08em;">${dealAddr || ''}</div>
+             </div>
+           </div>`}
+      <!-- Address label over map -->
+      ${hasMap ? `<div style="position:absolute;bottom:18px;left:48px;padding:5px 14px;background:rgba(247,244,238,0.93);border-left:2px solid #C4975A;">
+        <div style="font-size:8px;color:#1A1D23;letter-spacing:0.08em;font-weight:500;">${dealAddr || 'Ubicación del activo'}</div>
+      </div>` : ''}
+    </div>
+
+    <!-- content below map -->
+    <div style="padding:${hasNarr?'24px':'18px'} 48px ${hasNarr?'48px':'22px'};display:flex;gap:40px;align-items:flex-start;">
+      <!-- left: text -->
+      <div style="flex:1;min-width:0;">
+        ${hasNarr ? `
+        <div style="font-size:7px;letter-spacing:0.28em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:12px;">Microzona</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:${narrText.length<120?22:18}px;font-weight:300;color:#1A1D23;line-height:1.5;margin-bottom:14px;">${narrText.substring(0,140)}${narrText.length>140?'…':''}</div>
+        ${narrText.length > 140 ? `<div style="font-size:10.5px;line-height:1.85;color:rgba(50,44,36,0.75);font-weight:300;">${narrText.substring(140,380)}${narrText.length>380?'…':''}</div>` : ''}
+        ` : `
+        <div style="font-size:7px;letter-spacing:0.28em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:14px;">Ubicación</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;color:#1A1D23;line-height:1.2;">${dealAddr || dealName}</div>
+        `}
+      </div>
+      <!-- right: metrics -->
+      ${m ? `
+      <div style="flex-shrink:0;min-width:160px;">
+        <div style="font-size:7px;letter-spacing:0.28em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:14px;">Precio €/m²</div>
+        ${[
+          { l: 'Precio compra', v: `${Math.round(m.buyPrice/m.surfCapex).toLocaleString('es-ES')} €/m²` },
+          { l: 'Objetivo venta', v: `${(V('exitB')||0).toLocaleString('es-ES')} €/m²` },
+          { l: 'Breakeven', v: `${Math.round(m.bePriceM2).toLocaleString('es-ES')} €/m²` },
+        ].map(d => `
+        <div style="padding:12px 0;border-bottom:1px solid rgba(196,151,90,0.15);">
+          <div style="font-family:'DM Mono',monospace;font-size:15px;color:#1A1D23;font-weight:500;margin-bottom:3px;">${d.v}</div>
+          <div style="font-size:7px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;">${d.l}</div>
+        </div>`).join('')}
+      </div>` : ''}
+    </div>
+    ${ftr()}
+  `);
+}
+
+// ── SLIDE 7: ESCENARIOS ───────────────────────────────────────
+function rwSlide7(dealName, m) {
+  const lev = m.ltvPct > 0;
+
+  const scBlock = (sc, irr, label, dark) => {
+    const roi = lev ? m.lev0.roe : sc.roiNet;
+    const bg  = dark ? '#1A1D23' : '#F7F4EE';
+    const tc  = dark ? '#FAFAF8' : '#1A1D23';
+    const tc2 = dark ? 'rgba(255,255,255,0.38)' : 'rgba(80,70,58,0.65)';
+    const sep = dark ? 'rgba(255,255,255,0.07)' : 'rgba(196,151,90,0.14)';
+    const acc = dark ? 'rgba(196,151,90,0.65)' : '#C4975A';
+    const bdr = dark ? 'none' : '1px solid rgba(196,151,90,0.18)';
+
+    const rows = [
+      ['Precio venta', rwFmt(sc.saleGross)],
+      ['Margen bruto', rwFmt(sc.grossProfit)],
+      ['ROI bruto', rwPct(sc.roiGross)],
+      ...(sc.sf > 0 ? [['Carried interest', rwFmt(sc.sf)]] : []),
+      ['Margen neto', rwFmt(sc.netProfit)],
+      [lev ? 'ROE neto' : 'ROI neto', rwPct(roi)],
+      ['TIR anualizada', irr > 0 ? rwPct(irr) : '—'],
+      ['MOIC', (lev ? m.lev0.moic : (1 + sc.roiNet)).toFixed(2) + '×'],
+    ];
+
+    return `
+    <div style="flex:1;background:${bg};border:${bdr};overflow:hidden;display:flex;flex-direction:column;">
+      <!-- header -->
+      <div style="padding:18px 20px 16px;border-bottom:1px solid ${sep};">
+        <div style="font-size:7px;letter-spacing:0.26em;text-transform:uppercase;color:${acc};font-weight:600;margin-bottom:8px;">${label}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:26px;font-weight:500;color:${tc};line-height:1;">${rwFmtK(sc.saleGross)}</div>
+        <div style="font-size:8.5px;color:${tc2};margin-top:5px;">${Math.round(sc.saleGross/m.surfCapex).toLocaleString('es-ES')} €/m²</div>
+      </div>
+      <!-- rows -->
+      <div style="flex:1;display:flex;flex-direction:column;justify-content:space-evenly;padding:6px 0;">
+        ${rows.map(([l,v]) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 20px;border-bottom:1px solid ${sep};">
+          <span style="font-size:9.5px;color:${tc2};">${l}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:10px;color:${tc};font-weight:${dark?'400':'500'};">${v}</span>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  };
+
+  return pg(`
+    ${hdr('Escenarios Financieros', dealName, 7)}
+
+    <!-- Title row -->
+    <div style="padding:28px 48px 0;">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:300;color:#1A1D23;letter-spacing:0.01em;margin-bottom:6px;">Análisis de escenarios</div>
+      <div style="font-size:9.5px;color:rgba(90,80,68,0.55);letter-spacing:0.04em;margin-bottom:24px;">Escenario base a ${(V('exitB')||0).toLocaleString('es-ES')} €/m² · ${m.totalMonths} meses · superficie ${m.surfCapex} m²</div>
+    </div>
+
+    <!-- Columns -->
+    <div style="padding:0 48px;display:flex;gap:8px;height:${lev ? 560 : 650}px;">
+      ${scBlock(m.pess, m.irrPess, 'Pesimista', false)}
+      ${scBlock(m.base, m.irrBase, 'Base', true)}
+      ${scBlock(m.opt,  m.irrOpt,  'Optimista', false)}
+    </div>
+
+    <!-- Bottom summary / lev row -->
+    ${lev ? `
+    <div style="margin:16px 48px 0;padding:16px 20px;background:#1A1D23;display:grid;grid-template-columns:auto repeat(4,1fr);align-items:center;gap:0;">
+      <div style="padding-right:24px;border-right:1px solid rgba(255,255,255,0.1);">
+        <div style="font-size:7px;letter-spacing:0.26em;text-transform:uppercase;color:rgba(196,151,90,0.65);font-weight:600;margin-bottom:2px;">Apalancado</div>
+        <div style="font-size:8.5px;color:rgba(255,255,255,0.3);letter-spacing:0.04em;">LTV ${Math.round(m.ltvPct*100)}% · escenario base</div>
+      </div>
+      ${[
+        ['Equity', rwFmtK(m.lev0.equity)],
+        ['Deuda', rwFmtK(m.totalInvest * m.ltvPct)],
+        ['ROE neto', rwPct(m.lev0.roe)],
+        ['MOIC', m.lev0.moic.toFixed(2) + '×'],
+      ].map(([l,v]) => `
+      <div style="padding:0 16px;text-align:center;">
+        <div style="font-family:'DM Mono',monospace;font-size:16px;color:#FAFAF8;margin-bottom:3px;">${v}</div>
+        <div style="font-size:7px;color:rgba(255,255,255,0.28);letter-spacing:0.14em;text-transform:uppercase;">${l}</div>
+      </div>`).join('')}
+    </div>` : `
+    <!-- Summary bar (sin leverage) -->
+    <div style="margin:16px 48px 0;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+      ${[
+        ['Margen neto base', rwFmt(m.base.netProfit)],
+        ['ROI neto base', rwPct(m.base.roiNet)],
+        ['TIR base', m.irrBase > 0 ? rwPct(m.irrBase) : '—'],
+        ['Breakeven', `${Math.round(m.bePriceM2).toLocaleString('es-ES')} €/m²`],
+      ].map(([l,v]) => `
+      <div style="padding:14px 18px;background:#1A1D23;text-align:center;">
+        <div style="font-family:'DM Mono',monospace;font-size:18px;color:#FAFAF8;margin-bottom:4px;">${v}</div>
+        <div style="font-size:7px;color:rgba(255,255,255,0.3);letter-spacing:0.14em;text-transform:uppercase;">${l}</div>
+      </div>`).join('')}
+    </div>`}
+
+    ${ftr()}
+  `);
+}
+
+// ── SLIDE 8: CIERRE ───────────────────────────────────────────
+function rwSlide8() {
+  return pg(`
+    <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#8B6520,#C4975A,#8B6520);"></div>
+    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+      <!-- Geometric mark -->
+      <svg viewBox="0 0 120 120" width="72" height="72" style="margin-bottom:32px;">
+        <rect x="14" y="14" width="38" height="38" fill="none" stroke="rgba(196,151,90,0.25)" stroke-width="0.8"/>
+        <rect x="68" y="14" width="38" height="38" fill="none" stroke="rgba(196,151,90,0.15)" stroke-width="0.8"/>
+        <rect x="14" y="68" width="38" height="38" fill="rgba(196,151,90,0.1)" stroke="rgba(196,151,90,0.5)" stroke-width="0.8"/>
+        <rect x="68" y="68" width="38" height="38" fill="rgba(196,151,90,0.05)" stroke="rgba(196,151,90,0.3)" stroke-width="0.8"/>
+        <circle cx="33" cy="33" r="4" fill="rgba(196,151,90,0.3)"/>
+        <circle cx="87" cy="33" r="4" fill="rgba(196,151,90,0.2)"/>
+        <circle cx="33" cy="87" r="4" fill="rgba(196,151,90,1)"/>
+        <circle cx="87" cy="87" r="4" fill="rgba(196,151,90,0.6)"/>
+      </svg>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:300;letter-spacing:0.45em;color:rgba(196,151,90,0.85);text-transform:uppercase;margin-bottom:8px;">Riverwalk</div>
+      <div style="font-family:'Raleway',sans-serif;font-size:8.5px;letter-spacing:0.32em;color:rgba(255,255,255,0.22);text-transform:uppercase;">Real Estate Investments</div>
+      <div style="width:40px;height:0.5px;background:rgba(196,151,90,0.3);margin:28px auto;"></div>
+      <div style="font-size:9px;color:rgba(255,255,255,0.18);letter-spacing:0.14em;">Documento confidencial · Uso privado</div>
+    </div>
+    <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,rgba(196,151,90,0.2),transparent);"></div>
+  `, '#0F1014');
+}
+
+// ── MAIN ──────────────────────────────────────────────────────
+async function exportDossierPDF() {
+  if (typeof html2canvas === 'undefined') {
+    alert('Necesitas conexión a internet la primera vez para cargar html2canvas.'); return;
+  }
+
+  const btn = document.querySelector('[onclick="exportDossierPDF()"]');
+  const origTxt = btn?.textContent || '';
+  if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+
+  rwShowLoader();
+
+  const container = document.createElement('div');
+  container.id = 'rw-dossier-render';
+  container.style.cssText = 'position:fixed;left:-900px;top:0;width:794px;height:1123px;z-index:-1;overflow:hidden;';
+  document.body.appendChild(container);
+
+  try {
+    await document.fonts.ready;
+
+    const m        = calc();
+    const dealName = ($('dealName')?.value || 'Operación Riverwalk').trim();
+    const dealAddr = $('dealAddress')?.value  || '';
+    const dealFloor= $('dealFloor')?.value    || '';
+    const dealCP   = $('dealCP')?.value       || '';
+    const dealMuni = $('dealMunicipio')?.value || '';
+    const narr = {
+      activo:   $('narr-activo')?.value   || '',
+      zona:     $('narr-zona')?.value     || '',
+      mercado:  $('narr-mercado')?.value  || '',
+      proyecto: $('narr-proyecto')?.value || '',
+      tesis:    $('narr-tesis')?.value    || '',
+    };
+    const dateStr = new Date().toLocaleDateString('es-ES', {day:'2-digit',month:'long',year:'numeric'}).toUpperCase();
+
+    // Geocode + map — pass fields separately for structured Nominatim query
+    rwUpdateLoader('Geolocalizando el activo…', 0.05);
+    let mapData = null;
+    if (dealAddr) {
+      const coords = await rwGeocode(dealAddr, dealCP, dealMuni);
+      if (coords) {
+        rwUpdateLoader('Renderizando mapa…', 0.12);
+        mapData = await rwRenderMap(coords.lat, coords.lon);
+      }
+    }
+
+    // Build slides
+    const slides = [
+      rwSlide1(dealName, dealAddr, dealMode, dateStr, rwDossierImages.fachada),
+      rwSlide2(dealName, dealAddr, m, narr, rwDossierImages.fachada),
+      rwSlide3(dealName, rwDossierImages.interiores),
+      rwSlide4(dealName, m, narr),
+      rwSlide5(dealName, rwDossierImages.planoActual, rwDossierImages.planoObjetivo, narr),
+      rwSlide6(dealName, dealAddr, mapData, narr, m),
+      rwSlide7(dealName, m),
+      rwSlide8(),
+    ].filter(Boolean);
+
+    const jsPDFCtor = window.jspdf?.jsPDF || window.jsPDF;
+    const pdf = new jsPDFCtor({ orientation:'portrait', unit:'mm', format:'a4', compress:true });
+
+    const msgs = [
+      'Componiendo portada…',
+      'Maquetando el activo…',
+      'Insertando fotografías…',
+      'Calculando la oportunidad…',
+      'Dibujando planos…',
+      'Pintando el mapa…',
+      'Compilando escenarios…',
+      'Cerrando con el logo…',
+    ];
+
+    for (let i = 0; i < slides.length; i++) {
+      rwUpdateLoader(msgs[i] || `Slide ${i+1}…`, 0.18 + (i / slides.length) * 0.78, { cur: i+1, total: slides.length });
+      container.innerHTML = slides[i];
+      await new Promise(r => setTimeout(r, 160));
+
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: i === 0 || i === slides.length - 1 ? '#0F1014' : '#FAFAF8',
+        logging: false,
+        width: 794, height: 1123,
+        ignoreElements: el => el.classList?.contains('leaflet-tile-pane'),
+      });
+      if (i > 0) pdf.addPage();
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 210, 297);
+    }
+
+    rwUpdateLoader('Finalizando PDF…', 0.98, { cur: slides.length, total: slides.length });
+    await new Promise(r => setTimeout(r, 300));
+
+    const fn = dealName.replace(/[^a-zA-Z0-9 \-_áéíóúÁÉÍÓÚüÜñÑ]/g,'').trim().replace(/\s+/g,'_');
+    pdf.save(`${fn || 'Dossier'}_Riverwalk.pdf`);
+
+  } catch(e) {
+    console.error('Dossier error:', e);
+    alert('Error generando el dossier: ' + e.message);
+  } finally {
+    rwHideLoader();
+    document.getElementById('rw-dossier-render')?.remove();
+    if (btn) { btn.textContent = origTxt; btn.disabled = false; }
+  }
 }
 
