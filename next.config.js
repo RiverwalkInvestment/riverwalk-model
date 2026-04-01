@@ -32,7 +32,7 @@ const nextConfig = {
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdnjs.cloudflare.com",
             "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdnjs.cloudflare.com",
             "font-src 'self' fonts.gstatic.com data:",
-            "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://*.tile.openstreetmap.org https://tile.openstreetmap.org",
+            "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://*.basemaps.cartocdn.com",
             "connect-src 'self' https:",
             "frame-ancestors 'none'",
           ].join('; '),
