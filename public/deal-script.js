@@ -5173,7 +5173,7 @@ function toggleDarkMode() {
   darkMode = !darkMode;
   document.body.classList.toggle('dark-mode', darkMode);
   const btn = document.getElementById('dark-toggle');
-  if (btn) btn.textContent = darkMode ? '☀ Light' : '☾ Dark';
+  if (btn) btn.textContent = darkMode ? '◐' : '◑';
 }
 
 // Init: apply dark mode on load
