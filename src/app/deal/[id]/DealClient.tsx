@@ -1276,13 +1276,15 @@ export default function DealClient({
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState(false)
-  const [photos, setPhotos] = useState<string[]>(initialPhotos)
-  const [plans, setPlans] = useState<string[]>(initialPlans)
   const [mobileView, setMobileView] = useState<'input' | 'output'>('input')
   const [displayName, setDisplayName] = useState(initialName)
   const scriptInjected = useRef(false)
   const renderDbTabsRef = useRef<(() => void) | null>(null)
   const saveRef = useRef<(() => Promise<void>) | null>(null)
+  // Refs hold the latest photo/plan URLs so save() always reads up-to-date values
+  // even if React hasn't committed the state update yet (stale-closure prevention).
+  const photosRef = useRef<string[]>(initialPhotos)
+  const plansRef = useRef<string[]>(initialPlans)
   // Ref for the deal HTML wrapper — we set innerHTML here exactly once so that
   // React re-renders (mobileView toggle, save state, etc.)
   // NEVER reset the DOM and lose the user's typed values.
@@ -1378,7 +1380,7 @@ export default function DealClient({
       const res = await fetch(`/api/deals/${dealId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data, name: dealName, photos, plans }),
+        body: JSON.stringify({ data, name: dealName, photos: photosRef.current, plans: plansRef.current }),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       setSaved(true)
@@ -1397,7 +1399,7 @@ export default function DealClient({
     } finally {
       setSaving(false)
     }
-  }, [dealId, photos, plans, initialName])
+  }, [dealId, initialName])
 
   useEffect(() => {
     type RWWin = Window & {
@@ -1409,6 +1411,10 @@ export default function DealClient({
       autoFillDates?: (force?: boolean) => void
       update?: () => void
       __rwRenderDbTabs?: () => void
+      __rwDealId?: string
+      __rwDossierImages?: { fachada: string|null; interiores: (string|null)[]; planoActual: string|null; planoObjetivo: string|null }
+      __rwNotifyImages?: () => void
+      rwRestoreImages?: (photos: string[], plans: string[]) => void
     }
     const w = window as RWWin
 
@@ -1585,10 +1591,26 @@ export default function DealClient({
       // Expose on window so remounts can re-attach the ref without re-injecting scripts
       w.__rwRenderDbTabs = renderDbTabs
 
+      // Expose dealId so deal-script.js can upload images to the right deal
+      w.__rwDealId = dealId
+      // Called by deal-script.js after any image add/remove — syncs to React state so save() persists them
+      w.__rwNotifyImages = () => {
+        const imgs = w.__rwDossierImages
+        if (!imgs) return
+        const photoUrls = ([imgs.fachada, ...imgs.interiores] as (string|null)[]).filter((u): u is string => !!u)
+        const planUrls = ([imgs.planoActual, imgs.planoObjetivo] as (string|null)[]).filter((u): u is string => !!u)
+        photosRef.current = photoUrls
+        plansRef.current = planUrls
+      }
+
       // After the script initialises, restore saved data then force-recalculate dates
       setTimeout(() => {
         if (Object.keys(initialData).length > 0) {
           setDealData(initialData)
+        }
+        // Restore saved images into the named drop zones
+        if (initialPhotos.length > 0 || initialPlans.length > 0) {
+          w.rwRestoreImages?.(initialPhotos, initialPlans)
         }
         // New deals: already blanked by useLayoutEffect before scripts loaded.
         // Don't re-clear here — user may have started typing by this point.

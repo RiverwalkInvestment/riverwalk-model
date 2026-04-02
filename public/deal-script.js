@@ -2163,7 +2163,7 @@ function buildSlides(m, d) {
     ? `<img src="${arr[idx].dataUrl}" style="object-fit:cover;${style}">`
     : `<div style="${style};background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:rgba(255,255,255,0.15)">Sin imagen</span></div>`;
   const photoLabel = (arr, idx, style='', label='') => (arr||[])[idx]
-    ? `<img src="${arr[idx].dataUrl}" style="object-fit:cover;${style}">`
+    ? `<img src="${arr[idx].dataUrl}" style="object-fit:contain;background:#111;${style}">`
     : `<div style="${style};background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><span style="font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.2)">FOTO</span>${label?`<span style="font-size:10px;color:rgba(255,255,255,0.15)">(${label})</span>`:''}</div>`;
 
   const addr    = [S('dealAddress'), S('dealCP'), S('dealMunicipio')].filter(Boolean).join(' · ');
@@ -2434,8 +2434,17 @@ function buildSlides(m, d) {
           </div>`).join('')}
         </div>
       </div>
-      <div style="flex:0 0 44%;position:relative;overflow:hidden">
-        ${photoLabel(d.plans, 0, 'position:absolute;inset:0;width:100%;height:100%', 'Plano objetivo')}
+      <div style="flex:0 0 44%;display:flex;flex-direction:column;gap:0;overflow:hidden">
+        <div style="flex:1;position:relative;overflow:hidden;min-height:0">
+          ${photoLabel(d.plans, 0, 'position:absolute;inset:0;width:100%;height:100%', 'Plano objetivo')}
+        </div>
+        <div style="flex:0 0 3px;background:#000"></div>
+        <div style="flex:1;overflow:hidden;min-height:0">
+          ${mats.length
+            ? `<div style="display:grid;grid-template-columns:repeat(${Math.min(mats.length,3)},1fr);height:100%;gap:2px">${mats.slice(0,6).map(mat=>`<div style="overflow:hidden;min-height:0"><img src="${mat.dataUrl}" style="width:100%;height:100%;object-fit:cover;display:block"></div>`).join('')}</div>`
+            : `<div style="width:100%;height:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><span style="font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.2)">FOTO</span><span style="font-size:10px;color:rgba(255,255,255,0.15)">(Paleta de calidades)</span></div>`
+          }
+        </div>
       </div>
     </div>` });
 
@@ -5239,15 +5248,36 @@ const rwDossierImages = {
   planoActual:   null,
   planoObjetivo: null,
 };
+window.__rwDossierImages = rwDossierImages;
+
+async function rwUploadAndSet(file, slot, idx) {
+  const dealId = window.__rwDealId;
+  if (!dealId) {
+    const r = new FileReader();
+    r.onload = ev => rwSetImage(slot, idx, ev.target.result);
+    r.readAsDataURL(file);
+    return;
+  }
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('dealId', dealId);
+  try {
+    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+    const json = await res.json();
+    if (json.url) rwSetImage(slot, idx, json.url);
+  } catch {
+    const r = new FileReader();
+    r.onload = ev => rwSetImage(slot, idx, ev.target.result);
+    r.readAsDataURL(file);
+  }
+}
 
 function rwPickImage(slot, idx) {
   const inp = document.createElement('input');
   inp.type = 'file'; inp.accept = 'image/*';
   inp.onchange = e => {
     const f = e.target.files[0]; if (!f) return;
-    const r = new FileReader();
-    r.onload = ev => rwSetImage(slot, idx, ev.target.result);
-    r.readAsDataURL(f);
+    rwUploadAndSet(f, slot, idx);
   };
   inp.click();
 }
@@ -5256,9 +5286,7 @@ function rwDropImage(e, slot, idx) {
   e.preventDefault(); e.stopPropagation();
   const f = e.dataTransfer.files[0];
   if (!f || !f.type.startsWith('image/')) return;
-  const r = new FileReader();
-  r.onload = ev => rwSetImage(slot, idx, ev.target.result);
-  r.readAsDataURL(f);
+  rwUploadAndSet(f, slot, idx);
 }
 
 // Sync rwDossierImages → d.photos / d.plans so the presentation mode sees them
@@ -5307,6 +5335,7 @@ function rwSetImage(slot, idx, dataUrl) {
     if (del) del.style.display = 'flex';
   }
   rwSyncToDossier();
+  window.__rwNotifyImages?.();
 }
 
 function rwClearImage(slot, idx, e) {
@@ -5330,6 +5359,17 @@ function rwClearImage(slot, idx, e) {
     if (del) del.style.display = 'none';
   }
   rwSyncToDossier();
+  window.__rwNotifyImages?.();
+}
+
+function rwRestoreImages(photoUrls, planUrls) {
+  (photoUrls || []).forEach((url, i) => {
+    if (!url) return;
+    if (i === 0) rwSetImage('fachada', null, url);
+    else rwSetImage('interior', i - 1, url);
+  });
+  if ((planUrls || [])[0]) rwSetImage('planoActual', null, planUrls[0]);
+  if ((planUrls || [])[1]) rwSetImage('planoObjetivo', null, planUrls[1]);
 }
 
 // ── LOADER ─────────────────────────────────────────────────────

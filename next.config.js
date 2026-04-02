@@ -49,6 +49,14 @@ const nextConfig = {
         { key: 'X-Content-Type-Options', value: 'nosniff' },
       ],
     },
+    {
+      // Cache large static JS bundles aggressively — deal-registro.js is 534KB and
+      // parsing it blocks the main thread; a cached parse is free on subsequent loads.
+      source: '/(deal-registro\\.js|deal-script\\.js)',
+      headers: [
+        { key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' },
+      ],
+    },
   ],
 };
 
