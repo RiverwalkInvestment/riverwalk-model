@@ -1382,7 +1382,11 @@ export default function DealClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data, name: dealName, photos: photosRef.current, plans: plansRef.current }),
       })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '')
+        console.error('[save] PUT failed', res.status, errText)
+        throw new Error(`HTTP ${res.status}`)
+      }
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
       // Update topbar name to reflect the just-saved name
@@ -1393,7 +1397,8 @@ export default function DealClient({
         renderDbTabsRef.current?.()
         ;(window as Window & { update?: () => void }).update?.()
       }, 0)
-    } catch {
+    } catch (err) {
+      console.error('[save] error', err)
       setSaveError(true)
       setTimeout(() => setSaveError(false), 3000)
     } finally {
