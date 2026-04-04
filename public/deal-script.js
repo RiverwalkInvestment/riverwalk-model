@@ -586,7 +586,7 @@ function calc() {
       const afterInt = sc.afterSF - interest;
       const taxLev = Math.max(0, afterInt) * taxRate;
       const netLev = afterInt - taxLev;
-      return { loan, interest, equity, netProfitLev: netLev, roe: equity>0?netLev/equity:0, irr: 0 };
+      return { loan, interest, equity, netProfitLev: netLev, roe: equity>0?netLev/equity:0, irr: 0, moic: equity > 0 ? (equity + netLev) / equity : 1 };
     };
 
     return {
@@ -739,7 +739,7 @@ function calc() {
     if (Math.round(arasMonths) < cf.length) cf[Math.round(arasMonths)] += loan;
     cf[cf.length - 1] = equity + netLev;
     const mr = calcIRR(cf, 0.025);
-    return { loan, interest, equity, netProfitLev: netLev, roe, irr: annIRR(mr) };
+    return { loan, interest, equity, netProfitLev: netLev, roe, irr: annIRR(mr), moic: equity > 0 ? (equity + netLev) / equity : 1 };
   }
 
   const lev0  = levCalc(base, 0);
