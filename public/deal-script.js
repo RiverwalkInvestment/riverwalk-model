@@ -5952,8 +5952,13 @@ const hdr = (cap, sub, num, light) => `
   </div>`;
 
 function ftr(light) {
+  const logoSrc = light ? '/Riverwalk_Logo_Blanco.png' : '/Riverwalk_Logo_Negro.png';
+  const logoOp  = light ? '0.4' : '0.5';
   return `<div style="position:absolute;bottom:0;left:0;right:0;padding:12px 48px;border-top:1px solid ${light?'rgba(255,255,255,0.07)':'rgba(196,151,90,0.15)'};display:flex;justify-content:space-between;align-items:center;">
-    <div style="font-size:7px;color:${light?'rgba(255,255,255,0.15)':'rgba(160,148,130,0.85)'};letter-spacing:0.16em;text-transform:uppercase;">Riverwalk Real Estate · Documento Confidencial</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <img src="${logoSrc}" style="height:11px;width:auto;display:block;opacity:${logoOp};">
+      <span style="font-size:7px;color:${light?'rgba(255,255,255,0.2)':'rgba(160,148,130,0.65)'};letter-spacing:0.14em;text-transform:uppercase;">· Documento Confidencial</span>
+    </div>
     <div style="font-size:7px;color:${light?'rgba(196,151,90,0.3)':'rgba(196,151,90,0.55)'};letter-spacing:0.12em;">${new Date().getFullYear()}</div>
   </div>`;
 }
@@ -5977,10 +5982,7 @@ function rwSlide1(dealName, dealAddr, dealType, dateStr, fachada) {
     <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#8B6520,#C4975A,#8B6520);"></div>
     <!-- Logo top -->
     <div style="position:absolute;top:40px;left:44px;right:44px;display:flex;justify-content:space-between;align-items:center;">
-      <div>
-        <div style="font-family:'Cormorant Garamond',serif;font-size:12px;font-weight:300;letter-spacing:0.5em;color:rgba(196,151,90,0.85);text-transform:uppercase;">Riverwalk</div>
-        <div style="font-size:6.5px;letter-spacing:0.3em;color:rgba(255,255,255,0.2);text-transform:uppercase;margin-top:2px;">Real Estate Investments</div>
-      </div>
+      <img src="/Riverwalk_Logo_Blanco.png" style="height:22px;width:auto;display:block;opacity:0.75;">
       <div style="border:0.5px solid rgba(196,151,90,0.3);padding:5px 14px;">
         <span style="font-size:7px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(196,151,90,0.65);">${tipo}</span>
       </div>
@@ -6016,9 +6018,8 @@ function rwSlide2(dealName, dealAddr, m, narr, fachada) {
   ];
 
   const photoCol = fachada ? `
-    <div style="width:42%;flex-shrink:0;height:${BODY_H}px;overflow:hidden;position:relative;">
-      <img src="${fachada}" style="width:100%;height:100%;object-fit:cover;display:block;">
-      <div style="position:absolute;inset:0;background:linear-gradient(to right,transparent 70%,rgba(247,244,238,0.15) 100%);"></div>
+    <div style="width:42%;flex-shrink:0;height:${BODY_H}px;overflow:hidden;position:relative;background:url('${fachada}') center/cover no-repeat;">
+      <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(247,244,238,0) 60%,rgba(247,244,238,0.3) 100%);"></div>
     </div>` : `
     <div style="width:42%;flex-shrink:0;height:${BODY_H}px;background:linear-gradient(135deg,#1A1D23 0%,#2A2D35 100%);display:flex;align-items:center;justify-content:center;">
       <div style="font-size:8px;letter-spacing:0.2em;color:rgba(196,151,90,0.3);text-transform:uppercase;">Sin fotografía</div>
@@ -6446,8 +6447,7 @@ function rwSlide8() {
         <circle cx="33" cy="87" r="4" fill="rgba(196,151,90,1)"/>
         <circle cx="87" cy="87" r="4" fill="rgba(196,151,90,0.6)"/>
       </svg>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:300;letter-spacing:0.45em;color:rgba(196,151,90,0.85);text-transform:uppercase;margin-bottom:8px;">Riverwalk</div>
-      <div style="font-family:'Raleway',sans-serif;font-size:8.5px;letter-spacing:0.32em;color:rgba(255,255,255,0.22);text-transform:uppercase;">Real Estate Investments</div>
+      <img src="/Riverwalk_Logo_Blanco.png" style="height:44px;width:auto;display:block;opacity:0.85;margin-bottom:12px;">
       <div style="width:40px;height:0.5px;background:rgba(196,151,90,0.3);margin:28px auto;"></div>
       <div style="font-size:9px;color:rgba(255,255,255,0.18);letter-spacing:0.14em;">Documento confidencial · Uso privado</div>
     </div>
@@ -6485,13 +6485,13 @@ function rwSlideMercadoPDF(dealName, negotiation, m) {
         <div style="width:${isPactado?12:9}px;height:${isPactado?12:9}px;border-radius:50%;background:${cfg.color};flex-shrink:0;${isPactado?'box-shadow:0 0 0 3px rgba(26,107,60,0.15);':''}"></div>
         ${!isLast ? `<div style="width:1px;flex:1;min-height:16px;background:rgba(196,151,90,0.2);margin-top:4px;"></div>` : ''}
       </div>
-      <div style="flex:1;padding:${isPactado?'12px 14px':'8px 12px'};background:${isPactado?'rgba(26,107,60,0.05)':'#FAF7F2'};border:0.5px solid ${isPactado?'rgba(26,107,60,0.2)':'rgba(196,151,90,0.15)'};${isPactado?'border-left:2px solid #1A6B3C;':''}">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${fmtI?4:0}px;">
+      <div style="flex:1;padding:${isPactado?'16px 18px':'10px 16px'};background:${isPactado?'rgba(26,107,60,0.05)':'#FAF7F2'};border:0.5px solid ${isPactado?'rgba(26,107,60,0.2)':'rgba(196,151,90,0.15)'};${isPactado?'border-left:2px solid #1A6B3C;':''}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${fmtI?6:0}px;">
           <div style="font-size:6.5px;letter-spacing:0.18em;text-transform:uppercase;color:${cfg.color};font-weight:700;">${cfg.label}</div>
-          ${fmtF?`<div style="font-family:'DM Mono',monospace;font-size:7px;color:#A09282;">${fmtF}</div>`:''}
+          ${fmtF?`<div style="font-family:'DM Mono',monospace;font-size:7.5px;color:#A09282;">${fmtF}</div>`:''}
         </div>
-        ${fmtI?`<div style="font-family:'DM Mono',monospace;font-size:${isPactado?18:14}px;color:${isPactado?'#1A6B3C':'#1A1D23'};font-weight:${isPactado?600:400};line-height:1;">${fmtI}</div>`:''}
-        ${h.nota?`<div style="font-size:8.5px;color:#8B8074;line-height:1.5;margin-top:4px;font-style:italic;">${h.nota}</div>`:''}
+        ${fmtI?`<div style="font-family:'DM Mono',monospace;font-size:${isPactado?20:16}px;color:${isPactado?'#1A6B3C':'#1A1D23'};font-weight:${isPactado?600:400};line-height:1;">${fmtI}</div>`:''}
+        ${h.nota?`<div style="font-size:9px;color:#8B8074;line-height:1.6;margin-top:6px;font-style:italic;">${h.nota}</div>`:''}
       </div>
     </div>`;
   }).join('') : `<div style="font-size:10px;color:#A09282;font-style:italic;padding:20px 0;">Sin historial de negociación registrado.</div>`;
@@ -6505,29 +6505,29 @@ function rwSlideMercadoPDF(dealName, negotiation, m) {
         ${timelineHTML}
       </div>
       <!-- Right: resultado -->
-      <div style="width:180px;flex-shrink:0;display:flex;flex-direction:column;gap:10px;justify-content:flex-start;padding-top:22px;">
+      <div style="width:210px;flex-shrink:0;display:flex;flex-direction:column;gap:12px;justify-content:flex-start;padding-top:22px;">
         ${savPct ? `
-        <div style="padding:20px 16px;background:#1A6B3C;text-align:center;">
-          <div style="font-size:6.5px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.6);margin-bottom:10px;">Ahorro negociado</div>
-          <div style="font-family:'Cormorant Garamond',serif;font-size:52px;font-weight:300;color:#FFFFFF;line-height:1;">−${savPct}<span style="font-size:24px;">%</span></div>
-          <div style="font-size:7.5px;color:rgba(255,255,255,0.5);margin-top:6px;">sobre precio inicial</div>
+        <div style="padding:24px 20px;background:#1A6B3C;text-align:center;">
+          <div style="font-size:6.5px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.6);margin-bottom:12px;">Ahorro negociado</div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:56px;font-weight:300;color:#FFFFFF;line-height:1;">−${savPct}<span style="font-size:28px;">%</span></div>
+          <div style="font-size:8px;color:rgba(255,255,255,0.5);margin-top:8px;">sobre precio inicial</div>
         </div>
-        <div style="padding:12px 14px;background:#FAF7F2;border:0.5px solid rgba(196,151,90,0.2);">
-          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:5px;">Precio inicial</div>
-          <div style="font-family:'DM Mono',monospace;font-size:12px;color:#A09282;text-decoration:line-through;">${askH.importe.toLocaleString('es-ES')} €</div>
+        <div style="padding:14px 16px;background:#FAF7F2;border:0.5px solid rgba(196,151,90,0.2);">
+          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:6px;">Precio inicial</div>
+          <div style="font-family:'DM Mono',monospace;font-size:13px;color:#A09282;text-decoration:line-through;">${askH.importe.toLocaleString('es-ES')} €</div>
         </div>
-        <div style="padding:12px 14px;background:#F4F1EB;border-left:2px solid #C4975A;">
-          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:5px;">Precio pactado</div>
-          <div style="font-family:'DM Mono',monospace;font-size:14px;color:#1A1D23;font-weight:600;">${pactH.importe.toLocaleString('es-ES')} €</div>
-        </div>
-        <div style="padding:12px 14px;background:#FAF7F2;border:0.5px solid rgba(26,107,60,0.2);">
-          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:5px;">Ahorro absoluto</div>
-          <div style="font-family:'DM Mono',monospace;font-size:13px;color:#1A6B3C;font-weight:600;">${savAbs.toLocaleString('es-ES')} €</div>
-        </div>` : `
         <div style="padding:14px 16px;background:#F4F1EB;border-left:2px solid #C4975A;">
-          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:6px;">Precio de compra</div>
-          <div style="font-family:'DM Mono',monospace;font-size:18px;color:#1A1D23;">${m.buyPrice.toLocaleString('es-ES')} €</div>
-          <div style="font-size:8.5px;color:#A09282;margin-top:3px;">${buyPm2.toLocaleString('es-ES')} €/m²</div>
+          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:6px;">Precio pactado</div>
+          <div style="font-family:'DM Mono',monospace;font-size:16px;color:#1A1D23;font-weight:600;">${pactH.importe.toLocaleString('es-ES')} €</div>
+        </div>
+        <div style="padding:14px 16px;background:#FAF7F2;border:0.5px solid rgba(26,107,60,0.2);">
+          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:6px;">Ahorro absoluto</div>
+          <div style="font-family:'DM Mono',monospace;font-size:15px;color:#1A6B3C;font-weight:600;">${savAbs.toLocaleString('es-ES')} €</div>
+        </div>` : `
+        <div style="padding:16px 18px;background:#F4F1EB;border-left:2px solid #C4975A;">
+          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:8px;">Precio de compra</div>
+          <div style="font-family:'DM Mono',monospace;font-size:20px;color:#1A1D23;">${m.buyPrice.toLocaleString('es-ES')} €</div>
+          <div style="font-size:9px;color:#A09282;margin-top:4px;">${buyPm2.toLocaleString('es-ES')} €/m²</div>
         </div>`}
       </div>
     </div>
@@ -6548,46 +6548,62 @@ function rwSlideProyectoPDF(dealName, m, narr, planoObjetivo, materials) {
     ['Duración obras',   V('mesesObra') + ' meses (estimado)'],
   ];
 
+  // Layout: top zone (text+table left | reform summary right), then plan full-width, then materials row
+  const BODY_H = 1123 - 74 - 40;
+  const TOP_H  = Math.round(BODY_H * 0.42);
+  const PLAN_H = Math.round(BODY_H * 0.38);
+  const MAT_H  = BODY_H - TOP_H - PLAN_H - 16; // remaining for materials/calidades
+
   return pg(`
     ${hdr('El Proyecto', dealName, 6)}
-    <div style="padding:20px 44px 0;display:flex;gap:24px;height:calc(100% - 74px - 40px);overflow:hidden;">
-      <!-- Left: narrative + reform data -->
-      <div style="flex:1;display:flex;flex-direction:column;gap:16px;overflow:hidden;">
-        <div>
-          <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">El proyecto</div>
-          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:300;color:#1A1D23;margin-bottom:12px;">Reforma integral</div>
-          ${narr.proyecto && narr.proyecto.length > 10 ? `
-          <div style="font-size:10.5px;line-height:1.82;color:rgba(50,44,36,0.8);font-weight:300;margin-bottom:14px;">${rwTrunc(narr.proyecto, 420)}</div>` : ''}
+    <div style="padding:18px 44px 0;height:${BODY_H}px;box-sizing:border-box;display:flex;flex-direction:column;gap:0;overflow:hidden;">
+
+      <!-- TOP ZONE: text left + reform table right -->
+      <div style="height:${TOP_H}px;display:flex;gap:24px;flex-shrink:0;overflow:hidden;">
+        <!-- Left: title + narrative -->
+        <div style="flex:1;display:flex;flex-direction:column;gap:10px;overflow:hidden;padding-right:4px;">
+          <div>
+            <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:8px;">El proyecto</div>
+            <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:300;color:#1A1D23;margin-bottom:10px;">Reforma integral</div>
+            ${narr.proyecto && narr.proyecto.length > 10 ? `
+            <div style="font-size:10px;line-height:1.78;color:rgba(50,44,36,0.8);font-weight:300;">${rwTrunc(narr.proyecto, 340)}</div>` : ''}
+          </div>
+          ${calidadesText ? `
+          <div style="padding:10px 14px;background:#FAF7F2;border-left:2px solid rgba(196,151,90,0.5);flex-shrink:0;">
+            <div style="font-size:6px;letter-spacing:0.2em;text-transform:uppercase;color:#C4975A;margin-bottom:5px;font-weight:600;">Calidades</div>
+            <div style="font-size:9px;line-height:1.65;color:#5A5040;">${rwTrunc(calidadesText, 240)}</div>
+          </div>` : ''}
         </div>
-        <!-- Reform data grid -->
-        <div style="display:flex;flex-direction:column;gap:1px;background:rgba(196,151,90,0.12);border:0.5px solid rgba(196,151,90,0.12);">
+        <!-- Right: reform data table -->
+        <div style="flex:0 0 46%;display:flex;flex-direction:column;gap:1px;background:rgba(196,151,90,0.12);border:0.5px solid rgba(196,151,90,0.12);align-self:flex-start;width:46%;">
           ${reformData.map(([l,v]) => `
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#F7F4EE;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;background:#F7F4EE;">
             <span style="font-size:9px;color:#8B8074;letter-spacing:0.04em;">${l}</span>
             <span style="font-family:'DM Mono',monospace;font-size:11px;color:#1A1D23;font-weight:500;">${v}</span>
           </div>`).join('')}
         </div>
-        ${calidadesText ? `
-        <div style="padding:10px 14px;background:#FAF7F2;border-left:2px solid rgba(196,151,90,0.5);flex-shrink:0;">
-          <div style="font-size:6.5px;letter-spacing:0.2em;text-transform:uppercase;color:#C4975A;margin-bottom:6px;font-weight:600;">Calidades</div>
-          <div style="font-size:9.5px;line-height:1.7;color:#5A5040;">${rwTrunc(calidadesText, 280)}</div>
-        </div>` : ''}
       </div>
-      <!-- Right: plano objetivo + materials -->
-      <div style="flex:0 0 42%;display:flex;flex-direction:column;gap:8px;overflow:hidden;">
-        <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:600;margin-bottom:2px;">Distribución objetivo</div>
-        <div style="flex:${mats.length > 0 ? '1.5' : '1'};background:#FFFFFF;overflow:hidden;display:flex;align-items:center;justify-content:center;border:0.5px solid rgba(196,151,90,0.15);min-height:0;">
-          ${planoObjetivo
-            ? `<img src="${planoObjetivo}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;">`
-            : `<div style="font-size:8px;color:#B0A898;letter-spacing:0.1em;text-transform:uppercase;">Sin plano</div>`}
-        </div>
-        ${mats.length > 0 ? `
-        <div style="flex:1;overflow:hidden;min-height:0;display:grid;grid-template-columns:repeat(${Math.min(mats.length,3)},1fr);gap:3px;">
-          ${mats.slice(0,3).map(mat=>`<div style="overflow:hidden;position:relative;">
-            <img src="${mat.dataUrl}" style="width:100%;height:100%;object-fit:cover;display:block;">
-          </div>`).join('')}
-        </div>` : ''}
+
+      <!-- SEPARATOR -->
+      <div style="height:16px;flex-shrink:0;display:flex;align-items:center;">
+        <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:600;">Distribución objetivo</div>
       </div>
+
+      <!-- PLAN ZONE: landscape plan full width -->
+      <div style="height:${PLAN_H}px;flex-shrink:0;background:#FFFFFF;border:0.5px solid rgba(196,151,90,0.18);overflow:hidden;display:flex;align-items:center;justify-content:center;">
+        ${planoObjetivo
+          ? `<img src="${planoObjetivo}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;">`
+          : `<div style="font-size:8px;color:#B0A898;letter-spacing:0.1em;text-transform:uppercase;">Sin plano de distribución</div>`}
+      </div>
+
+      <!-- MATERIALS ROW -->
+      ${mats.length > 0 ? `
+      <div style="height:${MAT_H}px;flex-shrink:0;margin-top:8px;display:grid;grid-template-columns:repeat(${Math.min(mats.length,3)},1fr);gap:6px;overflow:hidden;">
+        ${mats.slice(0,3).map(mat=>`<div style="overflow:hidden;position:relative;background:#1A1D23;">
+          <img src="${mat.dataUrl}" style="width:100%;height:100%;object-fit:cover;display:block;">
+        </div>`).join('')}
+      </div>` : ''}
+
     </div>
     ${ftr()}
   `);
@@ -6603,10 +6619,10 @@ function rwSlideTestigosPDF(dealName, m) {
   const descuento    = medRfmPm2 > 0 && buyPm2 > 0 ? ((medRfmPm2 - buyPm2) / medRfmPm2 * 100).toFixed(1) : null;
 
   const compRow = (c, accent) => `
-    <div style="display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:7px 12px;background:#FAF7F2;border-left:2px solid ${accent};margin-bottom:2px;">
+    <div style="display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:10px 14px;background:#FAF7F2;border-left:2px solid ${accent};margin-bottom:4px;">
       <div style="font-size:10px;color:#5A5040;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.desc || c.dir || '—'}</div>
-      <div style="font-family:'DM Mono',monospace;color:#A09282;font-size:9px;">${c.m2}m²</div>
-      <div style="font-family:'DM Mono',monospace;color:#1A1D23;font-size:11px;font-weight:500;">${Math.round(c.precio/c.m2).toLocaleString('es-ES')} €/m²</div>
+      <div style="font-family:'DM Mono',monospace;color:#A09282;font-size:9.5px;white-space:nowrap;">${c.m2}m²</div>
+      <div style="font-family:'DM Mono',monospace;color:#1A1D23;font-size:11.5px;font-weight:500;white-space:nowrap;">${Math.round(c.precio/c.m2).toLocaleString('es-ES')} €/m²</div>
     </div>`;
 
   const scRows = [
@@ -6622,8 +6638,8 @@ function rwSlideTestigosPDF(dealName, m) {
       <div style="display:flex;flex-direction:column;gap:16px;overflow:hidden;">
         ${reforComp.length > 0 ? `
         <div>
-          <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">Testigos reformados (${reforComp.length})</div>
-          ${reforComp.slice(0,6).map(c=>compRow(c,'rgba(26,107,60,0.5)')).join('')}
+          <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:12px;">Testigos reformados (${reforComp.length})</div>
+          ${reforComp.slice(0,5).map(c=>compRow(c,'rgba(26,107,60,0.5)')).join('')}
           ${medRefPm2 > 0 ? `<div style="margin-top:8px;padding:10px 12px;background:#F4F1EB;border-left:2px solid #C4975A;display:flex;justify-content:space-between;align-items:center;">
             <span style="font-size:8.5px;color:#8B8074;">Media reformados</span>
             <span style="font-family:'DM Mono',monospace;font-size:14px;color:#C4975A;font-weight:600;">${medRefPm2.toLocaleString('es-ES')} €/m²</span>
@@ -6631,8 +6647,8 @@ function rwSlideTestigosPDF(dealName, m) {
         </div>` : ''}
         ${reformarComp.length > 0 ? `
         <div>
-          <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#8B8074;font-weight:700;margin-bottom:10px;">A reformar (${reformarComp.length})</div>
-          ${reformarComp.slice(0,4).map(c=>compRow(c,'rgba(196,151,90,0.4)')).join('')}
+          <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#8B8074;font-weight:700;margin-bottom:12px;">A reformar (${reformarComp.length})</div>
+          ${reformarComp.slice(0,3).map(c=>compRow(c,'rgba(196,151,90,0.4)')).join('')}
           ${medRfmPm2 > 0 ? `<div style="margin-top:8px;padding:10px 12px;background:#FAF7F2;border:0.5px solid rgba(196,151,90,0.2);display:flex;justify-content:space-between;align-items:center;">
             <span style="font-size:8.5px;color:#8B8074;">Media sin reformar</span>
             <span style="font-family:'DM Mono',monospace;font-size:14px;color:#1A1D23;">${medRfmPm2.toLocaleString('es-ES')} €/m²</span>
