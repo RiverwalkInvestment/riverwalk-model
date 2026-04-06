@@ -1581,9 +1581,15 @@ function fmtDate(d) {
 // DOSSIER DATA — photos + narratives per deal
 // ══════════════════════════════════════════════════
 function getCurrentDossier() {
-  if (!deals[activeDealIdx]) return { photos:[], narrative:{activo:'',zona:'',mercado:'',proyecto:'',tesis:''}, mapDataUrl:'' };
-  if (!deals[activeDealIdx].dossier) deals[activeDealIdx].dossier = { photos:[], plans:[], materials:[], narrative:{activo:'',zona:'',mercado:'',proyecto:'',tesis:''}, mapDataUrl:'', mapLat:null, mapLng:null };
-  return deals[activeDealIdx].dossier;
+  if (!deals[activeDealIdx]) return { photos:[], narrative:{activo:'',zona:'',mercado:'',proyecto:'',tesis:''}, mapDataUrl:'', negotiation:[], estructura:{vehiculo:'',aportacion:'',ticketMinimo:50000}, calidades:{preset:'',customText:''}, orientacionOverride:'', catalizadores:[] };
+  if (!deals[activeDealIdx].dossier) deals[activeDealIdx].dossier = { photos:[], plans:[], materials:[], narrative:{activo:'',zona:'',mercado:'',proyecto:'',tesis:''}, mapDataUrl:'', mapLat:null, mapLng:null, negotiation:[], estructura:{vehiculo:'',aportacion:'',ticketMinimo:50000}, calidades:{preset:'',customText:''}, orientacionOverride:'', catalizadores:[] };
+  const d = deals[activeDealIdx].dossier;
+  if (!d.negotiation) d.negotiation = [];
+  if (!d.estructura) d.estructura = {vehiculo:'',aportacion:'',ticketMinimo:50000};
+  if (!d.calidades) d.calidades = {preset:'',customText:''};
+  if (d.orientacionOverride === undefined) d.orientacionOverride = '';
+  if (!d.catalizadores) d.catalizadores = [];
+  return d;
 }
 
 function saveDossierNarrative() {
@@ -1600,7 +1606,193 @@ function loadDossierToForm() {
     const el = $('narr-' + k);
     if (el) el.value = d.narrative[k] || '';
   });
+  // Orientación override
+  const oriSel = $('dealOrientacion');
+  if (oriSel) oriSel.value = d.orientacionOverride || '';
+  // Calidades
+  const cpSel = $('calidadesPreset');
+  if (cpSel) { cpSel.value = d.calidades?.preset || ''; applyCalidadesPreset(); }
+  const customEl = $('calidadesCustomText');
+  if (customEl && d.calidades?.customText) customEl.value = d.calidades.customText;
+  // Estructura
+  if (d.estructura?.vehiculo) setVehiculo(d.estructura.vehiculo);
+  if (d.estructura?.aportacion) setAportacion(d.estructura.aportacion);
+  const tkEl = $('ticketMinimo');
+  if (tkEl && d.estructura?.ticketMinimo) tkEl.value = d.estructura.ticketMinimo;
+  // Negotiation + catalizadores
+  renderNegHitos();
+  renderCatalizadores();
   renderDossierPhotos();
+}
+
+// ── ORIENTACIÓN OVERRIDE ───────────────────────────
+function saveOrientacionOverride() {
+  const d = getCurrentDossier();
+  d.orientacionOverride = $('dealOrientacion')?.value || '';
+}
+
+// ── ESTRUCTURACIÓN ─────────────────────────────────
+function saveEstructura() {
+  const d = getCurrentDossier();
+  const tk = $('ticketMinimo')?.value?.replace(/\D/g,'');
+  d.estructura.ticketMinimo = tk ? parseInt(tk) : 50000;
+}
+
+function setVehiculo(val) {
+  const d = getCurrentDossier();
+  d.estructura.vehiculo = val;
+  document.querySelectorAll('[id^="veh-"][id$="-lbl"]').forEach(el => {
+    el.style.borderColor = 'var(--d6)';
+    el.style.background = 'var(--d4)';
+  });
+  const lbl = $('veh-'+val+'-lbl');
+  if (lbl) { lbl.style.borderColor = 'rgba(196,151,90,0.5)'; lbl.style.background = 'rgba(196,151,90,0.06)'; }
+  const radio = $('veh-'+val);
+  if (radio) radio.checked = true;
+}
+
+function setAportacion(val) {
+  const d = getCurrentDossier();
+  d.estructura.aportacion = val;
+  document.querySelectorAll('[id^="ap-"][id$="-lbl"]').forEach(el => {
+    el.style.borderColor = 'var(--d6)';
+    el.style.background = 'var(--d4)';
+  });
+  const lbl = $('ap-'+val+'-lbl');
+  if (lbl) { lbl.style.borderColor = 'rgba(196,151,90,0.5)'; lbl.style.background = 'rgba(196,151,90,0.06)'; }
+  const radio = $('ap-'+val);
+  if (radio) radio.checked = true;
+}
+
+// ── CALIDADES ──────────────────────────────────────
+const CALIDADES_DEFAULTS = {
+  esencial: 'Suelos de parquet laminado de alta resistencia. Cocina equipada con electrodomésticos de gama media. Baños con sanitarios blancos estándar y revestimiento cerámico. Carpintería lacada en blanco. Iluminación LED empotrada. Acabado funcional, práctico y de bajo coste de mantenimiento.',
+  premium: 'Suelos de madera natural o porcelánico gran formato (90×90). Cocina con encimera de cuarzo y electrodomésticos Siemens o Bosch integrados. Baños con doble lavabo, grifería de bronce o negro mate, y plato de ducha flush. Carpintería lacada en color. Iluminación con carril magnético y LED perimetral. Calidad percibida alta en cada punto de contacto.',
+  signature: 'Suelos de madera de ingeniería o mármol pulido. Cocina de diseño con isla, encimera Dekton y electrodomésticos Miele o Gaggenau. Baños con sanitarios Geberit/Roca, griferías premium Hansgrohe, mamparas a medida y volúmenes de pladur curvado. Carpintería de autor con herrajes de diseño. Iluminación escénica con protocolo DALI. Domótica integrada. Acabado de autor — producto diferencial en la zona.'
+};
+
+function applyCalidadesPreset() {
+  const d = getCurrentDossier();
+  const val = $('calidadesPreset')?.value || '';
+  d.calidades.preset = val;
+  const preview = $('calidades-preview');
+  const customInput = $('calidadesCustomText');
+  if (val && !d.calidades.customText) {
+    const text = CALIDADES_DEFAULTS[val] || '';
+    if (preview) preview.textContent = text;
+    if (customInput) customInput.value = text;
+    d.calidades.customText = text;
+  } else if (val) {
+    if (preview) preview.textContent = d.calidades.customText || CALIDADES_DEFAULTS[val] || '';
+    if (customInput) customInput.value = d.calidades.customText || CALIDADES_DEFAULTS[val] || '';
+  } else {
+    if (preview) preview.textContent = '';
+    if (customInput) customInput.value = '';
+  }
+}
+
+function toggleCalidadesEditor() {
+  const ed = $('calidades-editor');
+  if (ed) ed.style.display = ed.style.display === 'none' ? 'block' : 'none';
+}
+
+function saveCalidadesCustom() {
+  const d = getCurrentDossier();
+  d.calidades.customText = $('calidadesCustomText')?.value || '';
+  const preview = $('calidades-preview');
+  if (preview) preview.textContent = d.calidades.customText;
+}
+
+// ── NEGOTIATION TIMELINE ───────────────────────────
+const NEG_TIPOS = {
+  asking:       { label:'Precio inicial asking',  color:'#E05555' },
+  oferta:       { label:'Oferta presentada',       color:'rgba(196,151,90,0.9)' },
+  rechazada:    { label:'Oferta rechazada',        color:'#E05555' },
+  contraoferta: { label:'Contraoferta vendedor',   color:'var(--amber)' },
+  pactado:      { label:'Precio pactado ✓',       color:'#52C07A' },
+};
+
+function addNegHito(hito) {
+  const d = getCurrentDossier();
+  const newHito = hito || { tipo:'oferta', importe:0, fecha:'', nota:'' };
+  d.negotiation.push(newHito);
+  renderNegHitos();
+}
+
+function removeNegHito(idx) {
+  const d = getCurrentDossier();
+  d.negotiation.splice(idx, 1);
+  renderNegHitos();
+}
+
+function renderNegHitos() {
+  const d = getCurrentDossier();
+  const container = $('neg-hitos-list');
+  if (!container) return;
+  container.innerHTML = d.negotiation.map((h, i) => `
+    <div style="background:var(--d4);border:1px solid var(--d6);padding:10px 12px;position:relative">
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:6px;margin-bottom:6px;align-items:end">
+        <div class="field" style="margin:0">
+          <label style="font-size:9px">Tipo de hito</label>
+          <select onchange="updateNegHito(${i},'tipo',this.value)" style="font-size:11px">
+            ${Object.entries(NEG_TIPOS).map(([k,v])=>`<option value="${k}" ${h.tipo===k?'selected':''}>${v.label}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field" style="margin:0">
+          <label style="font-size:9px">Importe (€)</label>
+          <input type="number" value="${h.importe||''}" onchange="updateNegHito(${i},'importe',+this.value)" placeholder="1.200.000" style="font-family:'DM Mono',monospace;font-size:11px">
+        </div>
+        <button onclick="removeNegHito(${i})" style="background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.25);color:#E05555;font-size:10px;padding:6px 9px;cursor:pointer;align-self:end">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div class="field" style="margin:0">
+          <label style="font-size:9px">Fecha</label>
+          <input type="date" value="${h.fecha||''}" onchange="updateNegHito(${i},'fecha',this.value)" style="font-size:11px">
+        </div>
+        <div class="field" style="margin:0">
+          <label style="font-size:9px">Nota (opcional)</label>
+          <input type="text" value="${h.nota||''}" onchange="updateNegHito(${i},'nota',this.value)" placeholder="Condiciones, contexto…" style="font-size:11px">
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function updateNegHito(idx, field, val) {
+  const d = getCurrentDossier();
+  if (d.negotiation[idx]) d.negotiation[idx][field] = val;
+}
+
+// ── CATALIZADORES ──────────────────────────────────
+function addCatalizador() {
+  const d = getCurrentDossier();
+  if (d.catalizadores.length >= 4) return;
+  d.catalizadores.push({ nombre: '', descripcion: '' });
+  renderCatalizadores();
+}
+
+function removeCatalizador(idx) {
+  const d = getCurrentDossier();
+  d.catalizadores.splice(idx, 1);
+  renderCatalizadores();
+}
+
+function updateCatalizador(idx, field, val) {
+  const d = getCurrentDossier();
+  if (d.catalizadores[idx]) d.catalizadores[idx][field] = val;
+}
+
+function renderCatalizadores() {
+  const d = getCurrentDossier();
+  const container = $('catalizadores-list');
+  if (!container) return;
+  container.innerHTML = d.catalizadores.map((c, i) => `
+    <div style="background:var(--d4);border:1px solid var(--d6);padding:10px 12px;position:relative">
+      <div style="display:flex;gap:6px;margin-bottom:6px;align-items:center">
+        <input type="text" value="${c.nombre||''}" onchange="updateCatalizador(${i},'nombre',this.value)" placeholder="Nombre del catalizador (ej: Nobu Hotel Madrid)" style="flex:1;font-size:11px;font-weight:500">
+        <button onclick="removeCatalizador(${i})" style="background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.25);color:#E05555;font-size:10px;padding:5px 8px;cursor:pointer;flex-shrink:0">✕</button>
+      </div>
+      <textarea onchange="updateCatalizador(${i},'descripcion',this.value)" placeholder="Descripción breve del proyecto y su impacto en la zona…" rows="2" style="width:100%;background:var(--d3);border:1px solid var(--d6);color:var(--text-b);font-family:'Raleway',sans-serif;font-size:10.5px;padding:6px 8px;resize:vertical;line-height:1.5">${c.descripcion||''}</textarea>
+    </div>`).join('');
 }
 
 function handlePhotoUpload(input) {

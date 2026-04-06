@@ -125,6 +125,23 @@ const DEAL_HTML = `
         <div class="field"><label>Planta</label><input id="dealFloor" value="4ª" oninput="update()" placeholder="1ª, Bajo, Ático..."></div>
         <div class="field"><label>Puerta / Letra</label><input id="dealPuerta" value="" oninput="update()" placeholder="A, B, Dcha..."></div>
       </div>
+      <div class="irow">
+        <div class="field">
+          <label>Orientación fachada</label>
+          <select id="dealOrientacion" onchange="saveOrientacionOverride()" style="font-family:'DM Mono',monospace;font-size:12px">
+            <option value="">— Automático (Overpass API) —</option>
+            <option value="N">↑ Norte</option>
+            <option value="NE">↗ Noreste</option>
+            <option value="E">→ Este</option>
+            <option value="SE">↘ Sureste</option>
+            <option value="S">↓ Sur</option>
+            <option value="SO">↙ Suroeste</option>
+            <option value="O">← Oeste</option>
+            <option value="NO">↖ Noroeste</option>
+          </select>
+          <div style="font-size:9px;color:var(--text-d);margin-top:3px">Si el automático no es correcto, selecciona la orientación real de la fachada principal.</div>
+        </div>
+      </div>
 
       <div class="idivider">Referencia catastral</div>
       <div class="irow full">
@@ -844,6 +861,99 @@ const DEAL_HTML = `
     </div>
   </div>
 
+  <!-- NEGOCIACIÓN — HISTORIAL BID/ASK -->
+  <div class="isec" id="isec-negociacion">
+    <div class="isec-hd" onclick="toggleSec(this)">
+      <span class="isec-lbl">Negociación — Historial bid/ask</span>
+      <span class="isec-arr">▶</span>
+    </div>
+    <div class="ibody" style="display:none">
+      <div style="font-size:10.5px;color:var(--text-d);margin:4px 0 12px;line-height:1.8">
+        Registra el recorrido de negociación desde el precio inicial hasta el precio pactado. Se mostrará como un timeline visual en la presentación.
+      </div>
+      <div id="neg-hitos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
+      <button onclick="addNegHito()" style="width:100%;background:rgba(196,151,90,0.08);border:1px dashed rgba(196,151,90,0.3);color:rgba(196,151,90,0.7);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;padding:8px;cursor:pointer;font-family:'Raleway',sans-serif">+ Añadir hito</button>
+    </div>
+  </div>
+
+  <!-- ESTRUCTURACIÓN DE LA OPERACIÓN -->
+  <div class="isec" id="isec-estructura">
+    <div class="isec-hd" onclick="toggleSec(this)">
+      <span class="isec-lbl">Estructuración de la operación</span>
+      <span class="isec-arr">▶</span>
+    </div>
+    <div class="ibody" style="display:none">
+      <div style="font-size:10.5px;color:var(--text-d);margin:4px 0 12px;line-height:1.8">
+        Define la estructura de inversión para los inversores. Solo se mostrará lo que selecciones en los highlights finales.
+      </div>
+
+      <div class="idivider">Ticket de inversión</div>
+      <div class="irow full">
+        <div class="field">
+          <label>Ticket mínimo de inversión (€)</label>
+          <input type="text" id="ticketMinimo" data-fmt="money" value="50000" oninput="saveEstructura()" placeholder="50.000 €">
+        </div>
+      </div>
+
+      <div class="idivider">Vehículo de inversión</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px" id="vehiculo-options">
+        <label onclick="setVehiculo('spv_unica')" style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--d4);border:1px solid var(--d6);cursor:pointer;transition:all 0.15s" id="veh-spv_unica-lbl">
+          <input type="radio" name="vehiculo" value="spv_unica" id="veh-spv_unica" onchange="setVehiculo('spv_unica')" style="margin-top:2px;flex-shrink:0">
+          <div>
+            <div style="font-size:11px;color:var(--text-b);font-weight:500;margin-bottom:2px">SPV Única operación</div>
+            <div style="font-size:10px;color:var(--text-d);line-height:1.6">Sociedad de propósito específico constituida para este activo concreto. Se liquida al completarse la venta.</div>
+          </div>
+        </label>
+        <label onclick="setVehiculo('spv_multi')" style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--d4);border:1px solid var(--d6);cursor:pointer;transition:all 0.15s" id="veh-spv_multi-lbl">
+          <input type="radio" name="vehiculo" value="spv_multi" id="veh-spv_multi" onchange="setVehiculo('spv_multi')" style="margin-top:2px;flex-shrink:0">
+          <div>
+            <div style="font-size:11px;color:var(--text-b);font-weight:500;margin-bottom:2px">SPV Multi-activo</div>
+            <div style="font-size:10px;color:var(--text-d);line-height:1.6">Vehículo permanente que opera sobre varios activos. Permite diversificación dentro del mismo vehículo y acceso a futuras operaciones.</div>
+          </div>
+        </label>
+        <label onclick="setVehiculo('club_deal')" style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--d4);border:1px solid var(--d6);cursor:pointer;transition:all 0.15s" id="veh-club_deal-lbl">
+          <input type="radio" name="vehiculo" value="club_deal" id="veh-club_deal" onchange="setVehiculo('club_deal')" style="margin-top:2px;flex-shrink:0">
+          <div>
+            <div style="font-size:11px;color:var(--text-b);font-weight:500;margin-bottom:2px">Club Deal</div>
+            <div style="font-size:10px;color:var(--text-d);line-height:1.6">Grupo cerrado de inversores privados seleccionados. Estructura ágil sin vehículo societario formal, regida por pacto entre partes.</div>
+          </div>
+        </label>
+      </div>
+
+      <div class="idivider">Forma de aportación del capital</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+        <label onclick="setAportacion('pp')" style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--d4);border:1px solid var(--d6);cursor:pointer;transition:all 0.15s" id="ap-pp-lbl">
+          <input type="radio" name="aportacion" value="pp" id="ap-pp" onchange="setAportacion('pp')" style="margin-top:2px;flex-shrink:0">
+          <div>
+            <div style="font-size:11px;color:var(--text-b);font-weight:500;margin-bottom:2px">Préstamo participativo</div>
+            <div style="font-size:10px;color:var(--text-d);line-height:1.6">El inversor presta capital y recibe interés fijo más participación variable en el beneficio. Sin transmisión de propiedad ni acceso a la gestión.</div>
+          </div>
+        </label>
+        <label onclick="setAportacion('cp')" style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--d4);border:1px solid var(--d6);cursor:pointer;transition:all 0.15s" id="ap-cp-lbl">
+          <input type="radio" name="aportacion" value="cp" id="ap-cp" onchange="setAportacion('cp')" style="margin-top:2px;flex-shrink:0">
+          <div>
+            <div style="font-size:11px;color:var(--text-b);font-weight:500;margin-bottom:2px">Cuenta en participación</div>
+            <div style="font-size:10px;color:var(--text-d);line-height:1.6">El inversor cede capital a Riverwalk como gestor, compartiendo riesgo y beneficio en proporción a su aportación. Sin personalidad jurídica propia.</div>
+          </div>
+        </label>
+        <label onclick="setAportacion('ac')" style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--d4);border:1px solid var(--d6);cursor:pointer;transition:all 0.15s" id="ap-ac-lbl">
+          <input type="radio" name="aportacion" value="ac" id="ap-ac" onchange="setAportacion('ac')" style="margin-top:2px;flex-shrink:0">
+          <div>
+            <div style="font-size:11px;color:var(--text-b);font-weight:500;margin-bottom:2px">Ampliación de capital</div>
+            <div style="font-size:10px;color:var(--text-d);line-height:1.6">El inversor entra como socio de la sociedad operativa o del vehículo. Participación directa en el capital social con los derechos que correspondan.</div>
+          </div>
+        </label>
+        <label onclick="setAportacion('ph')" style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--d4);border:1px solid var(--d6);cursor:pointer;transition:all 0.15s" id="ap-ph-lbl">
+          <input type="radio" name="aportacion" value="ph" id="ap-ph" onchange="setAportacion('ph')" style="margin-top:2px;flex-shrink:0">
+          <div>
+            <div style="font-size:11px;color:var(--text-b);font-weight:500;margin-bottom:2px">Préstamo con garantía hipotecaria</div>
+            <div style="font-size:10px;color:var(--text-d);line-height:1.6">Retorno fijo garantizado con el activo como colateral. Sin participación en el upside. Perfil de riesgo más conservador.</div>
+          </div>
+        </label>
+      </div>
+    </div>
+  </div>
+
   <!-- DOSSIER DE PRESENTACIÓN -->
   <div class="isec" id="isec-dossier">
     <div class="isec-hd" onclick="toggleSec(this)">
@@ -887,6 +997,34 @@ const DEAL_HTML = `
           <div id="rw-dz-plano-obj" onclick="rwPickImage('planoObjetivo')" ondragover="event.preventDefault()" ondrop="rwDropImage(event,'planoObjetivo')" style="height:82px;background:var(--d4);border:1px dashed rgba(196,151,90,0.35);cursor:pointer;position:relative;background-size:contain;background-repeat:no-repeat;background-position:center;"><div class="rw-dz-lbl" style="display:flex;align-items:center;justify-content:center;height:100%;pointer-events:none;"><span style="font-size:8.5px;color:rgba(196,151,90,0.55);">+ Plano objetivo</span></div><div class="rw-dz-del" onclick="rwClearImage('planoObjetivo',0,event)" style="display:none;position:absolute;top:3px;right:3px;width:16px;height:16px;background:rgba(10,11,16,0.8);align-items:center;justify-content:center;cursor:pointer;font-size:9px;color:rgba(255,255,255,0.7);">✕</div></div>
         </div>
 
+      </div>
+
+      <!-- CALIDADES PRESET -->
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line2)">
+        <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-d);margin-bottom:8px;font-weight:500">Memoria de calidades — Preset</div>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
+          <select id="calidadesPreset" onchange="applyCalidadesPreset()" style="flex:1;font-family:'DM Mono',monospace;font-size:11px">
+            <option value="">— Sin preset —</option>
+            <option value="esencial">Esencial · Acabados funcionales</option>
+            <option value="premium">Premium · Acabados de nivel</option>
+            <option value="signature">Signature · Acabados de autor</option>
+          </select>
+          <button onclick="toggleCalidadesEditor()" style="background:rgba(196,151,90,0.1);border:1px solid rgba(196,151,90,0.3);color:rgba(196,151,90,0.8);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:6px 10px;cursor:pointer;font-family:'Raleway',sans-serif;flex-shrink:0">✏ Editar</button>
+        </div>
+        <div id="calidades-preview" style="font-size:10px;color:var(--text-d);line-height:1.7;padding:8px 10px;background:var(--d4);border:1px solid var(--d6);min-height:36px"></div>
+        <div id="calidades-editor" style="display:none;margin-top:8px">
+          <textarea id="calidadesCustomText" rows="4" placeholder="Describe los acabados: suelos, cocina, baños, carpintería, iluminación…" oninput="saveCalidadesCustom()" style="width:100%;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:'Raleway',sans-serif;font-size:11px;padding:8px 10px;resize:vertical;line-height:1.6"></textarea>
+        </div>
+      </div>
+
+      <!-- CATALIZADORES -->
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line2)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-d);font-weight:500">Catalizadores de zona</div>
+          <button onclick="addCatalizador()" style="background:rgba(196,151,90,0.08);border:1px solid rgba(196,151,90,0.25);color:rgba(196,151,90,0.7);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:4px 10px;cursor:pointer;font-family:'Raleway',sans-serif">+ Añadir</button>
+        </div>
+        <div style="font-size:9.5px;color:var(--text-d);margin-bottom:8px;line-height:1.6">Proyectos y referencias que refuerzan la tesis de la zona (hotels de lujo, promociones clave, marcas âncla...).</div>
+        <div id="catalizadores-list" style="display:flex;flex-direction:column;gap:6px"></div>
       </div>
 
       <!-- NARRATIVES -->
