@@ -5790,13 +5790,16 @@ async function rwGeocode(dealAddr, dealCP, dealMunicipio) {
   if (!dealAddr) return null;
   const headers = { 'Accept-Language': 'es', 'User-Agent': 'RiverwalkDealModeler/3.0' };
 
-  // Strategy 1: structured query — most precise, separates street / postalcode / country
+  // Strategy 1: structured query — Nominatim expects "housenumber streetname"
   try {
+    // Parse house number from address (e.g. "Calle de Ponzano, 53" → num:"53" street:"Calle de Ponzano")
+    const numMatch = dealAddr.match(/^(.*?)[,\s]+(\d+)\s*$/);
+    const streetPart = numMatch ? `${numMatch[2]} ${numMatch[1].replace(/^(Calle\s+de\s+|Calle\s+|Avenida\s+de\s+|Avenida\s+|Paseo\s+de\s+|Paseo\s+)/i,'').trim()}` : dealAddr;
     const params = new URLSearchParams({
-      street:     dealAddr,
+      street:       streetPart,
       countrycodes: 'es',
-      format:     'json',
-      limit:      '1',
+      format:       'json',
+      limit:        '3',
       addressdetails: '1',
     });
     if (dealCP)         params.set('postalcode', dealCP);
@@ -5805,8 +5808,11 @@ async function rwGeocode(dealAddr, dealCP, dealMunicipio) {
     const r = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, { headers });
     const d = await r.json();
     if (d && d.length > 0) {
-      console.log('Geocode structured hit:', d[0].display_name);
-      return { lat: parseFloat(d[0].lat), lon: parseFloat(d[0].lon) };
+      // Prefer results whose display_name contains our house number
+      const num = numMatch?.[2] || '';
+      const best = num ? (d.find(x => x.display_name.includes(num)) || d[0]) : d[0];
+      console.log('Geocode structured hit:', best.display_name);
+      return { lat: parseFloat(best.lat), lon: parseFloat(best.lon) };
     }
   } catch(e) { console.warn('Geocode structured failed:', e); }
 
@@ -5952,6 +5958,13 @@ function ftr(light) {
   </div>`;
 }
 
+// ── WORD-SAFE TRUNCATION ──────────────────────────────────────
+function rwTrunc(text, maxLen) {
+  if (!text || text.length <= maxLen) return text || '';
+  const cut = text.lastIndexOf(' ', maxLen);
+  return (cut > maxLen * 0.6 ? text.substring(0, cut) : text.substring(0, maxLen)) + '…';
+}
+
 // ── SLIDE 1: PORTADA ──────────────────────────────────────────
 function rwSlide1(dealName, dealAddr, dealType, dateStr, fachada) {
   const tipo = dealType === 'pase' ? 'Pase · Asignación' : dealType === 'edificio' ? 'Promoción · Edificio' : 'Fix & Flip · Reforma integral';
@@ -6031,7 +6044,7 @@ function rwSlide2(dealName, dealAddr, m, narr, fachada) {
       ${narr.activo && narr.activo.length > 15 ? `
       <div style="border-top:1px solid rgba(196,151,90,0.2);padding-top:18px;">
         <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">Descripción</div>
-        <div style="font-size:11px;line-height:1.82;color:rgba(50,44,36,0.85);font-weight:300;">${(narr.activo).substring(0,320)}${narr.activo.length>320?'…':''}</div>
+        <div style="font-size:11px;line-height:1.82;color:rgba(50,44,36,0.85);font-weight:300;">${rwTrunc(narr.activo, 320)}</div>
       </div>` : `
       <div style="border-top:1px solid rgba(196,151,90,0.2);padding-top:18px;">
         <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">Datos principales</div>
@@ -6080,44 +6093,108 @@ function rwSlide3(dealName, interiores) {
 // ── SLIDE 4: LA OPORTUNIDAD ───────────────────────────────────
 function rwSlide4(dealName, m, narr) {
   const lev = m.ltvPct > 0;
-  const mainRoi = lev ? m.lev0.roe : m.base.roiNet;
-  const mainLabel = lev ? 'ROE neto' : 'ROI neto';
+  const buyPm2 = m.surfCapex > 0 ? Math.round(m.buyPrice / m.surfCapex) : 0;
 
-  const kpis = [
-    { v: rwFmtK(m.totalInvest), l: 'Inversión total', c: '#1A1D23' },
-    { v: rwFmtK(m.base.grossProfit), l: 'Margen bruto', c: '#1A6B3C' },
-    { v: rwPct(mainRoi), l: mainLabel, c: '#C4975A' },
+  // Hero KPIs
+  const heroKpis = [
+    { v: rwFmtK(m.totalInvest),       l: 'Inversión total',  c: '#1A1D23' },
+    { v: rwFmtK(m.base.grossProfit),  l: 'Margen bruto',     c: '#1A6B3C' },
+    { v: rwPct(lev ? m.lev0.roe : m.base.roiNet), l: lev ? 'ROE neto' : 'ROI neto', c: '#C4975A' },
     { v: m.irrBase > 0 ? rwPct(m.irrBase) : '—', l: 'TIR anualizada', c: '#2A5298' },
   ];
 
+  // Cost breakdown
+  const costs = [
+    ['Precio compra',    rwFmt(m.buyPrice)],
+    ['ITP + Notaría',    rwFmt(m.itp + m.notaria)],
+    ['CapEx + IVA',      rwFmt(m.capexNet * (1 + V('ivaObra')/100))],
+    ['Mgmt fee',         rwFmt(m.mgmtFee)],
+    ['Total invertido',  rwFmtK(m.totalInvest)],
+  ];
+
+  // 3-scenario table
+  const scRows = [
+    { l: 'Pesimista', sc: m.pess, ep: V('exitP'), irr: m.irrPess, col: '#B85050' },
+    { l: 'Base',      sc: m.base, ep: V('exitB'), irr: m.irrBase, col: '#C4975A' },
+    { l: 'Optimista', sc: m.opt,  ep: V('exitO'), irr: m.irrOpt,  col: '#1A6B3C' },
+  ];
+
   return pg(`
-    ${hdr('La oportunidad', dealName, 4)}
-    <div style="padding:26px 44px 0;">
-      <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:300;color:#1A1D23;margin-bottom:28px;">La oportunidad</div>
-      <!-- KPI row -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:32px;">
-        ${kpis.map(k => `
-        <div style="padding:22px 18px 18px;background:#F4F1EB;border-top:2px solid ${k.c};">
-          <div style="font-family:'DM Mono',monospace;font-size:24px;font-weight:500;color:${k.c};margin-bottom:6px;line-height:1;">${k.v}</div>
-          <div style="font-size:7.5px;letter-spacing:0.16em;text-transform:uppercase;color:#8B8074;">${k.l}</div>
+    ${hdr('La Oportunidad', dealName, 4)}
+    <div style="padding:20px 44px 0;display:flex;flex-direction:column;gap:16px;">
+
+      <!-- Hero KPI row -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;">
+        ${heroKpis.map(k => `
+        <div style="padding:18px 16px 14px;background:#F4F1EB;border-top:2px solid ${k.c};">
+          <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:500;color:${k.c};margin-bottom:5px;line-height:1;">${k.v}</div>
+          <div style="font-size:7px;letter-spacing:0.16em;text-transform:uppercase;color:#8B8074;">${k.l}</div>
         </div>`).join('')}
       </div>
-      <!-- Secondary row -->
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:28px;">
-        ${[
-          ['Precio compra', rwFmtK(m.buyPrice)],
-          ['Precio salida base', rwFmt(m.base.saleGross)],
-          ['Duración operación', m.totalMonths + ' meses'],
-        ].map(([l,v]) => `
-        <div style="padding:12px 16px;border:0.5px solid #E0DAD0;display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:9px;color:#8B8074;letter-spacing:0.06em;">${l}</span>
-          <span style="font-family:'DM Mono',monospace;font-size:11px;color:#1A1D23;font-weight:500;">${v}</span>
-        </div>`).join('')}
+
+      <!-- Two-column: costs + scenarios -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+        <!-- Left: cost breakdown -->
+        <div>
+          <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">Estructura de costes</div>
+          ${costs.map(([l,v], i) => {
+            const isTotal = i === costs.length - 1;
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;${isTotal?'background:#F4F1EB;border-top:1.5px solid rgba(196,151,90,0.35);margin-top:3px;':'border-bottom:1px solid rgba(196,151,90,0.12);'}">
+              <span style="font-size:9px;color:${isTotal?'#1A1D23':'#8B8074'};letter-spacing:0.04em;${isTotal?'font-weight:600;':''}">${l}</span>
+              <span style="font-family:'DM Mono',monospace;font-size:${isTotal?13:11}px;color:${isTotal?'#C4975A':'#1A1D23'};font-weight:${isTotal?'700':'400'};">${v}</span>
+            </div>`;
+          }).join('')}
+          ${lev ? `
+          <div style="margin-top:10px;padding:10px 12px;background:rgba(42,82,152,0.06);border:0.5px solid rgba(42,82,152,0.2);">
+            <div style="font-size:6.5px;letter-spacing:0.2em;text-transform:uppercase;color:#2A5298;margin-bottom:6px;">Apalancado · LTV ${Math.round(m.ltvPct*100)}%</div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="font-size:9px;color:#8B8074;">Equity requerido</span>
+              <span style="font-family:'DM Mono',monospace;font-size:11px;color:#2A5298;">${rwFmtK(m.lev0.equity)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:4px;">
+              <span style="font-size:9px;color:#8B8074;">ROE neto</span>
+              <span style="font-family:'DM Mono',monospace;font-size:11px;color:#C4975A;">${rwPct(m.lev0.roe)}</span>
+            </div>
+          </div>` : ''}
+        </div>
+
+        <!-- Right: 3-scenario table -->
+        <div>
+          <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">Análisis de escenarios</div>
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="border-bottom:1px solid rgba(196,151,90,0.25);">
+                ${['Escenario','€/m² salida','ROI bruto','TIR anual'].map(h=>`<th style="padding:7px 8px;font-size:7px;letter-spacing:0.12em;text-transform:uppercase;color:#A09282;font-weight:400;text-align:left;">${h}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${scRows.map(({l,sc,ep,irr,col})=>`
+              <tr style="border-bottom:1px solid rgba(196,151,90,0.1);">
+                <td style="padding:9px 8px;font-size:9px;color:${col};font-weight:600;letter-spacing:0.06em;">${l}</td>
+                <td style="padding:9px 8px;font-family:'DM Mono',monospace;font-size:10px;color:#1A1D23;">${(ep||0).toLocaleString('es-ES')}</td>
+                <td style="padding:9px 8px;font-family:'DM Mono',monospace;font-size:10px;color:${col};">${rwPct(sc.roiGross)}</td>
+                <td style="padding:9px 8px;font-family:'DM Mono',monospace;font-size:10px;color:${irr>0?col:'#A09282'}">${irr>0?rwPct(irr):'—'}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+          <div style="margin-top:10px;padding:10px 12px;background:#F4F1EB;border-left:2px solid #C4975A;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:9px;color:#8B8074;">Breakeven bruto</span>
+              <span style="font-family:'DM Mono',monospace;font-size:12px;color:#1A1D23;font-weight:600;">${Math.round(m.bePriceM2).toLocaleString('es-ES')} €/m²</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">
+              <span style="font-size:9px;color:#8B8074;">€/m² compra</span>
+              <span style="font-family:'DM Mono',monospace;font-size:12px;color:#1A1D23;">${buyPm2.toLocaleString('es-ES')} €/m²</span>
+            </div>
+          </div>
+        </div>
       </div>
-      ${narr.tesis ? `
-      <div style="border-left:2px solid #C4975A;padding:14px 18px;background:#FAF7F2;">
-        <div style="font-size:7px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;margin-bottom:8px;font-weight:600;">Tesis inversora</div>
-        <div style="font-size:11px;line-height:1.78;color:#3D3730;font-weight:300;">${(narr.tesis).substring(0,400)}${narr.tesis.length>400?'…':''}</div>
+
+      ${narr.tesis && narr.tesis.length > 15 ? `
+      <div style="border-left:2px solid #C4975A;padding:12px 16px;background:#FAF7F2;flex-shrink:0;">
+        <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;margin-bottom:7px;font-weight:600;">Tesis inversora</div>
+        <div style="font-size:10.5px;line-height:1.78;color:#3D3730;font-weight:300;">${rwTrunc(narr.tesis, 380)}</div>
       </div>` : ''}
     </div>
     ${ftr()}
@@ -6128,83 +6205,129 @@ function rwSlide4(dealName, m, narr) {
 function rwSlide5(dealName, planoActual, planoObjetivo, narr) {
   if (!planoActual && !planoObjetivo) return null;
 
-  const planoCard = (src, title, desc) => `
-    <div style="flex:1;display:flex;flex-direction:column;">
-      <div style="font-size:7.5px;letter-spacing:0.2em;text-transform:uppercase;color:#C4975A;font-weight:600;margin-bottom:10px;">${title}</div>
-      <div style="flex:1;background:#F0EDE6;overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:320px;">
-        ${src ? `<img src="${src}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;">` : `<div style="font-size:9px;color:#B0A898;letter-spacing:0.1em;">Sin imagen</div>`}
+  const HEADER_H = 74;
+  const FOOTER_H = 40;
+  const BODY_H   = 1123 - HEADER_H - FOOTER_H; // 1009px
+
+  // Plans often are horizontal (landscape); stack them vertically with equal height
+  const hasBoth = planoActual && planoObjetivo;
+  const planoCard = (src, title, flex) => `
+    <div style="flex:${flex};display:flex;flex-direction:column;min-height:0;">
+      <div style="font-size:7px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:600;margin-bottom:8px;">${title}</div>
+      <div style="flex:1;background:#FFFFFF;overflow:hidden;display:flex;align-items:center;justify-content:center;border:0.5px solid rgba(196,151,90,0.15);min-height:0;">
+        ${src
+          ? `<img src="${src}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;">`
+          : `<div style="font-size:8.5px;color:#B0A898;letter-spacing:0.1em;text-transform:uppercase;">Sin imagen</div>`}
       </div>
-      ${desc ? `<div style="font-size:9.5px;color:#6B7280;line-height:1.6;margin-top:10px;">${desc.substring(0,120)}</div>` : ''}
     </div>`;
 
   return pg(`
     ${hdr('Distribución', dealName, 5)}
-    <div style="padding:22px 44px;height:calc(100% - 60px - 36px);display:flex;flex-direction:column;">
-      <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:300;color:#1A1D23;margin-bottom:20px;">Distribución · Actual y objetivo</div>
-      <div style="flex:1;display:flex;gap:18px;">
-        ${planoCard(planoActual, 'Distribución actual', '')}
-        <div style="width:1px;background:#E0DAD0;flex-shrink:0;align-self:stretch;"></div>
-        ${planoCard(planoObjetivo, 'Distribución objetivo', narr.proyecto ? narr.proyecto.substring(0,110) + '…' : '')}
+    <div style="padding:20px 44px;height:${BODY_H}px;box-sizing:border-box;display:flex;flex-direction:column;gap:0;">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:300;color:#1A1D23;margin-bottom:16px;flex-shrink:0;">Distribución · Actual y objetivo</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:14px;min-height:0;">
+        ${hasBoth
+          ? planoCard(planoActual, 'Distribución actual', '1') + planoCard(planoObjetivo, 'Distribución objetivo', '1')
+          : planoCard(planoActual || planoObjetivo, planoActual ? 'Distribución actual' : 'Distribución objetivo', '1')}
       </div>
+      ${narr.proyecto && narr.proyecto.length > 10 ? `
+      <div style="flex-shrink:0;margin-top:14px;padding:11px 14px;border-left:2px solid rgba(196,151,90,0.5);background:#FAF7F2;">
+        <div style="font-size:9.5px;color:#5A5040;line-height:1.7;font-weight:300;">${rwTrunc(narr.proyecto, 220)}</div>
+      </div>` : ''}
     </div>
     ${ftr()}
-  `);
+  `, '#FAFAF8');
 }
 
 // ── SLIDE 6: LA ZONA ──────────────────────────────────────────
-function rwSlide6(dealName, dealAddr, mapData, narr, m) {
-  // mapData is { url, w, h } or null
+function rwSlide6(dealName, dealAddr, mapData, narr, m, orientation) {
   const hasMap   = !!(mapData && mapData.url);
-  const hasNarr  = (narr.zona || '').length > 15 || (narr.mercado || '').length > 15;
   const narrText = narr.zona || narr.mercado || '';
+  const hasNarr  = narrText.length > 15;
+  const MAP_H    = 520;
 
-  // Map is always 794px wide (same as slide) and 480px tall — no scaling/distortion
-  const MAP_H = 480;
+  // Orientation compass SVG (inline, no external deps)
+  let oriPanel = '';
+  if (orientation && orientation.solar) {
+    const sd  = orientation.solar;
+    const ang = orientation.angle || 0;
+    const compassSVG = `<svg width="52" height="52" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="26" cy="26" r="24" fill="none" stroke="rgba(196,151,90,0.3)" stroke-width="0.8"/>
+      <circle cx="26" cy="26" r="1.5" fill="rgba(196,151,90,0.8)"/>
+      ${['N','E','S','O'].map((l,i) => {
+        const a = i * 90 * Math.PI / 180;
+        const r = 17, tr = 21;
+        const x = 26 + Math.sin(a)*r, y = 26 - Math.cos(a)*r;
+        const tx = 26 + Math.sin(a)*tr, ty = 26 - Math.cos(a)*tr + 1;
+        return `<line x1="26" y1="26" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,${l==='N'?0.5:0.2})" stroke-width="0.7"/>
+                <text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" fill="rgba(255,255,255,${l==='N'?0.9:0.4})" font-size="5.5" text-anchor="middle" dominant-baseline="middle" font-family="Raleway,sans-serif" font-weight="600">${l}</text>`;
+      }).join('')}
+      <g transform="rotate(${ang}, 26, 26)">
+        <polygon points="26,6 24,22 26,19 28,22" fill="${sd.color}" opacity="0.9"/>
+        <polygon points="26,46 24,30 26,33 28,30" fill="rgba(255,255,255,0.15)"/>
+      </g>
+    </svg>`;
+    oriPanel = `
+    <div style="position:absolute;bottom:16px;right:44px;z-index:10;background:rgba(10,11,15,0.82);border:0.5px solid rgba(196,151,90,0.35);padding:12px 16px;backdrop-filter:blur(4px);display:flex;align-items:center;gap:12px;">
+      ${compassSVG}
+      <div>
+        <div style="font-size:6px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(196,151,90,0.6);margin-bottom:3px;">Orientación fachada</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:16px;color:${sd.color};line-height:1;margin-bottom:2px;">${sd.label}</div>
+        <div style="font-size:8px;color:rgba(255,255,255,0.35);">${ang}° · ${sd.short || ''}</div>
+      </div>
+    </div>`;
+  }
+
+  // Address label
+  const addrLabel = hasMap ? `
+    <div style="position:absolute;bottom:16px;left:44px;padding:5px 12px;background:rgba(247,244,238,0.93);border-left:2px solid #C4975A;z-index:10;">
+      <div style="font-size:7.5px;color:#1A1D23;letter-spacing:0.08em;font-weight:500;">${dealAddr || 'Ubicación del activo'}</div>
+    </div>` : '';
+
+  const contentH = 1123 - 74 - MAP_H - 40; // header - map - footer
+
+  // Word-safe split for narrative headline vs body
+  const splitAt = Math.min(120, narrText.lastIndexOf(' ', 120));
+  const headText = narrText.substring(0, splitAt);
+  const bodyText = narrText.length > splitAt ? rwTrunc(narrText.substring(splitAt).trim(), 280) : '';
 
   return pg(`
     ${hdr('La Zona', dealAddr || dealName, 6)}
-    <!-- map: exact 794×480px, displayed at natural size = pixel-perfect, no stretch -->
-    <div style="width:794px;height:${MAP_H}px;overflow:hidden;position:relative;background:#EDE9E0;flex-shrink:0;">
+    <div style="width:794px;height:${MAP_H}px;overflow:hidden;position:relative;flex-shrink:0;background:#EDE9E0;">
       ${hasMap
         ? `<img src="${mapData.url}" style="width:794px;height:${MAP_H}px;display:block;image-rendering:auto;">
-           <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 68%,#F7F4EE 100%);pointer-events:none;"></div>`
-        : `<div style="height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1A1D23,#2A2D35);">
+           <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(247,244,238,0) 60%,rgba(247,244,238,0.85) 88%,rgba(247,244,238,1) 100%);pointer-events:none;"></div>`
+        : `<div style="height:100%;display:flex;align-items:center;justify-content:center;background:#1A1D23;">
              <div style="text-align:center;">
-               <div style="font-size:9px;color:rgba(196,151,90,0.5);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:8px;">Mapa no disponible</div>
-               <div style="font-size:8.5px;color:rgba(255,255,255,0.3);letter-spacing:0.08em;">${dealAddr || ''}</div>
+               <div style="font-size:9px;color:rgba(196,151,90,0.5);letter-spacing:0.2em;text-transform:uppercase;">Sin mapa</div>
+               <div style="font-size:8.5px;color:rgba(255,255,255,0.3);margin-top:6px;">${dealAddr || ''}</div>
              </div>
            </div>`}
-      <!-- Address label over map -->
-      ${hasMap ? `<div style="position:absolute;bottom:18px;left:48px;padding:5px 14px;background:rgba(247,244,238,0.93);border-left:2px solid #C4975A;">
-        <div style="font-size:8px;color:#1A1D23;letter-spacing:0.08em;font-weight:500;">${dealAddr || 'Ubicación del activo'}</div>
-      </div>` : ''}
+      ${addrLabel}
+      ${oriPanel}
     </div>
 
-    <!-- content below map -->
-    <div style="padding:${hasNarr?'24px':'18px'} 48px ${hasNarr?'48px':'22px'};display:flex;gap:40px;align-items:flex-start;">
-      <!-- left: text -->
-      <div style="flex:1;min-width:0;">
+    <div style="padding:${hasNarr?'20px':'14px'} 44px;height:${contentH}px;box-sizing:border-box;display:flex;gap:36px;align-items:flex-start;overflow:hidden;">
+      <div style="flex:1;min-width:0;overflow:hidden;">
         ${hasNarr ? `
-        <div style="font-size:7px;letter-spacing:0.28em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:12px;">Microzona</div>
-        <div style="font-family:'Cormorant Garamond',serif;font-size:${narrText.length<120?22:18}px;font-weight:300;color:#1A1D23;line-height:1.5;margin-bottom:14px;">${narrText.substring(0,140)}${narrText.length>140?'…':''}</div>
-        ${narrText.length > 140 ? `<div style="font-size:10.5px;line-height:1.85;color:rgba(50,44,36,0.75);font-weight:300;">${narrText.substring(140,380)}${narrText.length>380?'…':''}</div>` : ''}
+        <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">Microzona</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:${narrText.length<100?20:17}px;font-weight:300;color:#1A1D23;line-height:1.5;margin-bottom:12px;">${headText}</div>
+        ${bodyText ? `<div style="font-size:10px;line-height:1.85;color:rgba(50,44,36,0.75);font-weight:300;">${bodyText}</div>` : ''}
         ` : `
-        <div style="font-size:7px;letter-spacing:0.28em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:14px;">Ubicación</div>
-        <div style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;color:#1A1D23;line-height:1.2;">${dealAddr || dealName}</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:300;color:#1A1D23;">${dealAddr || dealName}</div>
         `}
       </div>
-      <!-- right: metrics -->
       ${m ? `
-      <div style="flex-shrink:0;min-width:160px;">
-        <div style="font-size:7px;letter-spacing:0.28em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:14px;">Precio €/m²</div>
+      <div style="flex-shrink:0;width:150px;">
+        <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:12px;">Precio €/m²</div>
         ${[
-          { l: 'Precio compra', v: `${Math.round(m.buyPrice/m.surfCapex).toLocaleString('es-ES')} €/m²` },
-          { l: 'Objetivo venta', v: `${(V('exitB')||0).toLocaleString('es-ES')} €/m²` },
-          { l: 'Breakeven', v: `${Math.round(m.bePriceM2).toLocaleString('es-ES')} €/m²` },
-        ].map(d => `
-        <div style="padding:12px 0;border-bottom:1px solid rgba(196,151,90,0.15);">
-          <div style="font-family:'DM Mono',monospace;font-size:15px;color:#1A1D23;font-weight:500;margin-bottom:3px;">${d.v}</div>
-          <div style="font-size:7px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;">${d.l}</div>
+          ['€/m² compra',  `${(m.surfCapex>0?Math.round(m.buyPrice/m.surfCapex):0).toLocaleString('es-ES')} €/m²`],
+          ['Obj. venta',   `${(V('exitB')||0).toLocaleString('es-ES')} €/m²`],
+          ['Breakeven',    `${Math.round(m.bePriceM2).toLocaleString('es-ES')} €/m²`],
+        ].map(([l,v]) => `
+        <div style="padding:10px 0;border-bottom:1px solid rgba(196,151,90,0.15);">
+          <div style="font-family:'DM Mono',monospace;font-size:13px;color:#1A1D23;font-weight:500;margin-bottom:3px;">${v}</div>
+          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;">${l}</div>
         </div>`).join('')}
       </div>` : ''}
     </div>
@@ -6353,6 +6476,7 @@ async function exportDossierPDF() {
     await document.fonts.ready;
 
     const m        = calc();
+    const d        = getCurrentDossier();
     const dealName = ($('dealName')?.value || 'Operación Riverwalk').trim();
     const dealAddr = $('dealAddress')?.value  || '';
     const dealFloor= $('dealFloor')?.value    || '';
@@ -6385,7 +6509,7 @@ async function exportDossierPDF() {
       rwSlide3(dealName, rwDossierImages.interiores),
       rwSlide4(dealName, m, narr),
       rwSlide5(dealName, rwDossierImages.planoActual, rwDossierImages.planoObjetivo, narr),
-      rwSlide6(dealName, dealAddr, mapData, narr, m),
+      rwSlide6(dealName, dealAddr, mapData, narr, m, d.orientation || null),
       rwSlide7(dealName, m),
       rwSlide8(),
     ].filter(Boolean);
