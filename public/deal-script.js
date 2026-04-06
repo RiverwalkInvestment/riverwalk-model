@@ -1606,9 +1606,21 @@ function loadDossierToForm() {
     const el = $('narr-' + k);
     if (el) el.value = d.narrative[k] || '';
   });
-  // Orientación override
+  // Orientación override — restore select AND rebuild d.orientation from override
+  // so buildSlides() always reads the correct orientation (avoids stale Overpass result in DB)
   const oriSel = $('dealOrientacion');
   if (oriSel) oriSel.value = d.orientacionOverride || '';
+  if (d.orientacionOverride) {
+    const ANGLES = { N:0, NE:45, E:90, SE:135, S:180, SO:225, O:270, NO:315 };
+    d.orientation = {
+      angle:        ANGLES[d.orientacionOverride] ?? 0,
+      cardinal:     d.orientacionOverride,
+      solar:        rwSolarDesc(d.orientacionOverride),
+      uncertain:    false,
+      streetBearing: null,
+      streetName:   '',
+    };
+  }
   // Calidades
   const cpSel = $('calidadesPreset');
   if (cpSel) { cpSel.value = d.calidades?.preset || ''; applyCalidadesPreset(); }
@@ -2464,7 +2476,12 @@ function buildSlides(m, d) {
         </div>
       </div>
       <div style="flex:0 0 42%;display:flex;flex-direction:column;gap:6px">
-        <div style="flex:2;overflow:hidden;min-height:0">${photoLabel(d.plans, 0, 'width:100%;height:100%', 'Plano actual')}</div>
+        <!-- Plano: white background so it blends with the plan image's own white bg -->
+        <div style="flex:2;overflow:hidden;min-height:0;background:#FAFAFA;">
+          ${(d.plans||[])[0]
+            ? `<img src="${d.plans[0].dataUrl}" style="object-fit:contain;background:#FAFAFA;width:100%;height:100%;">`
+            : `<div style="width:100%;height:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><span style="font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.2)">PLANO</span></div>`}
+        </div>
         <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:6px;min-height:0">
           ${photoLabel(d.photos, 1, 'width:100%;height:100%', 'Salón')}
           ${photoLabel(d.photos, 2, 'width:100%;height:100%', 'Cocina')}
