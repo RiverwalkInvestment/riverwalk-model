@@ -1920,29 +1920,6 @@ export default function DealClient({
           </button>
 
           <button
-            className="btn primary btn-brief"
-            onClick={() => {
-              if (typeof window !== 'undefined' && (window as Window & { copyExport?: () => void }).copyExport) {
-                (window as Window & { copyExport?: () => void }).copyExport!()
-              }
-            }}
-          >
-            ⬇ Brief
-          </button>
-
-          <button
-            className="btn primary"
-            onClick={() => {
-              if (typeof window !== 'undefined' && (window as Window & { exportPDF?: () => void }).exportPDF) {
-                (window as Window & { exportPDF?: () => void }).exportPDF!()
-              }
-            }}
-            style={{ background: 'var(--gold-d)' }}
-          >
-            ↓ PDF
-          </button>
-
-          <button
             className="btn primary"
             onClick={() => { if (typeof window !== 'undefined' && (window as any).openIntelligence) (window as any).openIntelligence() }}
             style={{ background: 'rgba(120,60,200,0.2)', border: '1px solid rgba(160,100,240,0.5)' }}
