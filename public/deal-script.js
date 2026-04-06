@@ -6513,8 +6513,6 @@ function rwSlideMercadoPDF(dealName, negotiation, m) {
   const pactH = neg.find(h => h.tipo === 'pactado');
   const savAbs = (askH?.importe > 0 && pactH?.importe > 0) ? askH.importe - pactH.importe : 0;
   const savPct = (askH?.importe > 0 && pactH?.importe > 0) ? ((savAbs / askH.importe) * 100).toFixed(1) : null;
-  const buyPm2 = m.surfCapex > 0 ? Math.round(m.buyPrice / m.surfCapex) : 0;
-  const exitPm2 = Number(V('exitB')) || 0;
 
   const tipoCfg = {
     asking:       { label:'Precio inicial asking',  color:'#C0443A' },
@@ -6524,86 +6522,65 @@ function rwSlideMercadoPDF(dealName, negotiation, m) {
     pactado:      { label:'Precio pactado ✓',       color:'#1A6B3C' },
   };
 
-  // Body height = total - header - footer
-  const BODY_H = 1123 - 74 - 40;
+  const buyPm2 = m.surfCapex > 0 ? Math.round(m.buyPrice / m.surfCapex) : 0;
 
-  // Timeline items: each gets equal flex share so they fill the left column height
-  const timelineItems = neg.length > 0 ? neg.map((h, i) => {
+  const timelineHTML = neg.length > 0 ? neg.map((h, i) => {
     const cfg = tipoCfg[h.tipo] || tipoCfg.oferta;
     const isPactado = h.tipo === 'pactado';
     const isLast = i === neg.length - 1;
     const fmtI = h.importe > 0 ? h.importe.toLocaleString('es-ES') + ' €' : '';
     const fmtF = h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', {month:'short', year:'numeric'}).toUpperCase() : '';
     return `
-    <div style="flex:1;display:flex;gap:18px;align-items:stretch;min-height:80px;">
-      <!-- dot + connector -->
-      <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding-top:20px;width:14px;">
-        <div style="width:${isPactado?13:10}px;height:${isPactado?13:10}px;border-radius:50%;background:${cfg.color};flex-shrink:0;${isPactado?'box-shadow:0 0 0 4px rgba(26,107,60,0.12);':''}"></div>
-        ${!isLast ? `<div style="width:1.5px;flex:1;background:rgba(196,151,90,0.2);margin-top:6px;"></div>` : ''}
+    <div style="display:flex;gap:14px;margin-bottom:${isLast?0:14}px;align-items:flex-start;">
+      <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding-top:4px;">
+        <div style="width:${isPactado?12:9}px;height:${isPactado?12:9}px;border-radius:50%;background:${cfg.color};flex-shrink:0;${isPactado?'box-shadow:0 0 0 3px rgba(26,107,60,0.15);':''}"></div>
+        ${!isLast ? `<div style="width:1px;flex:1;min-height:16px;background:rgba(196,151,90,0.2);margin-top:4px;"></div>` : ''}
       </div>
-      <!-- card -->
-      <div style="flex:1;padding:${isPactado?'22px 22px':'16px 20px'};background:${isPactado?'rgba(26,107,60,0.04)':'#FAFAF6'};border:0.5px solid ${isPactado?'rgba(26,107,60,0.25)':'rgba(196,151,90,0.18)'};${isPactado?'border-left:3px solid #1A6B3C;':''}display:flex;flex-direction:column;justify-content:center;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:${fmtI?10:0}px;">
-          <div style="font-size:7px;letter-spacing:0.2em;text-transform:uppercase;color:${cfg.color};font-weight:700;">${cfg.label}</div>
-          ${fmtF?`<div style="font-family:'DM Mono',monospace;font-size:8px;color:#B0A898;letter-spacing:0.06em;">${fmtF}</div>`:''}
+      <div style="flex:1;padding:${isPactado?'16px 18px':'10px 16px'};background:${isPactado?'rgba(26,107,60,0.05)':'#FAF7F2'};border:0.5px solid ${isPactado?'rgba(26,107,60,0.2)':'rgba(196,151,90,0.15)'};${isPactado?'border-left:2px solid #1A6B3C;':''}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${fmtI?6:0}px;">
+          <div style="font-size:6.5px;letter-spacing:0.18em;text-transform:uppercase;color:${cfg.color};font-weight:700;">${cfg.label}</div>
+          ${fmtF?`<div style="font-family:'DM Mono',monospace;font-size:7.5px;color:#A09282;">${fmtF}</div>`:''}
         </div>
-        ${fmtI?`<div style="font-family:'DM Mono',monospace;font-size:${isPactado?28:22}px;color:${isPactado?'#1A6B3C':'#1A1D23'};font-weight:${isPactado?600:300};line-height:1;letter-spacing:-0.01em;">${fmtI}</div>`:''}
-        ${h.nota?`<div style="font-size:9.5px;color:#8B8074;line-height:1.65;margin-top:8px;font-style:italic;">${h.nota}</div>`:''}
-        ${isPactado && buyPm2 > 0 ? `<div style="margin-top:8px;font-size:9px;color:rgba(26,107,60,0.7);font-family:'DM Mono',monospace;">${buyPm2.toLocaleString('es-ES')} €/m²</div>` : ''}
+        ${fmtI?`<div style="font-family:'DM Mono',monospace;font-size:${isPactado?20:16}px;color:${isPactado?'#1A6B3C':'#1A1D23'};font-weight:${isPactado?600:400};line-height:1;">${fmtI}</div>`:''}
+        ${h.nota?`<div style="font-size:9px;color:#8B8074;line-height:1.6;margin-top:6px;font-style:italic;">${h.nota}</div>`:''}
       </div>
     </div>`;
-  }).join('') : `<div style="flex:1;display:flex;align-items:center;padding:40px 0;font-size:11px;color:#A09282;font-style:italic;">Sin historial de negociación registrado.</div>`;
-
-  // Right column — savings panel stretched to full height
-  const rightCol = savPct ? `
-    <div style="width:220px;flex-shrink:0;display:flex;flex-direction:column;height:100%;gap:0;">
-      <!-- Green hero — takes 45% of height -->
-      <div style="flex:2;background:#1A6B3C;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 24px;text-align:center;">
-        <div style="font-size:7px;letter-spacing:0.24em;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-bottom:16px;">Ahorro negociado</div>
-        <div style="font-family:'Cormorant Garamond',serif;font-size:72px;font-weight:300;color:#FFFFFF;line-height:0.9;letter-spacing:-0.02em;">−${savPct}<span style="font-size:36px;">%</span></div>
-        <div style="font-size:8.5px;color:rgba(255,255,255,0.4);margin-top:14px;letter-spacing:0.06em;">sobre precio inicial</div>
-      </div>
-      <!-- Precio inicial -->
-      <div style="flex:1;background:#FAF7F2;border:0.5px solid rgba(196,151,90,0.18);display:flex;flex-direction:column;justify-content:center;padding:18px 22px;">
-        <div style="font-size:7px;letter-spacing:0.18em;text-transform:uppercase;color:#A09282;margin-bottom:8px;">Precio inicial</div>
-        <div style="font-family:'DM Mono',monospace;font-size:18px;color:#A09282;text-decoration:line-through;letter-spacing:-0.01em;">${askH.importe.toLocaleString('es-ES')} €</div>
-      </div>
-      <!-- Precio pactado -->
-      <div style="flex:1;background:#F4F1EB;border-left:3px solid #C4975A;display:flex;flex-direction:column;justify-content:center;padding:18px 22px;">
-        <div style="font-size:7px;letter-spacing:0.18em;text-transform:uppercase;color:#A09282;margin-bottom:8px;">Precio pactado</div>
-        <div style="font-family:'DM Mono',monospace;font-size:20px;color:#1A1D23;font-weight:600;letter-spacing:-0.01em;">${pactH.importe.toLocaleString('es-ES')} €</div>
-      </div>
-      <!-- Ahorro absoluto -->
-      <div style="flex:1;background:#FAF7F2;border:0.5px solid rgba(26,107,60,0.2);display:flex;flex-direction:column;justify-content:center;padding:18px 22px;">
-        <div style="font-size:7px;letter-spacing:0.18em;text-transform:uppercase;color:#A09282;margin-bottom:8px;">Ahorro absoluto</div>
-        <div style="font-family:'DM Mono',monospace;font-size:20px;color:#1A6B3C;font-weight:600;letter-spacing:-0.01em;">${savAbs.toLocaleString('es-ES')} €</div>
-      </div>
-    </div>` : `
-    <div style="width:220px;flex-shrink:0;display:flex;flex-direction:column;height:100%;gap:0;">
-      <div style="flex:1;background:#F4F1EB;border-left:3px solid #C4975A;display:flex;flex-direction:column;justify-content:center;padding:28px 24px;">
-        <div style="font-size:7px;letter-spacing:0.18em;text-transform:uppercase;color:#A09282;margin-bottom:10px;">Precio de compra</div>
-        <div style="font-family:'DM Mono',monospace;font-size:26px;color:#1A1D23;">${m.buyPrice.toLocaleString('es-ES')} €</div>
-        ${buyPm2 > 0 ? `<div style="font-size:10px;color:#A09282;margin-top:6px;font-family:'DM Mono',monospace;">${buyPm2.toLocaleString('es-ES')} €/m²</div>` : ''}
-      </div>
-      ${exitPm2 > 0 ? `
-      <div style="flex:1;background:#FAF7F2;border:0.5px solid rgba(196,151,90,0.2);display:flex;flex-direction:column;justify-content:center;padding:28px 24px;">
-        <div style="font-size:7px;letter-spacing:0.18em;text-transform:uppercase;color:#A09282;margin-bottom:10px;">Objetivo venta</div>
-        <div style="font-family:'DM Mono',monospace;font-size:26px;color:#1A6B3C;">${exitPm2.toLocaleString('es-ES')} €/m²</div>
-      </div>` : ''}
-    </div>`;
+  }).join('') : `<div style="font-size:10px;color:#A09282;font-style:italic;padding:20px 0;">Sin historial de negociación registrado.</div>`;
 
   return pg(`
     ${hdr('El Mercado', dealName, 5)}
-    <div style="padding:20px 44px 0;display:flex;gap:28px;height:${BODY_H}px;box-sizing:border-box;overflow:hidden;">
-      <!-- Left: timeline fills full height -->
-      <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
-        <div style="font-size:7px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:16px;flex-shrink:0;">Del precio inicial al precio pactado</div>
-        <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
-          ${timelineItems}
-        </div>
+    <div style="padding:20px 44px 0;display:flex;gap:32px;height:calc(100% - 74px - 40px);overflow:hidden;">
+      <!-- Left: timeline -->
+      <div style="flex:1;overflow:hidden;">
+        <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:14px;">Del precio inicial al precio pactado</div>
+        ${timelineHTML}
       </div>
-      <!-- Right: stretched panel -->
-      ${rightCol}
+      <!-- Right: resultado -->
+      <div style="width:210px;flex-shrink:0;display:flex;flex-direction:column;gap:12px;justify-content:flex-start;padding-top:22px;">
+        ${savPct ? `
+        <div style="padding:24px 20px;background:#1A6B3C;text-align:center;">
+          <div style="font-size:6.5px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.6);margin-bottom:10px;">Ahorro negociado</div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:40px;font-weight:300;color:#FFFFFF;line-height:1.1;">−${savPct}<span style="font-size:20px;">%</span></div>
+          <div style="font-size:8px;color:rgba(255,255,255,0.5);margin-top:8px;">sobre precio inicial</div>
+        </div>
+        <div style="padding:14px 16px;background:#FAF7F2;border:0.5px solid rgba(196,151,90,0.2);">
+          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:6px;">Precio inicial</div>
+          <div style="font-family:'DM Mono',monospace;font-size:13px;color:#A09282;text-decoration:line-through;">${askH.importe.toLocaleString('es-ES')} €</div>
+        </div>
+        <div style="padding:14px 16px;background:#F4F1EB;border-left:2px solid #C4975A;">
+          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:6px;">Precio pactado</div>
+          <div style="font-family:'DM Mono',monospace;font-size:16px;color:#1A1D23;font-weight:600;">${pactH.importe.toLocaleString('es-ES')} €</div>
+        </div>
+        <div style="padding:14px 16px;background:#FAF7F2;border:0.5px solid rgba(26,107,60,0.2);">
+          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:6px;">Ahorro absoluto</div>
+          <div style="font-family:'DM Mono',monospace;font-size:15px;color:#1A6B3C;font-weight:600;">${savAbs.toLocaleString('es-ES')} €</div>
+        </div>` : `
+        <div style="padding:16px 18px;background:#F4F1EB;border-left:2px solid #C4975A;">
+          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:8px;">Precio de compra</div>
+          <div style="font-family:'DM Mono',monospace;font-size:20px;color:#1A1D23;">${m.buyPrice.toLocaleString('es-ES')} €</div>
+          <div style="font-size:9px;color:#A09282;margin-top:4px;">${buyPm2.toLocaleString('es-ES')} €/m²</div>
+        </div>`}
+      </div>
     </div>
     ${ftr()}
   `);
