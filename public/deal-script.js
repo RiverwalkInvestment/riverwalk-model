@@ -2461,7 +2461,17 @@ function buildSlides(m, d) {
 
   // ── EL ACTIVO ──────────────────────────────────────────────────────────────
   slides.push({ id:'activo', html: baseCSS + `
-    <div class="inner" style="flex-direction:row;gap:44px;padding:36px 48px">
+  <style>
+    .sl-light .ps-h2{color:#1A1D23}
+    .sl-light .ps-body{color:rgba(26,29,35,0.62)}
+    .sl-light .ps-data{background:rgba(0,0,0,0.04);border:1px solid rgba(0,0,0,0.08)}
+    .sl-light .ps-data-l{color:rgba(0,0,0,0.4)}
+    .sl-light .ps-data-v{color:#1A1D23}
+  </style>
+    <div class="inner sl-light" style="flex-direction:row;gap:44px;padding:36px 48px;background:#F7F5F2;position:relative">
+      <div style="position:absolute;bottom:18px;right:28px;z-index:201;pointer-events:none">
+        <img src="/Riverwalk_Logo_Negro.png" style="height:20px;width:auto;display:block;opacity:0.38">
+      </div>
       <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:0">
         <div class="ps-tag">El activo</div>
         <div class="ps-h2">${S('dealName') || '—'}</div>
@@ -2475,20 +2485,19 @@ function buildSlides(m, d) {
           ].map(([l,v]) => `<div class="ps-data"><div class="ps-data-l">${l}</div><div class="ps-data-v">${v}</div></div>`).join('')}
         </div>
       </div>
-      <div style="flex:0 0 42%;display:flex;flex-direction:column;gap:0;background:#FAFAFA;overflow:hidden;">
-        <!-- Plano actual: fondo blanco en toda la columna -->
-        <div style="flex:2;overflow:hidden;min-height:0;background:#FAFAFA;">
+      <div style="flex:0 0 42%;display:flex;flex-direction:column;gap:0;background:#FFFFFF;overflow:hidden;">
+        <div style="flex:2;overflow:hidden;min-height:0;background:#FFFFFF;">
           ${(d.plans||[])[0]
-            ? `<img src="${d.plans[0].dataUrl}" style="object-fit:contain;background:#FAFAFA;width:100%;height:100%;display:block;">`
+            ? `<img src="${d.plans[0].dataUrl}" style="object-fit:contain;background:#FFFFFF;width:100%;height:100%;display:block;">`
             : `<div style="width:100%;height:100%;background:#F0EFEC;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><span style="font-size:10px;letter-spacing:0.1em;color:rgba(0,0,0,0.2)">PLANO</span></div>`}
         </div>
         <div style="flex:0 0 3px;background:#E8E4DC;"></div>
-        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:2px;min-height:0;background:#FAFAFA;">
+        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:2px;min-height:0;background:#E8E4DC;">
           ${photoLabel(d.photos, 1, 'width:100%;height:100%', 'Salón')}
           ${photoLabel(d.photos, 2, 'width:100%;height:100%', 'Cocina')}
         </div>
         <div style="flex:0 0 2px;background:#E8E4DC;"></div>
-        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:2px;min-height:0;background:#FAFAFA;">
+        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:2px;min-height:0;background:#E8E4DC;">
           ${photoLabel(d.photos, 3, 'width:100%;height:100%', 'Dormitorio')}
           ${photoLabel(d.photos, 4, 'width:100%;height:100%', 'Baño')}
         </div>
@@ -2690,7 +2699,17 @@ function buildSlides(m, d) {
   // ── EL PROYECTO ──────────────────────────────────────────────────────────
   const mats = d.materials || [];
   slides.push({ id:'proyecto', html: baseCSS + `
-    <div class="inner" style="flex-direction:row;gap:36px;padding:36px 48px">
+  <style>
+    .sl-light .ps-h2{color:#1A1D23}
+    .sl-light .ps-body{color:rgba(26,29,35,0.62)}
+    .sl-light .ps-data{background:rgba(0,0,0,0.04);border:1px solid rgba(0,0,0,0.08)}
+    .sl-light .ps-data-l{color:rgba(0,0,0,0.4)}
+    .sl-light .ps-data-v{color:#1A1D23}
+  </style>
+    <div class="inner sl-light" style="flex-direction:row;gap:36px;padding:36px 48px;background:#F7F5F2;position:relative">
+      <div style="position:absolute;bottom:18px;right:28px;z-index:201;pointer-events:none">
+        <img src="/Riverwalk_Logo_Negro.png" style="height:20px;width:auto;display:block;opacity:0.38">
+      </div>
       <div style="flex:1;display:flex;flex-direction:column;gap:0">
         <div class="ps-tag">El proyecto</div>
         <div class="ps-h2">Reforma integral · Paleta de calidades</div>
@@ -2701,26 +2720,24 @@ function buildSlides(m, d) {
             ['Interiorismo', V('decoM2').toLocaleString('es-ES') + ' €/m² + IVA'],
             ['CapEx total', fmt2(m.capexNet * (1 + V('ivaObra')/100))],
             ['Superficie reforma', m.surfCapex + ' m²'],
-          ].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:9px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);font-size:12px">
-            <span style="color:rgba(255,255,255,0.45)">${l}</span>
-            <span style="font-family:'DM Mono',monospace;color:#fff">${v}</span>
+          ].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:9px 14px;background:rgba(0,0,0,0.04);border:1px solid rgba(0,0,0,0.07);font-size:12px">
+            <span style="color:rgba(0,0,0,0.45)">${l}</span>
+            <span style="font-family:'DM Mono',monospace;color:#1A1D23">${v}</span>
           </div>`).join('')}
         </div>
       </div>
-      <div style="flex:0 0 44%;display:flex;flex-direction:column;gap:0;overflow:hidden;background:#FAFAFA;">
-        <!-- Plano objetivo = plans[1]; toda la columna en blanco -->
-        <div style="flex:1;overflow:hidden;min-height:0;background:#FAFAFA;">
+      <div style="flex:0 0 44%;display:flex;flex-direction:column;gap:0;overflow:hidden;background:#FFFFFF;">
+        <div style="flex:1;overflow:hidden;min-height:0;background:#FFFFFF;">
           ${(d.plans||[])[1]
-            ? `<img src="${d.plans[1].dataUrl}" style="width:100%;height:100%;object-fit:contain;background:#FAFAFA;display:block;">`
+            ? `<img src="${d.plans[1].dataUrl}" style="width:100%;height:100%;object-fit:contain;background:#FFFFFF;display:block;">`
             : ((d.plans||[])[0]
-                ? `<img src="${d.plans[0].dataUrl}" style="width:100%;height:100%;object-fit:contain;background:#FAFAFA;display:block;">`
+                ? `<img src="${d.plans[0].dataUrl}" style="width:100%;height:100%;object-fit:contain;background:#FFFFFF;display:block;">`
                 : `<div style="width:100%;height:100%;background:#F0EFEC;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><span style="font-size:10px;letter-spacing:0.1em;color:rgba(0,0,0,0.2)">PLANO OBJETIVO</span></div>`)}
         </div>
         <div style="flex:0 0 3px;background:#E8E4DC;"></div>
-        <!-- Materiales: contain para no cortar la imagen -->
-        <div style="flex:1;overflow:hidden;min-height:0;background:#FAFAFA;">
+        <div style="flex:1;overflow:hidden;min-height:0;background:#FFFFFF;">
           ${mats.length
-            ? `<div style="display:grid;grid-template-columns:repeat(${Math.min(mats.length,3)},1fr);height:100%;gap:2px;background:#FAFAFA;">${mats.slice(0,6).map(mat=>`<div style="overflow:hidden;min-height:0;background:#FAFAFA;display:flex;align-items:center;justify-content:center;"><img src="${mat.dataUrl}" style="width:100%;height:100%;object-fit:contain;background:#FAFAFA;display:block;"></div>`).join('')}</div>`
+            ? `<div style="display:grid;grid-template-columns:repeat(${Math.min(mats.length,3)},1fr);height:100%;gap:2px;background:#FFFFFF;">${mats.slice(0,6).map(mat=>`<div style="overflow:hidden;min-height:0;background:#FFFFFF;display:flex;align-items:center;justify-content:center;"><img src="${mat.dataUrl}" style="width:100%;height:100%;object-fit:contain;background:#FFFFFF;display:block;"></div>`).join('')}</div>`
             : `<div style="width:100%;height:100%;background:#F0EFEC;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><span style="font-size:10px;letter-spacing:0.1em;color:rgba(0,0,0,0.2)">PALETA DE CALIDADES</span></div>`
           }
         </div>
