@@ -1400,6 +1400,10 @@ const OVERLAY_HTML = `
 </div>
 `
 
+// Cache-buster for deal-script.js — bump this string whenever deal-script.js changes
+// so the browser fetches the latest version instead of the cached one.
+const DEAL_SCRIPT_VER = '20260406-2'
+
 // Module-level flag: prevents createAndGo from firing more than once at a time,
 // guarding against double-clicks or remount-induced duplicate deal creation.
 let _creatingDeal = false
@@ -1577,7 +1581,7 @@ export default function DealClient({
     // DOM-based guard: if deal-script.js is already in the DOM (e.g. React Strict Mode
     // double-mount in dev, or HMR remount), skip re-injection to avoid re-declaring
     // 'let' globals that would throw SyntaxError and corrupt state.
-    const alreadyLoaded = !!document.querySelector('script[src="/deal-script.js"]')
+    const alreadyLoaded = !!document.querySelector(`script[src="/deal-script.js?v=${DEAL_SCRIPT_VER}"]`)
 
     if (alreadyLoaded) {
       scriptInjected.current = true
@@ -1627,7 +1631,7 @@ export default function DealClient({
 
     // 6. Load main deal modeler logic
     const mainScript = document.createElement('script')
-    mainScript.src = '/deal-script.js'
+    mainScript.src = `/deal-script.js?v=${DEAL_SCRIPT_VER}`
     mainScript.onload = () => {
       // Block vanilla JS from managing tabs — we render them from DB
       w.renderTabs = () => {}
