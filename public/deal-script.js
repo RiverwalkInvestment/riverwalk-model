@@ -2446,12 +2446,12 @@ function buildSlides(m, d) {
       <div style="flex:0 0 42%;display:flex;flex-direction:column;gap:6px">
         <div style="flex:2;overflow:hidden;min-height:0">${photoLabel(d.plans, 0, 'width:100%;height:100%', 'Plano actual')}</div>
         <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:6px;min-height:0">
-          ${photoLabel(d.photos, 0, 'width:100%;height:100%', 'Salón')}
-          ${photoLabel(d.photos, 1, 'width:100%;height:100%', 'Cocina')}
+          ${photoLabel(d.photos, 1, 'width:100%;height:100%', 'Salón')}
+          ${photoLabel(d.photos, 2, 'width:100%;height:100%', 'Cocina')}
         </div>
         <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:6px;min-height:0">
-          ${photoLabel(d.photos, 2, 'width:100%;height:100%', 'Dormitorio')}
-          ${photoLabel(d.photos, 3, 'width:100%;height:100%', 'Baño')}
+          ${photoLabel(d.photos, 3, 'width:100%;height:100%', 'Dormitorio')}
+          ${photoLabel(d.photos, 4, 'width:100%;height:100%', 'Baño')}
         </div>
       </div>
     </div>` });
@@ -2536,38 +2536,80 @@ function buildSlides(m, d) {
       </div>
     </div>` });
 
-  // ── EL MERCADO ──────────────────────────────────────────────────────────────
+  // ── EL MERCADO — Negociación bid/ask timeline ───────────────────────────────
+  const negHitos = d.negotiation || [];
+  const askingHito = negHitos.find(h => h.tipo === 'asking');
+  const pactadoHito = negHitos.find(h => h.tipo === 'pactado');
+  const askingPrice = askingHito?.importe || 0;
+  const pactadoPrice = pactadoHito?.importe || m.buyPrice;
+  const savingsAbs = askingPrice > 0 ? askingPrice - pactadoPrice : 0;
+  const savingsPct = askingPrice > 0 ? ((savingsAbs / askingPrice) * 100).toFixed(1) : null;
+
+  const negTiposConfig = {
+    asking:       { label:'Precio inicial asking',  color:'#E05555',              icon:'⬤' },
+    oferta:       { label:'Oferta presentada',       color:'rgba(196,151,90,0.9)', icon:'→' },
+    rechazada:    { label:'Oferta rechazada',        color:'rgba(224,85,85,0.6)',  icon:'✕' },
+    contraoferta: { label:'Contraoferta vendedor',   color:'var(--amber)',         icon:'↩' },
+    pactado:      { label:'Precio pactado',          color:'#52C07A',              icon:'✓' },
+  };
+
+  const negHTML = negHitos.length > 0 ? `
+    <div style="position:relative;padding-left:28px">
+      <div style="position:absolute;left:10px;top:12px;bottom:12px;width:1px;background:rgba(255,255,255,0.1)"></div>
+      ${negHitos.map((h, i) => {
+        const cfg = negTiposConfig[h.tipo] || negTiposConfig.oferta;
+        const isLast = i === negHitos.length - 1;
+        const fmtImporte = h.importe > 0 ? h.importe.toLocaleString('es-ES') + ' €' : '—';
+        const fmtFecha = h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', {day:'2-digit',month:'short',year:'numeric'}) : '';
+        return `<div style="position:relative;margin-bottom:${isLast?0:14}px;animation:fade-up 0.4s ease forwards;animation-delay:${i*0.12}s;opacity:0">
+          <div style="position:absolute;left:-22px;top:4px;width:10px;height:10px;border-radius:50%;background:${cfg.color};box-shadow:0 0 0 3px rgba(10,11,15,1),0 0 0 4px ${cfg.color}40"></div>
+          <div style="padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-left:2px solid ${cfg.color}">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+              <div style="font-size:8.5px;letter-spacing:0.14em;text-transform:uppercase;color:${cfg.color}">${cfg.label}</div>
+              ${fmtFecha ? `<div style="font-size:9px;color:rgba(255,255,255,0.3)">${fmtFecha}</div>` : ''}
+            </div>
+            <div style="font-family:'DM Mono',monospace;font-size:18px;color:#fff;font-feature-settings:'tnum' 1">${fmtImporte}</div>
+            ${h.nota ? `<div style="font-size:9.5px;color:rgba(255,255,255,0.35);margin-top:4px;font-style:italic">${h.nota}</div>` : ''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>` : `<div style="color:rgba(255,255,255,0.2);font-size:12px;font-style:italic;padding:20px 0">Añade los hitos de negociación en la sección "Negociación — Historial bid/ask" del panel izquierdo.</div>`;
+
   slides.push({ id:'mercado', html: baseCSS + `
     <div class="inner" style="padding:36px 48px">
-      <div class="ps-tag">El mercado</div>
-      <div class="ps-h2">La oportunidad de adquisición</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:36px;flex:1;align-items:start">
-        <div>
-          <div class="ps-body" style="margin-bottom:20px">${d.narrative?.mercado || '<span style="opacity:0.25">Genera el análisis de mercado con ✦ Narrativa IA</span>'}</div>
-          <div style="display:flex;flex-direction:column;gap:6px">
-            ${medRfmPm2 > 0 ? `<div style="display:flex;justify-content:space-between;padding:12px 16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07)">
-              <span style="font-size:12px;color:rgba(255,255,255,0.5)">Precio mercado (a reformar)</span>
-              <span style="font-family:'DM Mono',monospace;color:rgba(255,255,255,0.65)">${medRfmPm2.toLocaleString('es-ES')} €/m²</span>
-            </div>` : ''}
-            <div style="display:flex;justify-content:space-between;padding:14px 16px;background:rgba(139,105,20,0.1);border:1px solid rgba(196,151,90,0.35)">
-              <span style="font-size:12px;color:rgba(255,255,255,0.8)">Nuestro precio compra</span>
-              <span style="font-family:'DM Mono',monospace;color:rgba(196,151,90,0.9);font-size:16px">${buyPm2.toLocaleString('es-ES')} €/m²</span>
+      <div class="ps-tag">El mercado · La negociación</div>
+      <div class="ps-h2" style="margin-bottom:20px">Del precio inicial al precio pactado</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;flex:1;min-height:0;align-items:start">
+        <div style="overflow-y:auto;max-height:100%">${negHTML}</div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          ${savingsPct ? `<div style="padding:20px 24px;background:rgba(30,122,69,0.12);border:1px solid rgba(82,192,122,0.35)">
+            <div class="ps-data-l" style="margin-bottom:8px">Resultado de la negociación</div>
+            <div style="font-family:'DM Mono',monospace;font-size:40px;color:#52C07A;line-height:1;font-weight:600">−${savingsPct}%</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:6px">sobre el precio de salida del vendedor</div>
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.07);display:flex;justify-content:space-between">
+              <div>
+                <div class="ps-data-l">Precio inicial</div>
+                <div style="font-family:'DM Mono',monospace;color:rgba(255,255,255,0.5);font-size:14px;text-decoration:line-through">${askingPrice.toLocaleString('es-ES')} €</div>
+              </div>
+              <div style="text-align:right">
+                <div class="ps-data-l">Precio pactado</div>
+                <div style="font-family:'DM Mono',monospace;color:rgba(196,151,90,0.9);font-size:16px">${pactadoPrice.toLocaleString('es-ES')} €</div>
+              </div>
             </div>
-            ${descuento ? `<div style="display:flex;justify-content:space-between;padding:14px 16px;background:rgba(30,122,69,0.1);border:1px solid rgba(82,192,122,0.3)">
-              <span style="font-size:12px;color:rgba(255,255,255,0.8)">Descuento sobre mercado</span>
-              <span style="font-family:'DM Mono',monospace;color:#52C07A;font-size:18px;font-weight:600">−${descuento}%</span>
-            </div>` : ''}
-          </div>
-        </div>
-        <div>
-          ${reformarComp.length > 0 ? `<div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:8px">Comparables a reformar (${reformarComp.length})</div>
-          <div style="display:flex;flex-direction:column;gap:3px">
-            ${reformarComp.slice(0,6).map(c=>`<div style="display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:8px 12px;background:rgba(255,255,255,0.03);font-size:11.5px">
-              <div style="color:rgba(255,255,255,0.55);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.desc||'—'}</div>
-              <div style="font-family:'DM Mono',monospace;color:rgba(255,255,255,0.35);font-size:10px">${c.m2}m²</div>
-              <div style="font-family:'DM Mono',monospace;color:rgba(255,255,255,0.75)">${Math.round(c.precio/c.m2).toLocaleString('es-ES')} €/m²</div>
-            </div>`).join('')}
-          </div>` : `<div style="color:rgba(255,255,255,0.2);font-size:12px;font-style:italic">Añade comparables a reformar en la sección Testigos.</div>`}
+            <div style="margin-top:10px;padding:10px 14px;background:rgba(82,192,122,0.08);border:1px solid rgba(82,192,122,0.2)">
+              <div class="ps-data-l">Ahorro negociado</div>
+              <div style="font-family:'DM Mono',monospace;font-size:18px;color:#52C07A;margin-top:3px">${savingsAbs.toLocaleString('es-ES')} €</div>
+            </div>
+          </div>` : `<div style="padding:16px 20px;background:rgba(139,105,20,0.1);border:1px solid rgba(196,151,90,0.25)">
+            <div class="ps-data-l" style="margin-bottom:6px">Precio de compra</div>
+            <div style="font-family:'DM Mono',monospace;font-size:26px;color:rgba(196,151,90,0.9)">${m.buyPrice.toLocaleString('es-ES')} €</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px">${buyPm2.toLocaleString('es-ES')} €/m²</div>
+          </div>`}
+          ${descuento ? `<div style="padding:14px 18px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">
+            <div class="ps-data-l" style="margin-bottom:4px">Descuento vs mercado a reformar</div>
+            <div style="font-family:'DM Mono',monospace;font-size:20px;color:#52C07A">−${descuento}%</div>
+            <div style="font-size:9.5px;color:rgba(255,255,255,0.3);margin-top:3px">respecto a comparables sin reformar</div>
+          </div>` : ''}
         </div>
       </div>
     </div>` });
@@ -2818,72 +2860,195 @@ function buildSlides(m, d) {
     return { bg: 'rgba(20,100,50,0.25)', text: '#52C07A', border: 'rgba(82,192,122,0.2)' };
   }
 
-  const heatRows = priceCols.map(ep => {
-    const isBe = ep <= beM2 * 1.02 && ep >= beM2 * 0.98;
+  const heatRows1 = priceCols.map(ep => {
     const isBase = Math.abs(ep - exitBase) < 200;
-    return `<tr>
-      <td style="padding:9px 14px;font-family:'DM Mono',monospace;font-size:11px;color:${isBase?'rgba(196,151,90,0.95)':'rgba(255,255,255,0.5)'};white-space:nowrap;border-right:1px solid rgba(255,255,255,0.06);${isBase?'background:rgba(139,105,20,0.08);':''}">
-        ${ep.toLocaleString('es-ES')} €/m²${isBase?' ·':isBe?' ≈ BE':''}
-      </td>
-      ${durCols.map(({months}) => {
+    return `<tr>${['<td style="padding:7px 12px;font-family:\'DM Mono\',monospace;font-size:10.5px;color:'+(isBase?'rgba(196,151,90,0.95)':'rgba(255,255,255,0.5)')+';white-space:nowrap;border-right:1px solid rgba(255,255,255,0.06);'+(isBase?'background:rgba(139,105,20,0.08);':'')+'">'+ep.toLocaleString('es-ES')+' €/m²'+(isBase?' ·':'')+'</td>',
+      ...durCols.map(({months}) => {
         const roi = cellROI(ep, months);
-        const {bg, text, border} = roiColor(roi);
-        return `<td style="padding:9px 10px;text-align:center;background:${bg};border:1px solid ${border};">
-          <div style="font-family:'DM Mono',monospace;font-size:13.5px;color:${text};font-weight:500;line-height:1;">${(roi*100).toFixed(1)}%</div>
-        </td>`;
-      }).join('')}
-    </tr>`;
+        const {bg,text,border} = roiColor(roi);
+        return `<td style="padding:7px 8px;text-align:center;background:${bg};border:1px solid ${border}"><div style="font-family:'DM Mono',monospace;font-size:12.5px;color:${text};font-weight:500;line-height:1">${(roi*100).toFixed(1)}%</div></td>`;
+      })].join('')}</tr>`;
   }).join('');
 
+  // Matrix 2: CapEx variation × price
+  const capexAdjs = [-0.20,-0.10,0,+0.10,+0.20,+0.30];
+  const capexExits = [V('exitP'),V('exitB'),V('exitO')].filter((v,i,a)=>a.indexOf(v)===i);
+
+  function cellROI2(capexMult, ep) {
+    const cn = m.capexNet * capexMult;
+    const totalIVAAdj = cn * V('ivaObra')/100;
+    const totAdj2 = m.buyPrice+m.itp+m.notaria+V('comunidad')*m.totalMonths+V('ibi')*m.totalMonths/12+m.intermediaryFee+m.brokerBuyFee+cn+m.totalFeesNet+totalIVAAdj;
+    const brkCost = ep*m.surfCapex*V('brokerExit')/100 + (V('exitFixed')+V('exitFixedAjuste'));
+    return (ep*m.surfCapex - brkCost - totAdj2) / totAdj2;
+  }
+
+  const heatRows2 = capexAdjs.map(adj => {
+    const isBase = adj === 0;
+    const lbl = isBase ? 'CapEx base ·' : `CapEx ${adj>0?'+':''}${(adj*100).toFixed(0)}%`;
+    return `<tr>${['<td style="padding:7px 12px;font-family:\'DM Mono\',monospace;font-size:10.5px;color:'+(isBase?'rgba(196,151,90,0.95)':'rgba(255,255,255,0.5)')+';white-space:nowrap;border-right:1px solid rgba(255,255,255,0.06);'+(isBase?'background:rgba(139,105,20,0.08);':'')+'">' + lbl + '</td>',
+      ...capexExits.map(ep => {
+        const roi = cellROI2(1+adj, ep);
+        const {bg,text,border} = roiColor(roi);
+        return `<td style="padding:7px 8px;text-align:center;background:${bg};border:1px solid ${border}"><div style="font-family:'DM Mono',monospace;font-size:12.5px;color:${text};font-weight:500;line-height:1">${(roi*100).toFixed(1)}%</div></td>`;
+      })].join('')}</tr>`;
+  }).join('');
+
+  const matrixLegend = `<div style="display:flex;gap:14px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06)">
+    ${[['#E05555','< 0% · Pérdidas'],['rgba(255,165,0,0.9)','0–8%'],['rgba(196,151,90,0.9)','8–15%'],['#52C07A','> 15% · Objetivo']].map(([c,l])=>`
+    <div style="display:flex;align-items:center;gap:5px">
+      <div style="width:8px;height:8px;background:${c};opacity:0.7;border-radius:1px;flex-shrink:0"></div>
+      <span style="font-size:8.5px;color:rgba(255,255,255,0.3)">${l}</span>
+    </div>`).join('')}
+    <div style="margin-left:auto;font-size:8.5px;color:rgba(255,255,255,0.2)">· = escenario base</div>
+  </div>`;
+
   slides.push({ id:'sensibilidad', html: baseCSS + `
-    <div class="inner" style="padding:32px 48px;gap:20px">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:32px">
-        <!-- Left: breakeven hero -->
-        <div style="flex:1">
+    <div class="inner" style="padding:28px 44px;gap:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:24px;flex-shrink:0">
+        <div>
           <div class="ps-tag">Protección de capital</div>
-          <div class="ps-h2" style="font-size:26px;margin-bottom:4px">Margen de seguridad</div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:#fff;margin-top:2px">Matrices de sensibilidad</div>
         </div>
-        <!-- Right: key stats row -->
-        <div style="display:flex;gap:12px;flex-shrink:0">
-          <div style="padding:14px 20px;background:rgba(139,105,20,0.12);border:1px solid rgba(196,151,90,0.3);text-align:center;min-width:110px">
-            <div style="font-family:'DM Mono',monospace;font-size:22px;color:rgba(196,151,90,0.95);line-height:1;margin-bottom:4px">${beM2.toLocaleString('es-ES')}<span style="font-size:12px"> €/m²</span></div>
-            <div style="font-size:8px;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.3)">Breakeven bruto</div>
+        <div style="display:flex;gap:10px">
+          <div style="padding:12px 18px;background:rgba(139,105,20,0.12);border:1px solid rgba(196,151,90,0.3);text-align:center;min-width:100px">
+            <div style="font-family:'DM Mono',monospace;font-size:18px;color:rgba(196,151,90,0.95);line-height:1;margin-bottom:3px">${beM2.toLocaleString('es-ES')}<span style="font-size:10px"> €/m²</span></div>
+            <div style="font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.3)">Breakeven bruto</div>
           </div>
-          <div style="padding:14px 20px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);text-align:center;min-width:110px">
-            <div style="font-family:'DM Mono',monospace;font-size:22px;color:#52C07A;line-height:1;margin-bottom:4px">${marginPct}<span style="font-size:12px">%</span></div>
-            <div style="font-size:8px;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.3)">Margen s/ base</div>
+          <div style="padding:12px 18px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);text-align:center;min-width:90px">
+            <div style="font-family:'DM Mono',monospace;font-size:18px;color:#52C07A;line-height:1;margin-bottom:3px">${marginPct}<span style="font-size:10px">%</span></div>
+            <div style="font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.3)">Margen s/ base</div>
           </div>
-          <div style="padding:14px 20px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);text-align:center;min-width:110px">
-            <div style="font-family:'DM Mono',monospace;font-size:22px;color:${worstRoi < 0 ? '#E05555' : '#52C07A'};line-height:1;margin-bottom:4px">${(worstRoi*100).toFixed(1)}<span style="font-size:12px">%</span></div>
-            <div style="font-size:8px;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.3)">Peor escenario</div>
+          <div style="padding:12px 18px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);text-align:center;min-width:90px">
+            <div style="font-family:'DM Mono',monospace;font-size:18px;color:${worstRoi < 0 ? '#E05555' : '#52C07A'};line-height:1;margin-bottom:3px">${(worstRoi*100).toFixed(1)}<span style="font-size:10px">%</span></div>
+            <div style="font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.3)">Peor escenario</div>
           </div>
         </div>
       </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;flex:1;min-height:0;overflow:hidden">
+        <div style="display:flex;flex-direction:column;min-height:0">
+          <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:8px">ROI · Precio de salida × Duración</div>
+          <div style="overflow:auto;flex:1">
+            <table style="width:100%;border-collapse:separate;border-spacing:2px">
+              <thead><tr>
+                <th style="padding:5px 12px;text-align:left;font-size:8px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.25);font-weight:400;border-bottom:1px solid rgba(255,255,255,0.08)">€/m²</th>
+                ${durCols.map(({label,months})=>`<th style="padding:5px 8px;text-align:center;font-family:'DM Mono',monospace;font-size:10px;color:${months===m.totalMonths?'rgba(196,151,90,0.8)':'rgba(255,255,255,0.35)'};font-weight:400;border-bottom:1px solid rgba(255,255,255,0.08)">${label}</th>`).join('')}
+              </tr></thead>
+              <tbody>${heatRows1}</tbody>
+            </table>
+          </div>
+          ${matrixLegend}
+        </div>
+        <div style="display:flex;flex-direction:column;min-height:0">
+          <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:8px">ROI · Variación CapEx × Precio salida</div>
+          <div style="overflow:auto;flex:1">
+            <table style="width:100%;border-collapse:separate;border-spacing:2px">
+              <thead><tr>
+                <th style="padding:5px 12px;text-align:left;font-size:8px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.25);font-weight:400;border-bottom:1px solid rgba(255,255,255,0.08)">CapEx</th>
+                ${capexExits.map(ep=>`<th style="padding:5px 8px;text-align:center;font-family:'DM Mono',monospace;font-size:10px;color:${Math.abs(ep-exitBase)<200?'rgba(196,151,90,0.8)':'rgba(255,255,255,0.35)'};font-weight:400;border-bottom:1px solid rgba(255,255,255,0.08)">${ep.toLocaleString('es-ES')} €/m²</th>`).join('')}
+              </tr></thead>
+              <tbody>${heatRows2}</tbody>
+            </table>
+          </div>
+          ${matrixLegend}
+        </div>
+      </div>
+    </div>` });
 
-      <!-- Heat map -->
-      <div style="flex:1;overflow:hidden">
-        <table style="width:100%;border-collapse:separate;border-spacing:3px">
-          <thead>
-            <tr>
-              <th style="padding:6px 14px;text-align:left;font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.25);font-weight:400;border-bottom:1px solid rgba(255,255,255,0.08)">Precio €/m²</th>
-              ${durCols.map(({label, months}) => {
-                const isBase = months === m.totalMonths;
-                return `<th style="padding:6px 10px;text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:${isBase?'rgba(196,151,90,0.8)':'rgba(255,255,255,0.35)'};font-weight:400;border-bottom:1px solid rgba(255,255,255,0.08);">
-                  ${label}${isBase?' ·':''}
-                </th>`;
-              }).join('')}
-            </tr>
-          </thead>
-          <tbody>${heatRows}</tbody>
-        </table>
-        <!-- Legend -->
-        <div style="display:flex;gap:16px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">
-          ${[['#E05555','< 0% · Pérdidas'],['rgba(255,165,0,0.9)','0–8% · Ajustado'],['rgba(196,151,90,0.9)','8–15% · Aceptable'],['#52C07A','> 15% · Objetivo']].map(([c,l])=>`
-          <div style="display:flex;align-items:center;gap:6px">
-            <div style="width:10px;height:10px;background:${c};opacity:0.7;border-radius:1px;flex-shrink:0"></div>
-            <span style="font-size:9px;color:rgba(255,255,255,0.3);letter-spacing:0.06em">${l}</span>
-          </div>`).join('')}
-          <div style="margin-left:auto;font-size:9px;color:rgba(255,255,255,0.2);letter-spacing:0.06em">· = escenario base · BE = breakeven</div>
+  // ── HIGHLIGHTS ────────────────────────────────────────────────────────────
+  const est = d.estructura || {};
+  const VEHICULO_LABELS_H = { spv_unica:'SPV · Única operación', spv_multi:'SPV · Multi-activo', club_deal:'Club Deal' };
+  const VEHICULO_DESC_H   = {
+    spv_unica: 'Sociedad de propósito específico constituida exclusivamente para esta operación. Separación total de riesgo patrimonial y liquidación automática al cierre de la venta.',
+    spv_multi: 'Vehículo permanente que opera sobre múltiples activos. Permite diversificación y acceso a operaciones futuras dentro del mismo vehículo.',
+    club_deal:  'Grupo cerrado de inversores privados seleccionados. Estructura ágil sin vehículo societario formal, regida por pacto entre partes.'
+  };
+  const APORTACION_LABELS_H = { pp:'Préstamo participativo', cp:'Cuenta en participación', ac:'Ampliación de capital', ph:'Préstamo c/ garantía hipotecaria' };
+  const APORTACION_DESC_H   = {
+    pp: 'El inversor presta capital y recibe interés fijo más participación variable en el beneficio. Sin transmisión de propiedad ni acceso a la gestión operativa.',
+    cp: 'El inversor cede capital a Riverwalk como gestor. Comparte riesgo y beneficio en proporción a su aportación, sin que se constituya una entidad jurídica separada.',
+    ac: 'El inversor entra como socio de la sociedad, con los derechos societarios correspondientes. Participación directa en el capital social del vehículo.',
+    ph: 'Retorno fijo garantizado con el activo inmobiliario como colateral. Sin participación en el upside. Perfil de riesgo más conservador.'
+  };
+  const ticketMin_h = est.ticketMinimo ? parseInt(est.ticketMinimo).toLocaleString('es-ES') + ' €' : '—';
+  const vehiculoLabel_h = est.vehiculo ? VEHICULO_LABELS_H[est.vehiculo] : null;
+  const vehiculoDesc_h  = est.vehiculo ? VEHICULO_DESC_H[est.vehiculo] : null;
+  const aportLabel_h    = est.aportacion ? APORTACION_LABELS_H[est.aportacion] : null;
+  const aportDesc_h     = est.aportacion ? APORTACION_DESC_H[est.aportacion] : null;
+
+  slides.push({ id:'highlights', html: baseCSS + `
+    <div class="inner" style="padding:36px 48px">
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:6px">
+        <svg viewBox="0 0 140 20" style="width:90px"><text x="0" y="16" font-family="Cormorant Garamond,serif" font-size="16" fill="rgba(196,151,90,0.6)" font-weight="300" letter-spacing="2">Riverwalk</text></svg>
+        <div style="width:1px;height:18px;background:rgba(255,255,255,0.1)"></div>
+        <div class="ps-tag" style="margin:0">Highlights de la inversión</div>
+      </div>
+      <div style="width:36px;height:1px;background:rgba(196,151,90,0.4);margin-bottom:20px"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:36px;flex:1;align-items:start">
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            ${[
+              ['Inversión total', fmt2(m.totalInvest), 'rgba(196,151,90,0.9)'],
+              ['Ticket mínimo', ticketMin_h, 'rgba(255,255,255,0.8)'],
+              ['ROI bruto base', fmtP(m.base.roiGross), '#52C07A'],
+              ['TIR anual base', isFinite(m.base.irr)?fmtP(m.base.irr):'—', '#52C07A'],
+              ['Plazo estimado', m.totalMonths + ' meses', 'rgba(255,255,255,0.8)'],
+              ['Breakeven', beM2.toLocaleString('es-ES') + ' €/m²', 'rgba(255,255,255,0.7)'],
+            ].map(([l,v,c])=>`<div style="padding:12px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07)">
+              <div style="font-size:8px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:4px">${l}</div>
+              <div style="font-family:'DM Mono',monospace;font-size:14px;color:${c};font-feature-settings:'tnum' 1">${v}</div>
+            </div>`).join('')}
+          </div>
+          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07)">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px solid rgba(255,255,255,0.06)">
+              ${['Escenario','€/m²','ROI bruto','TIR anual'].map(h=>`<div style="padding:6px 10px;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.3)">${h}</div>`).join('')}
+            </div>
+            ${[
+              {lbl:'Pesimista', ep:V('exitP'), sc:m.pess, col:'#E05555'},
+              {lbl:'Base',      ep:V('exitB'), sc:m.base, col:'rgba(196,151,90,0.95)'},
+              {lbl:'Optimista', ep:V('exitO'), sc:m.opt,  col:'#52C07A'},
+            ].map(({lbl,ep,sc,col})=>`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px solid rgba(255,255,255,0.04)">
+              <div style="padding:7px 10px;font-size:10px;color:${col}">${lbl}</div>
+              <div style="padding:7px 10px;font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,0.7)">${ep.toLocaleString('es-ES')}</div>
+              <div style="padding:7px 10px;font-family:'DM Mono',monospace;font-size:10px;color:${col}">${fmtP(sc.roiGross)}</div>
+              <div style="padding:7px 10px;font-family:'DM Mono',monospace;font-size:10px;color:${col}">${isFinite(sc.irr)?fmtP(sc.irr):'—'}</div>
+            </div>`).join('')}
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px">
+          ${vehiculoLabel_h ? `<div style="padding:14px 18px;background:rgba(139,105,20,0.08);border:1px solid rgba(196,151,90,0.25)">
+            <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(196,151,90,0.6);margin-bottom:6px">Vehículo de inversión</div>
+            <div style="font-size:13px;color:#fff;font-weight:500;margin-bottom:6px">${vehiculoLabel_h}</div>
+            <div style="font-size:10.5px;color:rgba(255,255,255,0.5);line-height:1.7">${vehiculoDesc_h}</div>
+          </div>` : ''}
+          ${aportLabel_h ? `<div style="padding:14px 18px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1)">
+            <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:6px">Forma de aportación</div>
+            <div style="font-size:13px;color:#fff;font-weight:500;margin-bottom:6px">${aportLabel_h}</div>
+            <div style="font-size:10.5px;color:rgba(255,255,255,0.5);line-height:1.7">${aportDesc_h}</div>
+          </div>` : ''}
+          <div style="padding:14px 18px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07)">
+            <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:10px">Estructura de fees Riverwalk</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.05)">
+                <span style="font-size:10.5px;color:rgba(255,255,255,0.45)">Management fee</span>
+                <span style="font-family:'DM Mono',monospace;font-size:12px;color:rgba(255,255,255,0.7)">${V('mgmtFeePct')}% s/ precio + CapEx</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.05)">
+                <span style="font-size:10.5px;color:rgba(255,255,255,0.45)">Carry ROI &lt; ${sf1T}%</span>
+                <span style="font-family:'DM Mono',monospace;font-size:12px;color:rgba(82,192,122,0.8)">0% · íntegro al inversor</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.05)">
+                <span style="font-size:10.5px;color:rgba(255,255,255,0.45)">Carry ROI ${sf1T}–${sf2T}%</span>
+                <span style="font-family:'DM Mono',monospace;font-size:12px;color:rgba(196,151,90,0.8)">${sf1P}% Riverwalk · ${100-sf1P}% inversor</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:10.5px;color:rgba(255,255,255,0.45)">Carry ROI &gt; ${sf2T}%</span>
+                <span style="font-family:'DM Mono',monospace;font-size:12px;color:rgba(196,151,90,0.9)">${sf2P}% Riverwalk · ${100-sf2P}% inversor</span>
+              </div>
+            </div>
+          </div>
+          <div style="font-size:9px;color:rgba(255,255,255,0.2);line-height:1.6;padding-top:4px">Documento de carácter informativo. Las rentabilidades proyectadas no garantizan resultados futuros.</div>
         </div>
       </div>
     </div>` });
