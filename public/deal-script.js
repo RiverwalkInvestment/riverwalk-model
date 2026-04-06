@@ -6669,11 +6669,11 @@ function rwSlideProyectoPDF(dealName, m, narr, planoObjetivo, materials, interio
     ['Duración obras',   V('mesesObra') + ' meses (estimado)'],
   ];
 
-  // Layout: top zone (text+table left | reform summary right), then plan full-width, then materials row
+  // Layout: top zone (text+table left | reform summary right), then plan, then interiorism image
   const BODY_H = 1123 - 74 - 40;
-  const TOP_H  = Math.round(BODY_H * 0.42);
-  const PLAN_H = Math.round(BODY_H * 0.38);
-  const MAT_H  = BODY_H - TOP_H - PLAN_H - 16; // remaining for materials/calidades
+  const TOP_H  = Math.round(BODY_H * 0.38);
+  const MAT_H  = interiorismImg ? 220 : 0;
+  const PLAN_H = BODY_H - TOP_H - MAT_H - (MAT_H ? 28 : 16); // 28 = separator + gap when image present
 
   return pg(`
     ${hdr('El Proyecto', dealName, 6)}
@@ -6690,15 +6690,15 @@ function rwSlideProyectoPDF(dealName, m, narr, planoObjetivo, materials, interio
             <div style="font-size:10px;line-height:1.78;color:rgba(50,44,36,0.8);font-weight:300;">${rwTrunc(narr.proyecto, 340)}</div>` : ''}
           </div>
           ${calidadesText ? `
-          <div style="padding:10px 14px;background:#FAF7F2;border-left:2px solid rgba(196,151,90,0.5);flex-shrink:0;">
+          <div style="padding:10px 14px;background:#F5F3EF;border-left:2px solid rgba(196,151,90,0.5);flex-shrink:0;">
             <div style="font-size:6px;letter-spacing:0.2em;text-transform:uppercase;color:#C4975A;margin-bottom:5px;font-weight:600;">Calidades</div>
             <div style="font-size:9px;line-height:1.65;color:#5A5040;">${rwTrunc(calidadesText, 240)}</div>
           </div>` : ''}
         </div>
         <!-- Right: reform data table -->
-        <div style="flex:0 0 46%;display:flex;flex-direction:column;gap:1px;background:rgba(196,151,90,0.12);border:0.5px solid rgba(196,151,90,0.12);align-self:flex-start;width:46%;">
+        <div style="flex:0 0 46%;display:flex;flex-direction:column;gap:1px;background:rgba(196,151,90,0.10);border:0.5px solid rgba(196,151,90,0.12);align-self:flex-start;width:46%;">
           ${reformData.map(([l,v]) => `
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;background:#F7F4EE;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;background:#FFFFFF;">
             <span style="font-size:9px;color:#8B8074;letter-spacing:0.04em;">${l}</span>
             <span style="font-family:'DM Mono',monospace;font-size:11px;color:#1A1D23;font-weight:500;">${v}</span>
           </div>`).join('')}
@@ -6710,22 +6710,22 @@ function rwSlideProyectoPDF(dealName, m, narr, planoObjetivo, materials, interio
         <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:600;">Distribución objetivo</div>
       </div>
 
-      <!-- PLAN ZONE: landscape plan full width -->
-      <div style="height:${PLAN_H}px;flex-shrink:0;background:#FFFFFF;border:0.5px solid rgba(196,151,90,0.18);overflow:hidden;display:flex;align-items:center;justify-content:center;">
+      <!-- PLAN ZONE: sin borde para que se integre con el fondo blanco -->
+      <div style="height:${PLAN_H}px;flex-shrink:0;background:#FFFFFF;overflow:hidden;display:flex;align-items:center;justify-content:center;">
         ${planoObjetivo
           ? `<img src="${planoObjetivo}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;">`
           : `<div style="font-size:8px;color:#B0A898;letter-spacing:0.1em;text-transform:uppercase;">Sin plano de distribución</div>`}
       </div>
 
-      <!-- INTERIORISM IMAGE ROW -->
+      <!-- INTERIORISM IMAGE: contain para no recortar ni deformar -->
       ${interiorismImg ? `
-      <div style="height:${MAT_H}px;flex-shrink:0;margin-top:8px;overflow:hidden;">
-        <img src="${interiorismImg}" style="width:100%;height:100%;object-fit:cover;display:block;">
+      <div style="height:${MAT_H}px;flex-shrink:0;margin-top:12px;background:#FFFFFF;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+        <img src="${interiorismImg}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;">
       </div>` : ''}
 
     </div>
     ${ftr()}
-  `);
+  `, '#FFFFFF');
 }
 
 // ── PDF SLIDE: TESTIGOS ───────────────────────────────────────
