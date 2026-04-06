@@ -6455,6 +6455,537 @@ function rwSlide8() {
   `, '#0F1014');
 }
 
+// ── PDF SLIDE: EL MERCADO ─────────────────────────────────────
+function rwSlideMercadoPDF(dealName, negotiation, m) {
+  const neg = negotiation || [];
+  const askH  = neg.find(h => h.tipo === 'asking');
+  const pactH = neg.find(h => h.tipo === 'pactado');
+  const savAbs = (askH?.importe > 0 && pactH?.importe > 0) ? askH.importe - pactH.importe : 0;
+  const savPct = (askH?.importe > 0 && pactH?.importe > 0) ? ((savAbs / askH.importe) * 100).toFixed(1) : null;
+
+  const tipoCfg = {
+    asking:       { label:'Precio inicial asking',  color:'#C0443A' },
+    oferta:       { label:'Oferta presentada',       color:'#8B6520' },
+    rechazada:    { label:'Oferta rechazada',        color:'#B05028' },
+    contraoferta: { label:'Contraoferta vendedor',   color:'#7A6010' },
+    pactado:      { label:'Precio pactado ✓',       color:'#1A6B3C' },
+  };
+
+  const buyPm2 = m.surfCapex > 0 ? Math.round(m.buyPrice / m.surfCapex) : 0;
+
+  const timelineHTML = neg.length > 0 ? neg.map((h, i) => {
+    const cfg = tipoCfg[h.tipo] || tipoCfg.oferta;
+    const isPactado = h.tipo === 'pactado';
+    const isLast = i === neg.length - 1;
+    const fmtI = h.importe > 0 ? h.importe.toLocaleString('es-ES') + ' €' : '';
+    const fmtF = h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', {month:'short', year:'numeric'}).toUpperCase() : '';
+    return `
+    <div style="display:flex;gap:14px;margin-bottom:${isLast?0:14}px;align-items:flex-start;">
+      <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding-top:4px;">
+        <div style="width:${isPactado?12:9}px;height:${isPactado?12:9}px;border-radius:50%;background:${cfg.color};flex-shrink:0;${isPactado?'box-shadow:0 0 0 3px rgba(26,107,60,0.15);':''}"></div>
+        ${!isLast ? `<div style="width:1px;flex:1;min-height:16px;background:rgba(196,151,90,0.2);margin-top:4px;"></div>` : ''}
+      </div>
+      <div style="flex:1;padding:${isPactado?'12px 14px':'8px 12px'};background:${isPactado?'rgba(26,107,60,0.05)':'#FAF7F2'};border:0.5px solid ${isPactado?'rgba(26,107,60,0.2)':'rgba(196,151,90,0.15)'};${isPactado?'border-left:2px solid #1A6B3C;':''}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${fmtI?4:0}px;">
+          <div style="font-size:6.5px;letter-spacing:0.18em;text-transform:uppercase;color:${cfg.color};font-weight:700;">${cfg.label}</div>
+          ${fmtF?`<div style="font-family:'DM Mono',monospace;font-size:7px;color:#A09282;">${fmtF}</div>`:''}
+        </div>
+        ${fmtI?`<div style="font-family:'DM Mono',monospace;font-size:${isPactado?18:14}px;color:${isPactado?'#1A6B3C':'#1A1D23'};font-weight:${isPactado?600:400};line-height:1;">${fmtI}</div>`:''}
+        ${h.nota?`<div style="font-size:8.5px;color:#8B8074;line-height:1.5;margin-top:4px;font-style:italic;">${h.nota}</div>`:''}
+      </div>
+    </div>`;
+  }).join('') : `<div style="font-size:10px;color:#A09282;font-style:italic;padding:20px 0;">Sin historial de negociación registrado.</div>`;
+
+  return pg(`
+    ${hdr('El Mercado', dealName, 5)}
+    <div style="padding:20px 44px 0;display:flex;gap:32px;height:calc(100% - 74px - 40px);overflow:hidden;">
+      <!-- Left: timeline -->
+      <div style="flex:1;overflow:hidden;">
+        <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:14px;">Del precio inicial al precio pactado</div>
+        ${timelineHTML}
+      </div>
+      <!-- Right: resultado -->
+      <div style="width:180px;flex-shrink:0;display:flex;flex-direction:column;gap:10px;justify-content:flex-start;padding-top:22px;">
+        ${savPct ? `
+        <div style="padding:20px 16px;background:#1A6B3C;text-align:center;">
+          <div style="font-size:6.5px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.6);margin-bottom:10px;">Ahorro negociado</div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:52px;font-weight:300;color:#FFFFFF;line-height:1;">−${savPct}<span style="font-size:24px;">%</span></div>
+          <div style="font-size:7.5px;color:rgba(255,255,255,0.5);margin-top:6px;">sobre precio inicial</div>
+        </div>
+        <div style="padding:12px 14px;background:#FAF7F2;border:0.5px solid rgba(196,151,90,0.2);">
+          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:5px;">Precio inicial</div>
+          <div style="font-family:'DM Mono',monospace;font-size:12px;color:#A09282;text-decoration:line-through;">${askH.importe.toLocaleString('es-ES')} €</div>
+        </div>
+        <div style="padding:12px 14px;background:#F4F1EB;border-left:2px solid #C4975A;">
+          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:5px;">Precio pactado</div>
+          <div style="font-family:'DM Mono',monospace;font-size:14px;color:#1A1D23;font-weight:600;">${pactH.importe.toLocaleString('es-ES')} €</div>
+        </div>
+        <div style="padding:12px 14px;background:#FAF7F2;border:0.5px solid rgba(26,107,60,0.2);">
+          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:5px;">Ahorro absoluto</div>
+          <div style="font-family:'DM Mono',monospace;font-size:13px;color:#1A6B3C;font-weight:600;">${savAbs.toLocaleString('es-ES')} €</div>
+        </div>` : `
+        <div style="padding:14px 16px;background:#F4F1EB;border-left:2px solid #C4975A;">
+          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:6px;">Precio de compra</div>
+          <div style="font-family:'DM Mono',monospace;font-size:18px;color:#1A1D23;">${m.buyPrice.toLocaleString('es-ES')} €</div>
+          <div style="font-size:8.5px;color:#A09282;margin-top:3px;">${buyPm2.toLocaleString('es-ES')} €/m²</div>
+        </div>`}
+      </div>
+    </div>
+    ${ftr()}
+  `);
+}
+
+// ── PDF SLIDE: EL PROYECTO ────────────────────────────────────
+function rwSlideProyectoPDF(dealName, m, narr, planoObjetivo, materials) {
+  const mats = materials || [];
+  const calidadesText = (window.__rwCalidadesText) || '';
+
+  const reformData = [
+    ['Obra (€/m²)',      V('obraM2').toLocaleString('es-ES') + ' €/m² + IVA'],
+    ['Interiorismo',     V('decoM2').toLocaleString('es-ES') + ' €/m² + IVA'],
+    ['CapEx total',      rwFmt(m.capexNet * (1 + V('ivaObra')/100))],
+    ['Superficie',       m.surfCapex + ' m²'],
+    ['Duración obras',   V('mesesObra') + ' meses (estimado)'],
+  ];
+
+  return pg(`
+    ${hdr('El Proyecto', dealName, 6)}
+    <div style="padding:20px 44px 0;display:flex;gap:24px;height:calc(100% - 74px - 40px);overflow:hidden;">
+      <!-- Left: narrative + reform data -->
+      <div style="flex:1;display:flex;flex-direction:column;gap:16px;overflow:hidden;">
+        <div>
+          <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">El proyecto</div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:300;color:#1A1D23;margin-bottom:12px;">Reforma integral</div>
+          ${narr.proyecto && narr.proyecto.length > 10 ? `
+          <div style="font-size:10.5px;line-height:1.82;color:rgba(50,44,36,0.8);font-weight:300;margin-bottom:14px;">${rwTrunc(narr.proyecto, 420)}</div>` : ''}
+        </div>
+        <!-- Reform data grid -->
+        <div style="display:flex;flex-direction:column;gap:1px;background:rgba(196,151,90,0.12);border:0.5px solid rgba(196,151,90,0.12);">
+          ${reformData.map(([l,v]) => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#F7F4EE;">
+            <span style="font-size:9px;color:#8B8074;letter-spacing:0.04em;">${l}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:11px;color:#1A1D23;font-weight:500;">${v}</span>
+          </div>`).join('')}
+        </div>
+        ${calidadesText ? `
+        <div style="padding:10px 14px;background:#FAF7F2;border-left:2px solid rgba(196,151,90,0.5);flex-shrink:0;">
+          <div style="font-size:6.5px;letter-spacing:0.2em;text-transform:uppercase;color:#C4975A;margin-bottom:6px;font-weight:600;">Calidades</div>
+          <div style="font-size:9.5px;line-height:1.7;color:#5A5040;">${rwTrunc(calidadesText, 280)}</div>
+        </div>` : ''}
+      </div>
+      <!-- Right: plano objetivo + materials -->
+      <div style="flex:0 0 42%;display:flex;flex-direction:column;gap:8px;overflow:hidden;">
+        <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:600;margin-bottom:2px;">Distribución objetivo</div>
+        <div style="flex:${mats.length > 0 ? '1.5' : '1'};background:#FFFFFF;overflow:hidden;display:flex;align-items:center;justify-content:center;border:0.5px solid rgba(196,151,90,0.15);min-height:0;">
+          ${planoObjetivo
+            ? `<img src="${planoObjetivo}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;">`
+            : `<div style="font-size:8px;color:#B0A898;letter-spacing:0.1em;text-transform:uppercase;">Sin plano</div>`}
+        </div>
+        ${mats.length > 0 ? `
+        <div style="flex:1;overflow:hidden;min-height:0;display:grid;grid-template-columns:repeat(${Math.min(mats.length,3)},1fr);gap:3px;">
+          ${mats.slice(0,3).map(mat=>`<div style="overflow:hidden;position:relative;">
+            <img src="${mat.dataUrl}" style="width:100%;height:100%;object-fit:cover;display:block;">
+          </div>`).join('')}
+        </div>` : ''}
+      </div>
+    </div>
+    ${ftr()}
+  `);
+}
+
+// ── PDF SLIDE: TESTIGOS ───────────────────────────────────────
+function rwSlideTestigosPDF(dealName, m) {
+  const reforComp    = comps.filter(c => c.precio > 0 && c.m2 > 0 && c.tipo === 'reformado');
+  const reformarComp = comps.filter(c => c.precio > 0 && c.m2 > 0 && c.tipo === 'reformar');
+  const medRefPm2    = reforComp.length ? Math.round(reforComp.reduce((s,c)=>s+c.precio/c.m2,0)/reforComp.length) : 0;
+  const medRfmPm2    = reformarComp.length ? Math.round(reformarComp.reduce((s,c)=>s+c.precio/c.m2,0)/reformarComp.length) : 0;
+  const buyPm2       = m.surfCapex > 0 ? Math.round(m.buyPrice / m.surfCapex) : 0;
+  const descuento    = medRfmPm2 > 0 && buyPm2 > 0 ? ((medRfmPm2 - buyPm2) / medRfmPm2 * 100).toFixed(1) : null;
+
+  const compRow = (c, accent) => `
+    <div style="display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:7px 12px;background:#FAF7F2;border-left:2px solid ${accent};margin-bottom:2px;">
+      <div style="font-size:10px;color:#5A5040;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.desc || c.dir || '—'}</div>
+      <div style="font-family:'DM Mono',monospace;color:#A09282;font-size:9px;">${c.m2}m²</div>
+      <div style="font-family:'DM Mono',monospace;color:#1A1D23;font-size:11px;font-weight:500;">${Math.round(c.precio/c.m2).toLocaleString('es-ES')} €/m²</div>
+    </div>`;
+
+  const scRows = [
+    { lbl:'Pesimista', ep:V('exitP'), sc:m.pess, col:'#B05050', bg:'rgba(176,80,80,0.05)' },
+    { lbl:'Base',      ep:V('exitB'), sc:m.base, col:'#C4975A', bg:'rgba(196,151,90,0.08)' },
+    { lbl:'Optimista', ep:V('exitO'), sc:m.opt,  col:'#1A6B3C', bg:'rgba(26,107,60,0.05)' },
+  ];
+
+  return pg(`
+    ${hdr('Testigos de mercado', dealName, 8)}
+    <div style="padding:18px 44px 0;display:grid;grid-template-columns:1fr 1fr;gap:24px;height:calc(100% - 74px - 40px);overflow:hidden;">
+      <!-- Left: comparables -->
+      <div style="display:flex;flex-direction:column;gap:16px;overflow:hidden;">
+        ${reforComp.length > 0 ? `
+        <div>
+          <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">Testigos reformados (${reforComp.length})</div>
+          ${reforComp.slice(0,6).map(c=>compRow(c,'rgba(26,107,60,0.5)')).join('')}
+          ${medRefPm2 > 0 ? `<div style="margin-top:8px;padding:10px 12px;background:#F4F1EB;border-left:2px solid #C4975A;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:8.5px;color:#8B8074;">Media reformados</span>
+            <span style="font-family:'DM Mono',monospace;font-size:14px;color:#C4975A;font-weight:600;">${medRefPm2.toLocaleString('es-ES')} €/m²</span>
+          </div>` : ''}
+        </div>` : ''}
+        ${reformarComp.length > 0 ? `
+        <div>
+          <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#8B8074;font-weight:700;margin-bottom:10px;">A reformar (${reformarComp.length})</div>
+          ${reformarComp.slice(0,4).map(c=>compRow(c,'rgba(196,151,90,0.4)')).join('')}
+          ${medRfmPm2 > 0 ? `<div style="margin-top:8px;padding:10px 12px;background:#FAF7F2;border:0.5px solid rgba(196,151,90,0.2);display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:8.5px;color:#8B8074;">Media sin reformar</span>
+            <span style="font-family:'DM Mono',monospace;font-size:14px;color:#1A1D23;">${medRfmPm2.toLocaleString('es-ES')} €/m²</span>
+          </div>` : ''}
+        </div>` : ''}
+        ${!reforComp.length && !reformarComp.length ? `<div style="font-size:10px;color:#A09282;font-style:italic;padding:20px 0;">Sin testigos registrados. Añade comparables en la sección Testigos.</div>` : ''}
+      </div>
+      <!-- Right: price scenarios + discount -->
+      <div style="display:flex;flex-direction:column;gap:10px;justify-content:flex-start;padding-top:4px;">
+        <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:6px;">Escenarios de precio de salida</div>
+        ${scRows.map(({lbl,ep,sc,col,bg})=>`
+        <div style="padding:14px 16px;background:${bg};border-left:2px solid ${col};">
+          <div style="font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:${col};margin-bottom:6px;font-weight:600;">${lbl}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:22px;color:#1A1D23;font-weight:500;line-height:1;">${ep.toLocaleString('es-ES')} <span style="font-size:11px;color:#A09282;">€/m²</span></div>
+          <div style="display:flex;gap:16px;margin-top:8px;">
+            <span style="font-size:8.5px;color:#8B8074;">Total: <span style="font-family:'DM Mono',monospace;color:#1A1D23;">${rwFmtK(ep*m.surfCapex)}</span></span>
+            <span style="font-size:8.5px;color:#8B8074;">ROI: <span style="font-family:'DM Mono',monospace;color:${col};">${rwPct(sc.roiGross)}</span></span>
+            <span style="font-size:8.5px;color:#8B8074;">TIR: <span style="font-family:'DM Mono',monospace;color:${col};">${sc.irr > 0 ? rwPct(sc.irr) : '—'}</span></span>
+          </div>
+        </div>`).join('')}
+        ${descuento ? `
+        <div style="padding:12px 14px;background:#F4F1EB;border:0.5px solid rgba(196,151,90,0.3);display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+          <span style="font-size:9px;color:#8B8074;">Descuento compra vs mercado sin reformar</span>
+          <span style="font-family:'DM Mono',monospace;font-size:16px;color:#1A6B3C;font-weight:700;">−${descuento}%</span>
+        </div>` : ''}
+      </div>
+    </div>
+    ${ftr()}
+  `);
+}
+
+// ── PDF SLIDE: CALENDARIO ─────────────────────────────────────
+function rwSlideCalendarioPDF(dealName, m) {
+  const tlSteps = [
+    { lbl:'Arras',       m: 0,                            sub: 'Firma del contrato' },
+    { lbl:'Escritura',   m: m.arasMonths,                 sub: m.arasMonths + 'm' },
+    { lbl:'Inicio obra', m: m.arasMonths + 1,             sub: 'Inicio CapEx' },
+    { lbl:'Fin obras',   m: m.arasMonths + Math.round(m.monthsSale * 0.75), sub: 'Entrega' },
+    { lbl:'Venta',       m: m.totalMonths,                sub: m.totalMonths + 'm total' },
+  ];
+  const maxM = m.totalMonths;
+
+  const phaseData = [
+    { l: 'Período arras',       v: m.arasMonths + ' meses',   c: '#8B8074' },
+    { l: 'Reforma + comercialización', v: m.monthsSale + ' meses', c: '#C4975A' },
+    { l: 'Total operación',     v: m.totalMonths + ' meses',  c: '#1A1D23' },
+    { l: 'Precio compra',       v: rwFmtK(m.buyPrice),         c: '#1A1D23' },
+    { l: 'Inversión total',     v: rwFmtK(m.totalInvest),      c: '#C4975A' },
+    { l: 'Precio salida base',  v: rwFmtK(m.base.saleGross),   c: '#1A6B3C' },
+  ];
+
+  return pg(`
+    ${hdr('Calendario', dealName, 9)}
+    <div style="padding:28px 44px;height:calc(100% - 74px - 40px);box-sizing:border-box;display:flex;flex-direction:column;gap:40px;">
+      <div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:300;color:#1A1D23;margin-bottom:8px;">Temporalidad de la operación</div>
+        <div style="font-size:9.5px;color:#8B8074;">Duración total estimada: ${m.totalMonths} meses · ${Math.round(m.totalMonths/12*10)/10} años</div>
+      </div>
+
+      <!-- Timeline track -->
+      <div style="position:relative;padding:0 20px;">
+        <!-- Track bar -->
+        <div style="height:3px;background:rgba(196,151,90,0.15);border-radius:2px;position:relative;">
+          <div style="position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,#8B6520,#C4975A);border-radius:2px;width:100%;"></div>
+        </div>
+        <!-- Step nodes -->
+        <div style="position:relative;margin-top:-7px;display:flex;justify-content:space-between;">
+          ${tlSteps.map((s, i) => {
+            const isPrimary = i === 0 || i === tlSteps.length - 1;
+            return `
+            <div style="display:flex;flex-direction:column;align-items:center;">
+              <div style="width:${isPrimary?16:12}px;height:${isPrimary?16:12}px;border-radius:50%;background:${isPrimary?'#C4975A':'#F7F4EE'};border:2px solid #C4975A;flex-shrink:0;"></div>
+              <div style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:#C4975A;margin-top:10px;font-weight:600;text-align:center;white-space:nowrap;">${s.lbl}</div>
+              <div style="font-family:'DM Mono',monospace;font-size:9px;color:#A09282;margin-top:3px;text-align:center;">${s.sub}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- Phase bar (visual) -->
+      <div style="position:relative;height:32px;background:#F0EDE6;border-radius:2px;overflow:hidden;">
+        <!-- Arras phase -->
+        <div style="position:absolute;left:0;top:0;height:100%;width:${(m.arasMonths/maxM*100).toFixed(1)}%;background:rgba(139,128,116,0.3);border-right:2px solid rgba(139,128,116,0.5);">
+          <div style="padding:0 8px;line-height:32px;font-size:7.5px;letter-spacing:0.1em;text-transform:uppercase;color:#5A5040;white-space:nowrap;overflow:hidden;">Arras</div>
+        </div>
+        <!-- Reforma phase -->
+        <div style="position:absolute;left:${(m.arasMonths/maxM*100).toFixed(1)}%;top:0;height:100%;width:${(m.monthsSale/maxM*100).toFixed(1)}%;background:rgba(196,151,90,0.25);border-right:2px solid rgba(196,151,90,0.5);">
+          <div style="padding:0 8px;line-height:32px;font-size:7.5px;letter-spacing:0.1em;text-transform:uppercase;color:#5A4010;white-space:nowrap;overflow:hidden;">Reforma &amp; Venta</div>
+        </div>
+      </div>
+
+      <!-- Summary grid -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+        ${phaseData.map(({l,v,c}) => `
+        <div style="padding:14px 16px;background:#F4F1EB;border-top:2px solid rgba(196,151,90,0.25);">
+          <div style="font-family:'DM Mono',monospace;font-size:18px;color:${c};margin-bottom:5px;line-height:1;">${v}</div>
+          <div style="font-size:7px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;">${l}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+    ${ftr()}
+  `);
+}
+
+// ── PDF SLIDE: PROTECCIÓN DE CAPITAL ─────────────────────────
+function rwSlideProteccionPDF(dealName, m) {
+  const beM2     = Math.round(m.bePriceM2);
+  const exitBase = V('exitB');
+  const marginPct = exitBase > 0 ? ((exitBase - beM2) / exitBase * 100).toFixed(1) : '—';
+
+  const durCols = [
+    { label: `${m.arasMonths+2}m`, months: m.arasMonths+2 },
+    { label: `${m.totalMonths}m ·`, months: m.totalMonths },
+    { label: `${m.totalMonths+4}m`, months: m.totalMonths+4 },
+    { label: `${m.totalMonths+8}m`, months: m.totalMonths+8 },
+  ];
+  const priceCols = (sensPrices && sensPrices.length ? [...sensPrices] : [V('exitP'),V('exitB'),V('exitO')]).slice(0,6);
+
+  function cellROI(ep, mo) {
+    const commAdj = V('comunidad')*mo, ibiAdj = V('ibi')*mo/12;
+    const tot = m.buyPrice+m.itp+m.notaria+commAdj+ibiAdj+m.intermediaryFee+m.brokerBuyFee+m.capexNet+m.totalFeesNet+m.totalIVA;
+    const brk = ep*m.surfCapex*V('brokerExit')/100 + (V('exitFixed')+V('exitFixedAjuste'));
+    return (ep*m.surfCapex - brk - tot) / tot;
+  }
+  function cellROI2(capexMult, ep) {
+    const cn = m.capexNet * capexMult;
+    const tot2 = m.buyPrice+m.itp+m.notaria+V('comunidad')*m.totalMonths+V('ibi')*m.totalMonths/12+m.intermediaryFee+m.brokerBuyFee+cn+m.totalFeesNet+cn*V('ivaObra')/100;
+    const brk = ep*m.surfCapex*V('brokerExit')/100 + (V('exitFixed')+V('exitFixedAjuste'));
+    return (ep*m.surfCapex - brk - tot2) / tot2;
+  }
+  function roiStyle(roi) {
+    if (roi < 0)    return 'background:rgba(180,30,30,0.15);color:#C0443A;border:0.5px solid rgba(192,68,58,0.25);';
+    if (roi < 0.08) return 'background:rgba(180,100,20,0.12);color:#8B5A10;border:0.5px solid rgba(180,100,20,0.2);';
+    if (roi < 0.15) return 'background:rgba(139,105,20,0.1);color:#7A6010;border:0.5px solid rgba(196,151,90,0.25);';
+    return 'background:rgba(26,107,60,0.08);color:#1A6B3C;border:0.5px solid rgba(26,107,60,0.2);';
+  }
+
+  const capexAdjs = [-0.20,-0.10,0,+0.10,+0.20,+0.30];
+  const capexExits = [V('exitP'),V('exitB'),V('exitO')].filter((v,i,a)=>a.indexOf(v)===i);
+
+  const thStyle = 'padding:5px 10px;font-size:7.5px;letter-spacing:0.1em;text-transform:uppercase;color:#8B8074;font-weight:400;text-align:center;border-bottom:1px solid rgba(196,151,90,0.2);';
+  const thLeftStyle = 'padding:5px 12px;font-size:7.5px;letter-spacing:0.1em;text-transform:uppercase;color:#8B8074;font-weight:400;text-align:left;border-bottom:1px solid rgba(196,151,90,0.2);';
+
+  return pg(`
+    ${hdr('Protección de Capital', dealName, 10)}
+    <div style="padding:16px 44px 0;display:flex;flex-direction:column;gap:14px;height:calc(100% - 74px - 40px);overflow:hidden;">
+      <!-- Header stats -->
+      <div style="display:flex;gap:10px;flex-shrink:0;">
+        ${[
+          ['Breakeven bruto', beM2.toLocaleString('es-ES') + ' €/m²', '#C4975A'],
+          ['Margen s/ base', marginPct + '%', '#1A6B3C'],
+          ['Precio compra', `${(m.surfCapex>0?Math.round(m.buyPrice/m.surfCapex):0).toLocaleString('es-ES')} €/m²`, '#1A1D23'],
+        ].map(([l,v,c])=>`
+        <div style="flex:1;padding:12px 14px;background:#F4F1EB;border-top:2px solid ${c};">
+          <div style="font-family:'DM Mono',monospace;font-size:18px;color:${c};line-height:1;margin-bottom:4px;">${v}</div>
+          <div style="font-size:7px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;">${l}</div>
+        </div>`).join('')}
+      </div>
+
+      <!-- Two matrices side by side -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;flex:1;min-height:0;overflow:hidden;">
+        <!-- Matrix 1: Precio × Duración -->
+        <div style="display:flex;flex-direction:column;">
+          <div style="font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:#8B8074;margin-bottom:8px;font-weight:600;">ROI · Precio salida × Duración</div>
+          <table style="width:100%;border-collapse:collapse;">
+            <thead><tr>
+              <th style="${thLeftStyle}">€/m²</th>
+              ${durCols.map(({label,months})=>`<th style="${thStyle.replace('#8B8074', months===m.totalMonths?'#C4975A':'#8B8074')}">${label}</th>`).join('')}
+            </tr></thead>
+            <tbody>
+              ${priceCols.map(ep => {
+                const isBase = Math.abs(ep - exitBase) < 200;
+                return `<tr>
+                  <td style="padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;color:${isBase?'#C4975A':'#8B8074'};white-space:nowrap;border-bottom:1px solid rgba(196,151,90,0.1);${isBase?'font-weight:600;':''}">
+                    ${ep.toLocaleString('es-ES')}${isBase?' ·':''}
+                  </td>
+                  ${durCols.map(({months}) => {
+                    const roi = cellROI(ep, months);
+                    const s = roiStyle(roi);
+                    return `<td style="padding:7px 8px;text-align:center;${s}">
+                      <div style="font-family:'DM Mono',monospace;font-size:11px;font-weight:600;line-height:1;">${(roi*100).toFixed(1)}%</div>
+                    </td>`;
+                  }).join('')}
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+        <!-- Matrix 2: CapEx × Precio -->
+        <div style="display:flex;flex-direction:column;">
+          <div style="font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:#8B8074;margin-bottom:8px;font-weight:600;">ROI · Variación CapEx × Precio salida</div>
+          <table style="width:100%;border-collapse:collapse;">
+            <thead><tr>
+              <th style="${thLeftStyle}">CapEx</th>
+              ${capexExits.map(ep=>`<th style="${thStyle.replace('#8B8074', Math.abs(ep-exitBase)<200?'#C4975A':'#8B8074')}">${ep.toLocaleString('es-ES')}</th>`).join('')}
+            </tr></thead>
+            <tbody>
+              ${capexAdjs.map(adj => {
+                const isBase = adj === 0;
+                const lbl = isBase ? 'CapEx base ·' : `${adj>0?'+':''}${(adj*100).toFixed(0)}%`;
+                return `<tr>
+                  <td style="padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;color:${isBase?'#C4975A':'#8B8074'};white-space:nowrap;border-bottom:1px solid rgba(196,151,90,0.1);${isBase?'font-weight:600;':''}">
+                    ${lbl}
+                  </td>
+                  ${capexExits.map(ep => {
+                    const roi = cellROI2(1+adj, ep);
+                    const s = roiStyle(roi);
+                    return `<td style="padding:7px 8px;text-align:center;${s}">
+                      <div style="font-family:'DM Mono',monospace;font-size:11px;font-weight:600;line-height:1;">${(roi*100).toFixed(1)}%</div>
+                    </td>`;
+                  }).join('')}
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Legend -->
+      <div style="display:flex;gap:14px;padding:10px 0;border-top:1px solid rgba(196,151,90,0.15);flex-shrink:0;">
+        ${[['#C0443A','rgba(180,30,30,0.15)','< 0% · Pérdidas'],['#8B5A10','rgba(180,100,20,0.12)','0–8% · Ajustado'],['#7A6010','rgba(139,105,20,0.1)','8–15% · Aceptable'],['#1A6B3C','rgba(26,107,60,0.08)','> 15% · Objetivo']].map(([c,bg,l])=>`
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="width:12px;height:12px;background:${bg};border:0.5px solid ${c};flex-shrink:0;border-radius:1px;"></div>
+          <span style="font-size:8.5px;color:#8B8074;">${l}</span>
+        </div>`).join('')}
+        <div style="margin-left:auto;font-size:8px;color:#A09282;">· = escenario base</div>
+      </div>
+    </div>
+    ${ftr()}
+  `);
+}
+
+// ── PDF SLIDE: HIGHLIGHTS ─────────────────────────────────────
+function rwSlideHighlightsPDF(dealName, m, d) {
+  const est = d.estructura || {};
+  const VEHICULO_LABELS = { spv_unica:'SPV · Única operación', spv_multi:'SPV · Multi-activo', club_deal:'Club Deal' };
+  const VEHICULO_DESC   = {
+    spv_unica:'Sociedad de propósito específico constituida para esta operación. Separación total de riesgo patrimonial.',
+    spv_multi:'Vehículo multi-activo. Permite diversificación y acceso a operaciones futuras.',
+    club_deal:'Grupo cerrado de inversores privados. Estructura ágil regida por pacto entre partes.'
+  };
+  const APORTACION_LABELS = { pp:'Préstamo participativo', cp:'Cuenta en participación', ac:'Ampliación de capital', ph:'Préstamo c/ garantía hipotecaria' };
+  const APORTACION_DESC = {
+    pp:'Interés fijo + participación variable en beneficio. Sin transmisión de propiedad.',
+    cp:'Capital cedido al gestor. Comparte riesgo y beneficio en proporción a la aportación.',
+    ac:'El inversor entra como socio de la sociedad, con derechos societarios.',
+    ph:'Retorno fijo garantizado con el activo como colateral. Perfil más conservador.'
+  };
+  const sf1T=V('sf1T'), sf2T=V('sf2T'), sf1P=V('sf1P'), sf2P=V('sf2P');
+  const beM2 = Math.round(m.bePriceM2);
+  const ticketMin = est.ticketMinimo ? parseInt(est.ticketMinimo).toLocaleString('es-ES') + ' €' : '—';
+  const vLabel = est.vehiculo ? VEHICULO_LABELS[est.vehiculo] : null;
+  const vDesc  = est.vehiculo ? VEHICULO_DESC[est.vehiculo] : null;
+  const aLabel = est.aportacion ? APORTACION_LABELS[est.aportacion] : null;
+  const aDesc  = est.aportacion ? APORTACION_DESC[est.aportacion] : null;
+
+  const roiPess = Math.max(0, m.pess.roiGross * 100);
+  const roiBase = Math.max(0, m.base.roiGross * 100);
+  const roiOpt  = Math.max(0, m.opt.roiGross * 100);
+  const maxRoi  = Math.max(roiOpt, 60);
+
+  return pg(`
+    ${hdr('Highlights de la inversión', dealName, 11)}
+    <div style="padding:18px 44px 0;display:grid;grid-template-columns:1fr 1fr;gap:24px;height:calc(100% - 74px - 40px);overflow:hidden;">
+      <!-- LEFT: KPIs + escenarios -->
+      <div style="display:flex;flex-direction:column;gap:12px;overflow:hidden;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          ${[
+            ['Inversión total',  rwFmtK(m.totalInvest),       '#C4975A'],
+            ['Ticket mínimo',    ticketMin,                    '#1A1D23'],
+            ['ROI bruto base',   rwPct(m.base.roiGross),       '#1A6B3C'],
+            ['TIR anual base',   m.irrBase>0?rwPct(m.irrBase):'—', '#1A6B3C'],
+            ['Plazo estimado',   m.totalMonths + ' meses',    '#1A1D23'],
+            ['Breakeven',        beM2.toLocaleString('es-ES') + ' €/m²', '#8B8074'],
+          ].map(([l,v,c])=>`
+          <div style="padding:10px 12px;background:#F4F1EB;border-left:2px solid rgba(196,151,90,0.3);">
+            <div style="font-family:'DM Mono',monospace;font-size:14px;color:${c};line-height:1;margin-bottom:4px;">${v}</div>
+            <div style="font-size:7px;letter-spacing:0.12em;text-transform:uppercase;color:#A09282;">${l}</div>
+          </div>`).join('')}
+        </div>
+
+        <!-- ROI bars -->
+        <div>
+          <div style="font-size:6.5px;letter-spacing:0.2em;text-transform:uppercase;color:#8B8074;margin-bottom:8px;">Proyección ROI bruto por escenario</div>
+          ${[
+            {lbl:'Pesimista',  v:roiPess.toFixed(1)+'%', bar:(roiPess/maxRoi*100).toFixed(1), c:'#B05050', ep:V('exitP')},
+            {lbl:'Base',       v:roiBase.toFixed(1)+'%', bar:(roiBase/maxRoi*100).toFixed(1), c:'#C4975A', ep:V('exitB')},
+            {lbl:'Optimista',  v:roiOpt.toFixed(1)+'%',  bar:(roiOpt/maxRoi*100).toFixed(1),  c:'#1A6B3C', ep:V('exitO')},
+          ].map(s=>`
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+            <div style="width:64px;font-size:7.5px;letter-spacing:0.1em;text-transform:uppercase;color:${s.c};flex-shrink:0;">${s.lbl}</div>
+            <div style="flex:1;height:5px;background:rgba(196,151,90,0.12);border-radius:2px;overflow:hidden;">
+              <div style="height:100%;width:${s.bar}%;background:${s.c};border-radius:2px;"></div>
+            </div>
+            <div style="font-family:'DM Mono',monospace;font-size:12px;color:${s.c};font-weight:600;width:44px;text-align:right;">${s.v}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:8px;color:#A09282;width:80px;">${s.ep.toLocaleString('es-ES')} €/m²</div>
+          </div>`).join('')}
+        </div>
+
+        <!-- Scenario mini-table -->
+        <div style="background:#FAF7F2;border:0.5px solid rgba(196,151,90,0.2);">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px solid rgba(196,151,90,0.15);">
+            ${['Escenario','€/m²','ROI bruto','TIR anual'].map(h=>`<div style="padding:5px 8px;font-size:7px;letter-spacing:0.1em;text-transform:uppercase;color:#A09282;">${h}</div>`).join('')}
+          </div>
+          ${[
+            {lbl:'Pesimista', ep:V('exitP'), sc:m.pess, col:'#B05050'},
+            {lbl:'Base',      ep:V('exitB'), sc:m.base, col:'#C4975A'},
+            {lbl:'Optimista', ep:V('exitO'), sc:m.opt,  col:'#1A6B3C'},
+          ].map(({lbl,ep,sc,col})=>`
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px solid rgba(196,151,90,0.08);">
+            <div style="padding:6px 8px;font-size:9px;color:${col};font-weight:600;">${lbl}</div>
+            <div style="padding:6px 8px;font-family:'DM Mono',monospace;font-size:9px;color:#1A1D23;">${ep.toLocaleString('es-ES')}</div>
+            <div style="padding:6px 8px;font-family:'DM Mono',monospace;font-size:9px;color:${col};">${rwPct(sc.roiGross)}</div>
+            <div style="padding:6px 8px;font-family:'DM Mono',monospace;font-size:9px;color:${col};">${sc.irr>0?rwPct(sc.irr):'—'}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+
+      <!-- RIGHT: estructura + fees -->
+      <div style="display:flex;flex-direction:column;gap:12px;overflow:hidden;">
+        ${vLabel ? `<div style="padding:12px 14px;background:#FAF7F2;border-left:2px solid #C4975A;">
+          <div style="font-size:6.5px;letter-spacing:0.18em;text-transform:uppercase;color:#C4975A;margin-bottom:5px;font-weight:700;">Vehículo de inversión</div>
+          <div style="font-size:12px;color:#1A1D23;font-weight:600;margin-bottom:4px;">${vLabel}</div>
+          <div style="font-size:9.5px;color:#8B8074;line-height:1.6;">${vDesc}</div>
+        </div>` : ''}
+        ${aLabel ? `<div style="padding:12px 14px;background:#F4F1EB;border:0.5px solid rgba(196,151,90,0.2);">
+          <div style="font-size:6.5px;letter-spacing:0.18em;text-transform:uppercase;color:#8B8074;margin-bottom:5px;font-weight:700;">Forma de aportación</div>
+          <div style="font-size:12px;color:#1A1D23;font-weight:600;margin-bottom:4px;">${aLabel}</div>
+          <div style="font-size:9.5px;color:#8B8074;line-height:1.6;">${aDesc}</div>
+        </div>` : ''}
+        <!-- Fees structure -->
+        <div style="background:#FAF7F2;border:0.5px solid rgba(196,151,90,0.2);">
+          <div style="padding:8px 14px;border-bottom:1px solid rgba(196,151,90,0.15);">
+            <div style="font-size:6.5px;letter-spacing:0.18em;text-transform:uppercase;color:#C4975A;font-weight:700;">Estructura de fees Riverwalk</div>
+          </div>
+          ${[
+            ['Management fee',           `${V('mgmtFeePct')}% s/ precio + CapEx`],
+            [`Carry ROI < ${sf1T}%`,     '0% — íntegro al inversor'],
+            [`Carry ROI ${sf1T}–${sf2T}%`, `${sf1P}% Riverwalk · ${100-sf1P}% inversor`],
+            [`Carry ROI > ${sf2T}%`,     `${sf2P}% Riverwalk · ${100-sf2P}% inversor`],
+          ].map(([l,v])=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-bottom:1px solid rgba(196,151,90,0.08);">
+            <span style="font-size:9.5px;color:#8B8074;">${l}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:10px;color:#1A1D23;">${v}</span>
+          </div>`).join('')}
+        </div>
+        <div style="font-size:8.5px;color:#A09282;line-height:1.6;padding-top:4px;">Documento informativo. Las rentabilidades proyectadas no garantizan resultados futuros.</div>
+      </div>
+    </div>
+    ${ftr()}
+  `);
+}
+
 // ── MAIN ──────────────────────────────────────────────────────
 async function exportDossierPDF() {
   if (typeof html2canvas === 'undefined') {
@@ -6503,14 +7034,24 @@ async function exportDossierPDF() {
     }
 
     // Build slides
+    // Expose calidades text globally for rwSlideProyectoPDF
+    const calidadesText = d.calidades?.customText || (d.calidades?.preset && window.CALIDADES_DEFAULTS ? window.CALIDADES_DEFAULTS[d.calidades.preset] : '') || '';
+    window.__rwCalidadesText = calidadesText;
+
     const slides = [
       rwSlide1(dealName, dealAddr, dealMode, dateStr, rwDossierImages.fachada),
       rwSlide2(dealName, dealAddr, m, narr, rwDossierImages.fachada),
       rwSlide3(dealName, rwDossierImages.interiores),
       rwSlide4(dealName, m, narr),
+      (d.negotiation && d.negotiation.length > 0) ? rwSlideMercadoPDF(dealName, d.negotiation, m) : null,
       rwSlide5(dealName, rwDossierImages.planoActual, rwDossierImages.planoObjetivo, narr),
+      (narr.proyecto || rwDossierImages.planoObjetivo || (d.materials||[]).length > 0) ? rwSlideProyectoPDF(dealName, m, narr, rwDossierImages.planoObjetivo, d.materials || []) : null,
       rwSlide6(dealName, dealAddr, mapData, narr, m, d.orientation || null),
+      (comps && comps.filter(c=>c.precio>0&&c.m2>0).length > 0) ? rwSlideTestigosPDF(dealName, m) : null,
       rwSlide7(dealName, m),
+      rwSlideCalendarioPDF(dealName, m),
+      rwSlideProteccionPDF(dealName, m),
+      rwSlideHighlightsPDF(dealName, m, d),
       rwSlide8(),
     ].filter(Boolean);
 
@@ -6522,9 +7063,15 @@ async function exportDossierPDF() {
       'Maquetando el activo…',
       'Insertando fotografías…',
       'Calculando la oportunidad…',
+      'Negociación…',
       'Dibujando planos…',
+      'El proyecto…',
       'Pintando el mapa…',
+      'Testigos de mercado…',
       'Compilando escenarios…',
+      'Calendario…',
+      'Matrices de sensibilidad…',
+      'Highlights…',
       'Cerrando con el logo…',
     ];
 
