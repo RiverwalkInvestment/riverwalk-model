@@ -296,7 +296,7 @@ function toggleSec(hd) {
   const body = hd.nextElementSibling;
   const arr  = hd.querySelector('.isec-arr');
   const open = body.style.display !== 'none';
-  body.style.display = open ? 'none' : '';
+  body.style.display = open ? 'none' : 'block';
   arr.classList.toggle('open', !open);
 }
 function syncMgmt(el) {

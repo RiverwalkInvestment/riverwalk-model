@@ -872,7 +872,7 @@ const DEAL_HTML = `
         Registra el recorrido de negociación desde el precio inicial hasta el precio pactado. Se mostrará como un timeline visual en la presentación.
       </div>
       <div id="neg-hitos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
-      <button onclick="addNegHito()" style="width:100%;background:rgba(196,151,90,0.08);border:1px dashed rgba(196,151,90,0.3);color:rgba(196,151,90,0.7);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;padding:8px;cursor:pointer;font-family:'Raleway',sans-serif">+ Añadir hito</button>
+      <button type="button" onclick="addNegHito()" style="width:100%;background:rgba(196,151,90,0.08);border:1px dashed rgba(196,151,90,0.3);color:rgba(196,151,90,0.7);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;padding:8px;cursor:pointer;font-family:'Raleway',sans-serif">+ Añadir hito</button>
     </div>
   </div>
 
@@ -1449,21 +1449,22 @@ export default function DealClient({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Collect all input/select values + toggle states + comparables from the DOM
+  // Collect all input/select/textarea values + toggle states + comparables from the DOM
   function getDealData(): Record<string, unknown> {
     const data: Record<string, unknown> = {}
-    document.querySelectorAll('input[id], select[id]').forEach(el => {
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
       const input = el as HTMLInputElement
       if (input.id) data[input.id] = input.value
     })
-    // Capture toggle states (dealMode, sfMode, taxOn, levMode…) and comparables
+    // Capture toggle states (dealMode, sfMode, taxOn, levMode…), comparables, and dossier
     // via deal-script.js's captureCurrentDeal() — these are not input fields
-    type SnapFn = () => { fields: Record<string, string>; states: Record<string, unknown>; comps: unknown[] }
+    type SnapFn = () => { fields: Record<string, string>; states: Record<string, unknown>; comps: unknown[]; dossier: unknown }
     const capture = (window as Window & { captureCurrentDeal?: SnapFn }).captureCurrentDeal
     if (capture) {
       const snap = capture()
       if (snap.states) data._states = snap.states
       if (snap.comps?.length) data._comps = snap.comps
+      if (snap.dossier) data._dossier = snap.dossier
     }
     return data
   }
@@ -1471,7 +1472,7 @@ export default function DealClient({
   // Restore saved data into DOM using deal-script's applyDeal (handles states,
   // comparables, money formatting) then set any fields not in DEAL_FIELDS.
   function setDealData(data: Record<string, unknown>) {
-    type ApplyFn = (deal: { fields: Record<string, string>; states?: unknown; comps?: unknown[] }) => void
+    type ApplyFn = (deal: { fields: Record<string, string>; states?: unknown; comps?: unknown[]; dossier?: unknown }) => void
     const apply = (window as Window & { applyDeal?: ApplyFn }).applyDeal
 
     const fields: Record<string, string> = {}
@@ -1486,6 +1487,7 @@ export default function DealClient({
         fields,
         states: data._states as Record<string, unknown> | undefined,
         comps: data._comps as unknown[] | undefined,
+        dossier: data._dossier as unknown | undefined,
       })
       // Also set fields not in DEAL_FIELDS (e.g. finderFeePct, taxStructure extras)
       Object.entries(fields).forEach(([key, value]) => {
