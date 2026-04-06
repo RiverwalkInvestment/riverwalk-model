@@ -1621,6 +1621,9 @@ function loadDossierToForm() {
       streetName:   '',
     };
   }
+  // Interiorism style
+  const intSel = $('interiorismStyle');
+  if (intSel) { intSel.value = d.interiorismStyle || ''; saveInteriorismStyle(); }
   // Calidades
   const cpSel = $('calidadesPreset');
   if (cpSel) { cpSel.value = d.calidades?.preset || ''; applyCalidadesPreset(); }
@@ -1638,6 +1641,30 @@ function loadDossierToForm() {
 }
 
 // ── ORIENTACIÓN OVERRIDE ───────────────────────────
+const INTERIORISM_IMGS = {
+  'soft-minimalism':    '/interiorismo-soft-minimalism.jpg',
+  'modern-classic':     '/interiorismo-modern-classic.jpg',
+  'contemporary-warm':  '/interiorismo-contemporary-warm.jpg',
+};
+
+function saveInteriorismStyle() {
+  const d = getCurrentDossier();
+  const val = $('interiorismStyle')?.value || '';
+  d.interiorismStyle = val;
+  // Update preview thumbnail
+  const preview    = $('interiorism-preview');
+  const previewImg = $('interiorism-preview-img');
+  if (preview && previewImg) {
+    if (val && INTERIORISM_IMGS[val]) {
+      previewImg.src      = INTERIORISM_IMGS[val];
+      preview.style.display = '';
+    } else {
+      preview.style.display = 'none';
+      previewImg.src = '';
+    }
+  }
+}
+
 function saveOrientacionOverride() {
   const d = getCurrentDossier();
   const val = $('dealOrientacion')?.value || '';
@@ -2697,7 +2724,7 @@ function buildSlides(m, d) {
     </div>` });
 
   // ── EL PROYECTO ──────────────────────────────────────────────────────────
-  const mats = d.materials || [];
+  const interiorismImg = INTERIORISM_IMGS[d.interiorismStyle || ''] || null;
   slides.push({ id:'proyecto', html: baseCSS + `
   <style>
     .sl-light .ps-h2{color:#1A1D23}
@@ -2736,9 +2763,9 @@ function buildSlides(m, d) {
         </div>
         <div style="flex:0 0 3px;background:#E8E4DC;"></div>
         <div style="flex:1;overflow:hidden;min-height:0;background:#FFFFFF;">
-          ${mats.length
-            ? `<div style="display:grid;grid-template-columns:repeat(${Math.min(mats.length,3)},1fr);height:100%;gap:2px;background:#FFFFFF;">${mats.slice(0,6).map(mat=>`<div style="overflow:hidden;min-height:0;background:#FFFFFF;display:flex;align-items:center;justify-content:center;"><img src="${mat.dataUrl}" style="width:100%;height:100%;object-fit:contain;background:#FFFFFF;display:block;"></div>`).join('')}</div>`
-            : `<div style="width:100%;height:100%;background:#F0EFEC;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><span style="font-size:10px;letter-spacing:0.1em;color:rgba(0,0,0,0.2)">PALETA DE CALIDADES</span></div>`
+          ${interiorismImg
+            ? `<img src="${interiorismImg}" style="width:100%;height:100%;object-fit:cover;display:block;">`
+            : `<div style="width:100%;height:100%;background:#F0EFEC;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><span style="font-size:10px;letter-spacing:0.1em;color:rgba(0,0,0,0.2)">TIPOLOGÍA DE INTERIORISMO</span></div>`
           }
         </div>
       </div>
@@ -6629,8 +6656,9 @@ function rwSlideMercadoPDF(dealName, negotiation, m) {
 }
 
 // ── PDF SLIDE: EL PROYECTO ────────────────────────────────────
-function rwSlideProyectoPDF(dealName, m, narr, planoObjetivo, materials) {
+function rwSlideProyectoPDF(dealName, m, narr, planoObjetivo, materials, interiorismStyle) {
   const mats = materials || [];
+  const interiorismImg = INTERIORISM_IMGS[interiorismStyle || ''] || null;
   const calidadesText = (window.__rwCalidadesText) || '';
 
   const reformData = [
@@ -6689,12 +6717,10 @@ function rwSlideProyectoPDF(dealName, m, narr, planoObjetivo, materials) {
           : `<div style="font-size:8px;color:#B0A898;letter-spacing:0.1em;text-transform:uppercase;">Sin plano de distribución</div>`}
       </div>
 
-      <!-- MATERIALS ROW: contain para no cortar, fondo blanco -->
-      ${mats.length > 0 ? `
-      <div style="height:${MAT_H}px;flex-shrink:0;margin-top:8px;display:grid;grid-template-columns:repeat(${Math.min(mats.length,3)},1fr);gap:6px;overflow:hidden;">
-        ${mats.slice(0,3).map(mat=>`<div style="overflow:hidden;position:relative;background:#FFFFFF;display:flex;align-items:center;justify-content:center;">
-          <img src="${mat.dataUrl}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;">
-        </div>`).join('')}
+      <!-- INTERIORISM IMAGE ROW -->
+      ${interiorismImg ? `
+      <div style="height:${MAT_H}px;flex-shrink:0;margin-top:8px;overflow:hidden;">
+        <img src="${interiorismImg}" style="width:100%;height:100%;object-fit:cover;display:block;">
       </div>` : ''}
 
     </div>
@@ -7154,7 +7180,7 @@ async function exportDossierPDF() {
       rwSlide4(dealName, m, narr),
       (d.negotiation && d.negotiation.length > 0) ? rwSlideMercadoPDF(dealName, d.negotiation, m) : null,
       rwSlide5(dealName, rwDossierImages.planoActual, rwDossierImages.planoObjetivo, narr),
-      (narr.proyecto || rwDossierImages.planoObjetivo || (d.materials||[]).length > 0) ? rwSlideProyectoPDF(dealName, m, narr, rwDossierImages.planoObjetivo, d.materials || []) : null,
+      (narr.proyecto || rwDossierImages.planoObjetivo || d.interiorismStyle) ? rwSlideProyectoPDF(dealName, m, narr, rwDossierImages.planoObjetivo, [], d.interiorismStyle || '') : null,
       rwSlide6(dealName, dealAddr, mapData, narr, m, d.orientation || null),
       (comps && comps.filter(c=>c.precio>0&&c.m2>0).length > 0) ? rwSlideTestigosPDF(dealName, m) : null,
       rwSlide7(dealName, m),

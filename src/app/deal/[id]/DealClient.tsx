@@ -795,12 +795,19 @@ const DEAL_HTML = `
       </div>
 
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line2)">
-        <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-d);margin-bottom:8px;font-weight:500">Paleta de calidades (máx. 9)</div>
-        <div id="dossier-materials-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px"></div>
-        <label style="display:block;width:100%;background:var(--d4);border:1px dashed var(--d6);color:var(--text-d);font-family:'Raleway',sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;padding:8px;cursor:pointer;text-align:center" id="materials-upload-label">
-          + Añadir material / acabado
-          <input type="file" accept="image/*" multiple style="display:none" id="materials-file-input" onchange="handleMaterialUpload(this)">
-        </label>
+        <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-d);margin-bottom:8px;font-weight:500">Tipología de interiorismo</div>
+        <div style="position:relative">
+          <select id="interiorismStyle" onchange="saveInteriorismStyle()" style="width:100%;background:var(--d4);border:1px solid var(--d6);color:var(--text);font-family:'Raleway',sans-serif;font-size:11px;padding:10px 32px 10px 12px;cursor:pointer;appearance:none;-webkit-appearance:none;outline:none">
+            <option value="">— Seleccionar tipología —</option>
+            <option value="soft-minimalism">Soft Minimalism</option>
+            <option value="modern-classic">Modern Classic</option>
+            <option value="contemporary-warm">Contemporary Warm Luxury</option>
+          </select>
+          <div style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-d);font-size:10px">▾</div>
+        </div>
+        <div id="interiorism-preview" style="margin-top:8px;display:none;overflow:hidden;border:1px solid var(--line2)">
+          <img id="interiorism-preview-img" style="width:100%;height:80px;object-fit:cover;display:block;" src="" alt="">
+        </div>
       </div>
 
       </div>
@@ -1402,7 +1409,7 @@ const OVERLAY_HTML = `
 
 // Cache-buster for deal-script.js — bump this string whenever deal-script.js changes
 // so the browser fetches the latest version instead of the cached one.
-const DEAL_SCRIPT_VER = '20260406-13'
+const DEAL_SCRIPT_VER = '20260406-14'
 
 // Module-level flag: prevents createAndGo from firing more than once at a time,
 // guarding against double-clicks or remount-induced duplicate deal creation.
