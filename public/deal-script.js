@@ -1628,7 +1628,25 @@ function loadDossierToForm() {
 // ── ORIENTACIÓN OVERRIDE ───────────────────────────
 function saveOrientacionOverride() {
   const d = getCurrentDossier();
-  d.orientacionOverride = $('dealOrientacion')?.value || '';
+  const val = $('dealOrientacion')?.value || '';
+  d.orientacionOverride = val;
+  if (val) {
+    // Build a synthetic orientation object from the selected cardinal so the
+    // compass in Presentar and PDF dossier updates immediately.
+    const ANGLES = { N:0, NE:45, E:90, SE:135, S:180, SO:225, O:270, NO:315 };
+    d.orientation = {
+      angle:        ANGLES[val] ?? 0,
+      cardinal:     val,
+      solar:        rwSolarDesc(val),
+      uncertain:    false,
+      streetBearing: null,
+      streetName:   '',
+    };
+  } else {
+    // "Automático" selected: clear override and re-run the Overpass calculation
+    d.orientation = null;
+    rwFetchAndStoreOrientation();
+  }
 }
 
 // ── ESTRUCTURACIÓN ─────────────────────────────────
@@ -2265,6 +2283,8 @@ async function rwCalcOrientation(lat, lon, address) {
 async function rwFetchAndStoreOrientation() {
   const d = getCurrentDossier();
   if (!d.mapLat || !d.mapLng) return;
+  // If the user has set a manual override, never overwrite it with the API result
+  if (d.orientacionOverride) return;
   const addr = $('dealAddress')?.value || '';
   const result = await rwCalcOrientation(d.mapLat, d.mapLng, addr);
   if (result) {
@@ -5785,38 +5805,69 @@ const rwFmtK = v => {
 };
 const rwPct  = v => ((v||0)*100).toFixed(1).replace('.',',') + '%';
 
-// ── GEOCODE (Nominatim) ────────────────────────────────────────
+// ── GEOCODE (Photon → Nominatim → freeform) ───────────────────
 async function rwGeocode(dealAddr, dealCP, dealMunicipio) {
   if (!dealAddr) return null;
   const headers = { 'Accept-Language': 'es', 'User-Agent': 'RiverwalkDealModeler/3.0' };
 
-  // Strategy 1: structured query — Nominatim expects "housenumber streetname"
+  // Parse house number once — used by all strategies
+  // Handles: "Calle de Ponzano, 53" / "Ponzano 53" / "Calle Ponzano 53"
+  const numMatch = dealAddr.match(/^(.*?)[,\s]+(\d+)\s*$/);
+  const houseNum = numMatch?.[2] || '';
+  const streetOnly = numMatch
+    ? numMatch[1].replace(/^(Calle\s+de\s+|Calle\s+|Avenida\s+de\s+|Avenida\s+|Paseo\s+de\s+|Paseo\s+|Plaza\s+de\s+|Plaza\s+)/i,'').trim()
+    : dealAddr;
+
+  // ── Strategy 1: Photon (Komoot) ──────────────────────────────
+  // Photon is purpose-built for address geocoding on OSM and gives exact
+  // housenumber nodes when available — much more precise than Nominatim
+  // for specific portal numbers.
   try {
-    // Parse house number from address (e.g. "Calle de Ponzano, 53" → num:"53" street:"Calle de Ponzano")
-    const numMatch = dealAddr.match(/^(.*?)[,\s]+(\d+)\s*$/);
-    const streetPart = numMatch ? `${numMatch[2]} ${numMatch[1].replace(/^(Calle\s+de\s+|Calle\s+|Avenida\s+de\s+|Avenida\s+|Paseo\s+de\s+|Paseo\s+)/i,'').trim()}` : dealAddr;
+    const q = [dealAddr, dealMunicipio || 'Madrid', 'España'].filter(Boolean).join(', ');
+    const params = new URLSearchParams({ q, limit: '5', lang: 'es' });
+    const r = await fetch(`https://photon.komoot.io/api/?${params}`, { headers });
+    const json = await r.json();
+    const feats = json.features || [];
+    if (feats.length > 0) {
+      // Prefer a feature that has the exact house number
+      const best = houseNum
+        ? (feats.find(f => f.properties?.housenumber === houseNum) || feats[0])
+        : feats[0];
+      const [lon, lat] = best.geometry.coordinates;
+      console.log('Geocode Photon hit:', best.properties?.name, best.properties?.housenumber);
+      return { lat, lon };
+    }
+  } catch(e) { console.warn('Geocode Photon failed:', e); }
+
+  // ── Strategy 2: Nominatim structured ─────────────────────────
+  // Nominatim structured query: street = "housenumber streetname" (no prefix)
+  try {
+    const streetPart = houseNum ? `${houseNum} ${streetOnly}` : dealAddr;
     const params = new URLSearchParams({
-      street:       streetPart,
-      countrycodes: 'es',
-      format:       'json',
-      limit:        '3',
+      street:         streetPart,
+      countrycodes:   'es',
+      format:         'json',
+      limit:          '5',
       addressdetails: '1',
     });
-    if (dealCP)         params.set('postalcode', dealCP);
-    if (dealMunicipio)  params.set('city', dealMunicipio);
+    if (dealCP)        params.set('postalcode', dealCP);
+    if (dealMunicipio) params.set('city', dealMunicipio);
 
     const r = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, { headers });
     const d = await r.json();
     if (d && d.length > 0) {
-      // Prefer results whose display_name contains our house number
-      const num = numMatch?.[2] || '';
-      const best = num ? (d.find(x => x.display_name.includes(num)) || d[0]) : d[0];
-      console.log('Geocode structured hit:', best.display_name);
+      // Prefer results where address.house_number matches exactly
+      const best = houseNum
+        ? (d.find(x => x.address?.house_number === houseNum) ||
+           d.find(x => x.display_name.includes(houseNum)) ||
+           d[0])
+        : d[0];
+      console.log('Geocode Nominatim structured hit:', best.display_name);
       return { lat: parseFloat(best.lat), lon: parseFloat(best.lon) };
     }
-  } catch(e) { console.warn('Geocode structured failed:', e); }
+  } catch(e) { console.warn('Geocode Nominatim structured failed:', e); }
 
-  // Strategy 2: free-form fallback with countrycodes restriction
+  // ── Strategy 3: Nominatim free-form fallback ──────────────────
   try {
     const parts = [dealAddr, dealCP, dealMunicipio || 'Madrid'].filter(Boolean);
     const params = new URLSearchParams({
@@ -5828,10 +5879,10 @@ async function rwGeocode(dealAddr, dealCP, dealMunicipio) {
     const r = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, { headers });
     const d = await r.json();
     if (d && d.length > 0) {
-      console.log('Geocode freeform hit:', d[0].display_name);
+      console.log('Geocode Nominatim freeform hit:', d[0].display_name);
       return { lat: parseFloat(d[0].lat), lon: parseFloat(d[0].lon) };
     }
-  } catch(e) { console.warn('Geocode freeform failed:', e); }
+  } catch(e) { console.warn('Geocode Nominatim freeform failed:', e); }
 
   return null;
 }
