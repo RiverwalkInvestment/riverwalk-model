@@ -2706,8 +2706,13 @@ function buildSlides(m, d) {
         </div>
       </div>
       <div style="flex:0 0 44%;display:flex;flex-direction:column;gap:0;overflow:hidden">
-        <div style="flex:1;position:relative;overflow:hidden;min-height:0">
-          ${photoLabel(d.plans, 0, 'position:absolute;inset:0;width:100%;height:100%', 'Plano objetivo')}
+        <!-- Plano objetivo = plans[1]; white bg so plan border is invisible -->
+        <div style="flex:1;overflow:hidden;min-height:0;background:#FAFAFA;">
+          ${(d.plans||[])[1]
+            ? `<img src="${d.plans[1].dataUrl}" style="width:100%;height:100%;object-fit:contain;background:#FAFAFA;display:block;">`
+            : ((d.plans||[])[0]
+                ? `<img src="${d.plans[0].dataUrl}" style="width:100%;height:100%;object-fit:contain;background:#FAFAFA;display:block;">`
+                : `<div style="width:100%;height:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><span style="font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.2)">PLANO OBJETIVO</span></div>`)}
         </div>
         <div style="flex:0 0 3px;background:#000"></div>
         <div style="flex:1;overflow:hidden;min-height:0">
