@@ -2475,18 +2475,20 @@ function buildSlides(m, d) {
           ].map(([l,v]) => `<div class="ps-data"><div class="ps-data-l">${l}</div><div class="ps-data-v">${v}</div></div>`).join('')}
         </div>
       </div>
-      <div style="flex:0 0 42%;display:flex;flex-direction:column;gap:6px">
-        <!-- Plano: white background so it blends with the plan image's own white bg -->
+      <div style="flex:0 0 42%;display:flex;flex-direction:column;gap:0;background:#FAFAFA;overflow:hidden;">
+        <!-- Plano actual: fondo blanco en toda la columna -->
         <div style="flex:2;overflow:hidden;min-height:0;background:#FAFAFA;">
           ${(d.plans||[])[0]
-            ? `<img src="${d.plans[0].dataUrl}" style="object-fit:contain;background:#FAFAFA;width:100%;height:100%;">`
-            : `<div style="width:100%;height:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><span style="font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.2)">PLANO</span></div>`}
+            ? `<img src="${d.plans[0].dataUrl}" style="object-fit:contain;background:#FAFAFA;width:100%;height:100%;display:block;">`
+            : `<div style="width:100%;height:100%;background:#F0EFEC;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><span style="font-size:10px;letter-spacing:0.1em;color:rgba(0,0,0,0.2)">PLANO</span></div>`}
         </div>
-        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:6px;min-height:0">
+        <div style="flex:0 0 3px;background:#E8E4DC;"></div>
+        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:2px;min-height:0;background:#FAFAFA;">
           ${photoLabel(d.photos, 1, 'width:100%;height:100%', 'Salón')}
           ${photoLabel(d.photos, 2, 'width:100%;height:100%', 'Cocina')}
         </div>
-        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:6px;min-height:0">
+        <div style="flex:0 0 2px;background:#E8E4DC;"></div>
+        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:2px;min-height:0;background:#FAFAFA;">
           ${photoLabel(d.photos, 3, 'width:100%;height:100%', 'Dormitorio')}
           ${photoLabel(d.photos, 4, 'width:100%;height:100%', 'Baño')}
         </div>
@@ -2705,20 +2707,21 @@ function buildSlides(m, d) {
           </div>`).join('')}
         </div>
       </div>
-      <div style="flex:0 0 44%;display:flex;flex-direction:column;gap:0;overflow:hidden">
-        <!-- Plano objetivo = plans[1]; white bg so plan border is invisible -->
+      <div style="flex:0 0 44%;display:flex;flex-direction:column;gap:0;overflow:hidden;background:#FAFAFA;">
+        <!-- Plano objetivo = plans[1]; toda la columna en blanco -->
         <div style="flex:1;overflow:hidden;min-height:0;background:#FAFAFA;">
           ${(d.plans||[])[1]
             ? `<img src="${d.plans[1].dataUrl}" style="width:100%;height:100%;object-fit:contain;background:#FAFAFA;display:block;">`
             : ((d.plans||[])[0]
                 ? `<img src="${d.plans[0].dataUrl}" style="width:100%;height:100%;object-fit:contain;background:#FAFAFA;display:block;">`
-                : `<div style="width:100%;height:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><span style="font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.2)">PLANO OBJETIVO</span></div>`)}
+                : `<div style="width:100%;height:100%;background:#F0EFEC;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><span style="font-size:10px;letter-spacing:0.1em;color:rgba(0,0,0,0.2)">PLANO OBJETIVO</span></div>`)}
         </div>
-        <div style="flex:0 0 3px;background:#000"></div>
-        <div style="flex:1;overflow:hidden;min-height:0">
+        <div style="flex:0 0 3px;background:#E8E4DC;"></div>
+        <!-- Materiales: contain para no cortar la imagen -->
+        <div style="flex:1;overflow:hidden;min-height:0;background:#FAFAFA;">
           ${mats.length
-            ? `<div style="display:grid;grid-template-columns:repeat(${Math.min(mats.length,3)},1fr);height:100%;gap:2px">${mats.slice(0,6).map(mat=>`<div style="overflow:hidden;min-height:0"><img src="${mat.dataUrl}" style="width:100%;height:100%;object-fit:cover;display:block"></div>`).join('')}</div>`
-            : `<div style="width:100%;height:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><span style="font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.2)">FOTO</span><span style="font-size:10px;color:rgba(255,255,255,0.15)">(Paleta de calidades)</span></div>`
+            ? `<div style="display:grid;grid-template-columns:repeat(${Math.min(mats.length,3)},1fr);height:100%;gap:2px;background:#FAFAFA;">${mats.slice(0,6).map(mat=>`<div style="overflow:hidden;min-height:0;background:#FAFAFA;display:flex;align-items:center;justify-content:center;"><img src="${mat.dataUrl}" style="width:100%;height:100%;object-fit:contain;background:#FAFAFA;display:block;"></div>`).join('')}</div>`
+            : `<div style="width:100%;height:100%;background:#F0EFEC;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><span style="font-size:10px;letter-spacing:0.1em;color:rgba(0,0,0,0.2)">PALETA DE CALIDADES</span></div>`
           }
         </div>
       </div>
@@ -6669,11 +6672,11 @@ function rwSlideProyectoPDF(dealName, m, narr, planoObjetivo, materials) {
           : `<div style="font-size:8px;color:#B0A898;letter-spacing:0.1em;text-transform:uppercase;">Sin plano de distribución</div>`}
       </div>
 
-      <!-- MATERIALS ROW -->
+      <!-- MATERIALS ROW: contain para no cortar, fondo blanco -->
       ${mats.length > 0 ? `
       <div style="height:${MAT_H}px;flex-shrink:0;margin-top:8px;display:grid;grid-template-columns:repeat(${Math.min(mats.length,3)},1fr);gap:6px;overflow:hidden;">
-        ${mats.slice(0,3).map(mat=>`<div style="overflow:hidden;position:relative;background:#1A1D23;">
-          <img src="${mat.dataUrl}" style="width:100%;height:100%;object-fit:cover;display:block;">
+        ${mats.slice(0,3).map(mat=>`<div style="overflow:hidden;position:relative;background:#FFFFFF;display:flex;align-items:center;justify-content:center;">
+          <img src="${mat.dataUrl}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;">
         </div>`).join('')}
       </div>` : ''}
 
