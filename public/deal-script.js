@@ -6737,12 +6737,15 @@ function rwSlideTestigosPDF(dealName, m) {
   const buyPm2       = m.surfCapex > 0 ? Math.round(m.buyPrice / m.surfCapex) : 0;
   const descuento    = medRfmPm2 > 0 && buyPm2 > 0 ? ((medRfmPm2 - buyPm2) / medRfmPm2 * 100).toFixed(1) : null;
 
-  const compRow = (c, accent) => `
-    <div style="display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:9px 14px;background:#FAF7F2;border-left:2px solid ${accent};margin-bottom:4px;">
-      <div style="font-size:9.5px;color:#5A5040;overflow:hidden;word-break:break-word;line-height:1.3;">${c.desc || c.dir || '—'}</div>
-      <div style="font-family:'DM Mono',monospace;color:#A09282;font-size:9px;white-space:nowrap;">${c.m2}m²</div>
-      <div style="font-family:'DM Mono',monospace;color:#1A1D23;font-size:10.5px;font-weight:500;white-space:nowrap;">${Math.round(c.precio/c.m2).toLocaleString('es-ES')} €/m²</div>
+  const compRow = (c, accent) => {
+    const label = rwTrunc(c.desc || c.dir || '—', 28);
+    return `
+    <div style="display:flex;align-items:center;padding:10px 14px;background:#FAF7F2;border-left:2px solid ${accent};margin-bottom:4px;gap:10px;">
+      <div style="flex:1;font-size:9.5px;color:#5A5040;min-width:0;">${label}</div>
+      <div style="font-family:'DM Mono',monospace;color:#A09282;font-size:9px;white-space:nowrap;flex-shrink:0;">${c.m2}m²</div>
+      <div style="font-family:'DM Mono',monospace;color:#1A1D23;font-size:11px;font-weight:500;white-space:nowrap;flex-shrink:0;">${Math.round(c.precio/c.m2).toLocaleString('es-ES')} €/m²</div>
     </div>`;
+  };
 
   const scRows = [
     { lbl:'Pesimista', ep:V('exitP'), sc:m.pess, col:'#B05050', bg:'rgba(176,80,80,0.05)' },
@@ -6752,7 +6755,7 @@ function rwSlideTestigosPDF(dealName, m) {
 
   return pg(`
     ${hdr('Testigos de mercado', dealName, 8)}
-    <div style="padding:18px 44px 0;display:grid;grid-template-columns:3fr 2fr;gap:32px;height:calc(100% - 74px - 40px);overflow:hidden;">
+    <div style="padding:18px 44px 0;display:grid;grid-template-columns:1fr 1fr;gap:24px;height:calc(100% - 74px - 40px);overflow:hidden;">
       <!-- Left: comparables -->
       <div style="display:flex;flex-direction:column;gap:16px;overflow:hidden;">
         ${reforComp.length > 0 ? `
