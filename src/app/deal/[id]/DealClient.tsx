@@ -1416,7 +1416,7 @@ const OVERLAY_HTML = `
 
 // Cache-buster for deal-script.js — bump this string whenever deal-script.js changes
 // so the browser fetches the latest version instead of the cached one.
-const DEAL_SCRIPT_VER = '20260410-04'
+const DEAL_SCRIPT_VER = '20260410-05'
 
 // Module-level flag: prevents createAndGo from firing more than once at a time,
 // guarding against double-clicks or remount-induced duplicate deal creation.
