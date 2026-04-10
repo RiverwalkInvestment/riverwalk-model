@@ -6265,7 +6265,7 @@ function rwSlide3(dealName, interiores) {
 
   const labels = ['Salón · estado actual', 'Cocina · estado actual', 'Dormitorio principal', 'Baño'];
   const grid = imgs.slice(0,4).map((src, i) => `
-    <div style="position:relative;overflow:hidden;background:#1A1D23;min-height:0;">
+    <div style="position:relative;overflow:hidden;background:#1A1D23;aspect-ratio:4/3;">
       <img src="${src}" style="width:100%;height:100%;object-fit:cover;display:block;">
       <div style="position:absolute;bottom:0;left:0;right:0;padding:8px 12px;background:linear-gradient(transparent,rgba(0,0,0,0.6));">
         <div style="font-size:7.5px;color:rgba(255,255,255,0.7);letter-spacing:0.1em;text-transform:uppercase;">${labels[i] || ''}</div>
@@ -6273,14 +6273,15 @@ function rwSlide3(dealName, interiores) {
     </div>`).join('');
 
   const cols = imgs.length <= 2 ? `repeat(${imgs.length},1fr)` : 'repeat(2,1fr)';
-  const rows = imgs.length <= 2 ? '1fr' : '1fr 1fr';
 
   return pg(`
     ${hdr('Estado actual', dealName, 3)}
     <div style="padding:20px 44px 20px;height:calc(100% - 74px - 40px);box-sizing:border-box;display:flex;flex-direction:column;gap:12px;">
       <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:300;color:#1A1D23;flex-shrink:0;">Estado actual del activo</div>
-      <div style="flex:1;display:grid;grid-template-columns:${cols};grid-template-rows:${rows};gap:8px;min-height:0;">
-        ${grid}
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;min-height:0;">
+        <div style="display:grid;grid-template-columns:${cols};gap:8px;width:100%;">
+          ${grid}
+        </div>
       </div>
     </div>
     ${ftr()}
@@ -6483,11 +6484,6 @@ function rwSlide6(dealName, dealAddr, mapData, narr, m, orientation) {
 
   const contentH = 1123 - 74 - MAP_H - 40; // header - map - footer
 
-  // Word-safe split for narrative headline vs body
-  const splitAt = Math.min(120, narrText.lastIndexOf(' ', 120));
-  const headText = narrText.substring(0, splitAt);
-  const bodyText = narrText.length > splitAt ? narrText.substring(splitAt).trim() : '';
-
   return pg(`
     ${hdr('La Zona', dealAddr || dealName, 6)}
     <div style="width:794px;height:${MAP_H}px;overflow:hidden;position:relative;flex-shrink:0;background:#EDE9E0;">
@@ -6508,8 +6504,7 @@ function rwSlide6(dealName, dealAddr, mapData, narr, m, orientation) {
       <div style="flex:1;min-width:0;overflow:hidden;">
         ${hasNarr ? `
         <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">Microzona</div>
-        <div style="font-family:'Cormorant Garamond',serif;font-size:${narrText.length<100?20:17}px;font-weight:300;color:#1A1D23;line-height:1.5;margin-bottom:12px;">${headText}</div>
-        ${bodyText ? `<div style="font-size:9.5px;line-height:1.7;color:rgba(50,44,36,0.75);font-weight:300;">${rwMd(bodyText)}</div>` : ''}
+        <div style="font-size:9.5px;line-height:1.7;color:rgba(50,44,36,0.75);font-weight:300;">${rwMd(narrText)}</div>
         ` : `
         <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:300;color:#1A1D23;">${dealAddr || dealName}</div>
         `}
@@ -6632,17 +6627,6 @@ function rwSlide8() {
   return pg(`
     <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#8B6520,#C4975A,#8B6520);"></div>
     <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-      <!-- Geometric mark -->
-      <svg viewBox="0 0 120 120" width="72" height="72" style="margin-bottom:32px;">
-        <rect x="14" y="14" width="38" height="38" fill="none" stroke="rgba(196,151,90,0.25)" stroke-width="0.8"/>
-        <rect x="68" y="14" width="38" height="38" fill="none" stroke="rgba(196,151,90,0.15)" stroke-width="0.8"/>
-        <rect x="14" y="68" width="38" height="38" fill="rgba(196,151,90,0.1)" stroke="rgba(196,151,90,0.5)" stroke-width="0.8"/>
-        <rect x="68" y="68" width="38" height="38" fill="rgba(196,151,90,0.05)" stroke="rgba(196,151,90,0.3)" stroke-width="0.8"/>
-        <circle cx="33" cy="33" r="4" fill="rgba(196,151,90,0.3)"/>
-        <circle cx="87" cy="33" r="4" fill="rgba(196,151,90,0.2)"/>
-        <circle cx="33" cy="87" r="4" fill="rgba(196,151,90,1)"/>
-        <circle cx="87" cy="87" r="4" fill="rgba(196,151,90,0.6)"/>
-      </svg>
       <img src="/Riverwalk_Logo_Blanco.png" style="height:44px;width:auto;display:block;opacity:0.85;margin-bottom:12px;">
       <div style="width:40px;height:0.5px;background:rgba(196,151,90,0.3);margin:28px auto;"></div>
       <div style="font-size:9px;color:rgba(255,255,255,0.18);letter-spacing:0.14em;">Documento confidencial · Uso privado</div>
@@ -6786,18 +6770,22 @@ function rwSlideProyectoPDF(dealName, m, narr, planoObjetivo, materials, interio
         <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:600;">Distribución objetivo</div>
       </div>
 
-      <!-- PLAN ZONE: sin borde para que se integre con el fondo blanco -->
+      ${planoObjetivo ? `
+      <!-- PLAN ZONE -->
       <div style="height:${PLAN_H}px;flex-shrink:0;background:#FFFFFF;overflow:hidden;display:flex;align-items:center;justify-content:center;">
-        ${planoObjetivo
-          ? `<img src="${planoObjetivo}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;">`
-          : `<div style="font-size:8px;color:#B0A898;letter-spacing:0.1em;text-transform:uppercase;">Sin plano de distribución</div>`}
+        <img src="${planoObjetivo}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;">
       </div>
-
-      <!-- INTERIORISM IMAGE: contain para no recortar ni deformar -->
+      <!-- INTERIORISM IMAGE -->
       ${interiorismImg ? `
       <div style="height:${MAT_H}px;flex-shrink:0;margin-top:12px;background:#FFFFFF;display:flex;align-items:center;justify-content:center;overflow:hidden;">
         <img src="${interiorismImg}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;">
       </div>` : ''}
+      ` : interiorismImg ? `
+      <!-- NO PLAN: interiorism expands to fill combined space -->
+      <div style="height:${PLAN_H + MAT_H + 12}px;flex-shrink:0;background:#FFFFFF;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+        <img src="${interiorismImg}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;">
+      </div>
+      ` : ''}
 
     </div>
     ${ftr()}
