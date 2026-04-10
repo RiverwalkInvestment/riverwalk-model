@@ -6155,6 +6155,16 @@ function rwTrunc(text, maxLen) {
   return (cut > maxLen * 0.6 ? text.substring(0, cut) : text.substring(0, maxLen)) + '…';
 }
 
+// Render narrative text: **title** → bold on its own line; preserve line breaks
+function rwMd(text) {
+  if (!text) return '';
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '<br><strong style="font-weight:700;display:inline-block;margin-top:6px;margin-bottom:1px;">$1</strong><br>')
+    .replace(/\n\n/g, '<br><br>')
+    .replace(/\n/g, '<br>')
+    .replace(/^<br>/, '');
+}
+
 // ── SLIDE 1: PORTADA ──────────────────────────────────────────
 function rwSlide1(dealName, dealAddr, dealType, dateStr, fachada) {
   const tipo = dealType === 'pase' ? 'Pase · Asignación' : dealType === 'edificio' ? 'Promoción · Edificio' : 'Fix & Flip · Reforma integral';
@@ -6230,7 +6240,7 @@ function rwSlide2(dealName, dealAddr, m, narr, fachada) {
       ${narr.activo && narr.activo.length > 15 ? `
       <div style="border-top:1px solid rgba(196,151,90,0.2);padding-top:18px;">
         <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">Descripción</div>
-        <div style="font-size:11px;line-height:1.82;color:rgba(50,44,36,0.85);font-weight:300;">${rwTrunc(narr.activo, 320)}</div>
+        <div style="font-size:10px;line-height:1.7;color:rgba(50,44,36,0.85);font-weight:300;">${rwMd(narr.activo)}</div>
       </div>` : `
       <div style="border-top:1px solid rgba(196,151,90,0.2);padding-top:18px;">
         <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">Datos principales</div>
@@ -6255,7 +6265,7 @@ function rwSlide3(dealName, interiores) {
 
   const labels = ['Salón · estado actual', 'Cocina · estado actual', 'Dormitorio principal', 'Baño'];
   const grid = imgs.slice(0,4).map((src, i) => `
-    <div style="position:relative;overflow:hidden;background:#1A1D23;aspect-ratio:4/3;">
+    <div style="position:relative;overflow:hidden;background:#1A1D23;min-height:0;">
       <img src="${src}" style="width:100%;height:100%;object-fit:cover;display:block;">
       <div style="position:absolute;bottom:0;left:0;right:0;padding:8px 12px;background:linear-gradient(transparent,rgba(0,0,0,0.6));">
         <div style="font-size:7.5px;color:rgba(255,255,255,0.7);letter-spacing:0.1em;text-transform:uppercase;">${labels[i] || ''}</div>
@@ -6263,12 +6273,13 @@ function rwSlide3(dealName, interiores) {
     </div>`).join('');
 
   const cols = imgs.length <= 2 ? `repeat(${imgs.length},1fr)` : 'repeat(2,1fr)';
+  const rows = imgs.length <= 2 ? '1fr' : '1fr 1fr';
 
   return pg(`
     ${hdr('Estado actual', dealName, 3)}
-    <div style="padding:18px 44px;height:calc(100% - 60px - 36px);">
-      <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;color:#1A1D23;margin-bottom:14px;">Estado actual del activo</div>
-      <div style="display:grid;grid-template-columns:${cols};gap:8px;height:calc(100% - 44px);">
+    <div style="padding:20px 44px 20px;height:calc(100% - 74px - 40px);box-sizing:border-box;display:flex;flex-direction:column;gap:12px;">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:300;color:#1A1D23;flex-shrink:0;">Estado actual del activo</div>
+      <div style="flex:1;display:grid;grid-template-columns:${cols};grid-template-rows:${rows};gap:8px;min-height:0;">
         ${grid}
       </div>
     </div>
@@ -6380,7 +6391,7 @@ function rwSlide4(dealName, m, narr) {
       ${narr.tesis && narr.tesis.length > 15 ? `
       <div style="border-left:2px solid #C4975A;padding:12px 16px;background:#FAF7F2;flex-shrink:0;">
         <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;margin-bottom:7px;font-weight:600;">Tesis inversora</div>
-        <div style="font-size:10.5px;line-height:1.78;color:#3D3730;font-weight:300;">${rwTrunc(narr.tesis, 380)}</div>
+        <div style="font-size:10px;line-height:1.7;color:#3D3730;font-weight:300;">${rwMd(narr.tesis)}</div>
       </div>` : ''}
     </div>
     ${ftr()}
@@ -6418,7 +6429,7 @@ function rwSlide5(dealName, planoActual, planoObjetivo, narr) {
       </div>
       ${narr.proyecto && narr.proyecto.length > 10 ? `
       <div style="flex-shrink:0;margin-top:14px;padding:11px 14px;border-left:2px solid rgba(196,151,90,0.5);background:#FAF7F2;">
-        <div style="font-size:9.5px;color:#5A5040;line-height:1.7;font-weight:300;">${rwTrunc(narr.proyecto, 220)}</div>
+        <div style="font-size:9px;color:#5A5040;line-height:1.65;font-weight:300;">${rwMd(narr.proyecto)}</div>
       </div>` : ''}
     </div>
     ${ftr()}
@@ -6475,7 +6486,7 @@ function rwSlide6(dealName, dealAddr, mapData, narr, m, orientation) {
   // Word-safe split for narrative headline vs body
   const splitAt = Math.min(120, narrText.lastIndexOf(' ', 120));
   const headText = narrText.substring(0, splitAt);
-  const bodyText = narrText.length > splitAt ? rwTrunc(narrText.substring(splitAt).trim(), 280) : '';
+  const bodyText = narrText.length > splitAt ? narrText.substring(splitAt).trim() : '';
 
   return pg(`
     ${hdr('La Zona', dealAddr || dealName, 6)}
@@ -6498,7 +6509,7 @@ function rwSlide6(dealName, dealAddr, mapData, narr, m, orientation) {
         ${hasNarr ? `
         <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">Microzona</div>
         <div style="font-family:'Cormorant Garamond',serif;font-size:${narrText.length<100?20:17}px;font-weight:300;color:#1A1D23;line-height:1.5;margin-bottom:12px;">${headText}</div>
-        ${bodyText ? `<div style="font-size:10px;line-height:1.85;color:rgba(50,44,36,0.75);font-weight:300;">${bodyText}</div>` : ''}
+        ${bodyText ? `<div style="font-size:9.5px;line-height:1.7;color:rgba(50,44,36,0.75);font-weight:300;">${rwMd(bodyText)}</div>` : ''}
         ` : `
         <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:300;color:#1A1D23;">${dealAddr || dealName}</div>
         `}
@@ -6752,12 +6763,12 @@ function rwSlideProyectoPDF(dealName, m, narr, planoObjetivo, materials, interio
             <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:8px;">El proyecto</div>
             <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:300;color:#1A1D23;margin-bottom:10px;">Reforma integral</div>
             ${narr.proyecto && narr.proyecto.length > 10 ? `
-            <div style="font-size:10px;line-height:1.78;color:rgba(50,44,36,0.8);font-weight:300;">${rwTrunc(narr.proyecto, 340)}</div>` : ''}
+            <div style="font-size:9.5px;line-height:1.7;color:rgba(50,44,36,0.8);font-weight:300;">${rwMd(narr.proyecto)}</div>` : ''}
           </div>
           ${calidadesText ? `
           <div style="padding:10px 14px;background:#F5F3EF;border-left:2px solid rgba(196,151,90,0.5);flex-shrink:0;">
             <div style="font-size:6px;letter-spacing:0.2em;text-transform:uppercase;color:#C4975A;margin-bottom:5px;font-weight:600;">Calidades</div>
-            <div style="font-size:9px;line-height:1.65;color:#5A5040;">${rwTrunc(calidadesText, 240)}</div>
+            <div style="font-size:9px;line-height:1.65;color:#5A5040;">${rwMd(calidadesText)}</div>
           </div>` : ''}
         </div>
         <!-- Right: reform data table -->
