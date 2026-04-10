@@ -90,14 +90,100 @@ function updateAPIKeyStatus() {
 }
 
 function getAPIHeaders() {
-  return {
-    'Content-Type': 'application/json',
-  };
+  return { 'Content-Type': 'application/json' };
 }
 
 function checkAPIKey() {
-  // API key is managed server-side
+  // Key check now handled lazily inside rwAnthropicFetch via modal
   return true;
+}
+
+// ── SESSION API KEY ────────────────────────────────────────────
+// Key lives only in sessionStorage (cleared on tab close) with a TTL
+const RW_SK  = 'rw_sk';
+const RW_SKX = 'rw_sk_exp';
+const RW_TTL = 4 * 60 * 60 * 1000; // 4 hours
+
+function rwGetSessionKey() {
+  const exp = parseInt(sessionStorage.getItem(RW_SKX) || '0');
+  if (Date.now() > exp) { sessionStorage.removeItem(RW_SK); sessionStorage.removeItem(RW_SKX); return ''; }
+  return sessionStorage.getItem(RW_SK) || '';
+}
+
+function rwSetSessionKey(key) {
+  sessionStorage.setItem(RW_SK, key);
+  sessionStorage.setItem(RW_SKX, String(Date.now() + RW_TTL));
+}
+
+function rwClearSessionKey() {
+  sessionStorage.removeItem(RW_SK);
+  sessionStorage.removeItem(RW_SKX);
+}
+
+function rwRequireApiKey() {
+  return new Promise((resolve, reject) => {
+    const existing = rwGetSessionKey();
+    if (existing) return resolve(existing);
+    rwShowApiKeyModal(resolve, reject);
+  });
+}
+
+function rwShowApiKeyModal(onAccept, onCancel) {
+  if (document.getElementById('rw-apikey-overlay')) return; // already open
+  const overlay = document.createElement('div');
+  overlay.id = 'rw-apikey-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.72);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;font-family:Raleway,sans-serif;';
+  overlay.innerHTML = `
+    <div style="background:#1A1D23;border:1px solid rgba(196,151,90,0.35);padding:36px 40px;width:460px;max-width:92vw;box-shadow:0 32px 80px rgba(0,0,0,0.5);">
+      <div style="font-size:7.5px;letter-spacing:0.24em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">Terminal IA · Riverwalk</div>
+      <div style="font-size:22px;color:#fff;margin-bottom:10px;font-family:'Cormorant Garamond',serif;font-weight:300;line-height:1.2;">Introduce tu Anthropic API Key</div>
+      <div style="font-size:10.5px;color:rgba(255,255,255,0.42);line-height:1.75;margin-bottom:26px;">
+        Para usar la IA necesitas una API Key propia de Anthropic.<br>
+        Se mantiene activa <strong style="color:rgba(255,255,255,0.6);">4 horas</strong> o hasta que cierres esta pestaña.<br>
+        No se envía a ningún servidor de Riverwalk.
+      </div>
+      <input id="rw-apikey-input" type="password" placeholder="sk-ant-api03-…"
+        style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#fff;font-family:'DM Mono',monospace;font-size:12px;padding:13px 14px;outline:none;margin-bottom:6px;letter-spacing:0.05em;"
+        autocomplete="off" spellcheck="false">
+      <div id="rw-apikey-err" style="font-size:9.5px;color:#E05555;min-height:18px;margin-bottom:18px;display:none;"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center;">
+        <button id="rw-apikey-cancel" style="background:transparent;border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.4);font-family:Raleway,sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;padding:10px 20px;cursor:pointer;">Cancelar</button>
+        <button id="rw-apikey-accept" style="background:rgba(196,151,90,0.14);border:1px solid rgba(196,151,90,0.55);color:#C4975A;font-family:Raleway,sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;padding:10px 28px;cursor:pointer;font-weight:700;">Confirmar</button>
+      </div>
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.06);font-size:8.5px;color:rgba(255,255,255,0.18);line-height:1.7;">
+        Obtén tu key gratuita en <span style="color:rgba(196,151,90,0.45);">console.anthropic.com</span>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const inp = document.getElementById('rw-apikey-input');
+  const err = document.getElementById('rw-apikey-err');
+  inp.focus();
+
+  function accept() {
+    const key = inp.value.trim();
+    if (!key.startsWith('sk-ant-')) {
+      err.textContent = 'La key debe comenzar por sk-ant-'; err.style.display = ''; inp.focus(); return;
+    }
+    rwSetSessionKey(key);
+    overlay.remove();
+    onAccept(key);
+  }
+  function cancel() {
+    overlay.remove();
+    if (onCancel) onCancel(new Error('cancelled'));
+  }
+  document.getElementById('rw-apikey-accept').onclick = accept;
+  document.getElementById('rw-apikey-cancel').onclick = cancel;
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') accept(); if (e.key === 'Escape') cancel(); });
+  overlay.addEventListener('click', e => { if (e.target === overlay) cancel(); });
+}
+
+// Central fetch wrapper — all AI calls go through here
+async function rwAnthropicFetch(body) {
+  const key = await rwRequireApiKey();
+  const headers = { 'Content-Type': 'application/json' };
+  if (key) headers['x-user-api-key'] = key;
+  return fetch('/api/anthropic', { method: 'POST', headers, body: JSON.stringify(body) });
 }
 
 // ══════════════════════════════════════════════════
@@ -1381,10 +1467,7 @@ async function geocodeAddress() {
   if (status) { status.textContent = '⟳ Buscando código postal…'; status.style.color = 'var(--text-d)'; }
 
   try {
-    const response = await fetch('/api/anthropic', {
-      method: 'POST',
-      headers: getAPIHeaders(),
-      body: JSON.stringify({
+    const response = await rwAnthropicFetch({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 100,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
@@ -1392,8 +1475,7 @@ async function geocodeAddress() {
           role: 'user',
           content: `¿Cuál es el código postal y municipio de "${address}" en España? Responde SOLO con este JSON sin texto extra: {"cp":"28014","municipio":"Madrid"}`
         }]
-      })
-    });
+      });
 
     const data = await response.json();
     const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
@@ -3238,20 +3320,16 @@ async function generateNarrative(section) {
   const fullPrompt = `Eres el equipo de comunicación de Riverwalk Real Estate Investments, una firma de inversión inmobiliaria de alta gama en Madrid. Escribes con tono profesional, discreto y sofisticado — sin exageraciones ni superlativos vacíos.\n\n${ctx}\n\n${prompt}\n\nEscribe directamente el texto, sin preámbulo ni explicación. Máximo 120 palabras.`;
 
   try {
-    const res = await fetch('/api/anthropic', {
-      method: 'POST',
-      headers: getAPIHeaders(),
-      body: JSON.stringify({
+    const res = await rwAnthropicFetch({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 400,
         messages: [{ role: 'user', content: fullPrompt }]
-      })
-    });
+      });
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       const msg = err?.error?.message || `Error ${res.status}`;
-      if (res.status === 401) alert('API Key incorrecta o inválida. Revísala en la barra superior.');
+      if (res.status === 401) { rwClearSessionKey(); alert('API Key incorrecta o inválida. Se ha limpiado — inténtalo de nuevo.'); }
       else alert(`Error al generar: ${msg}`);
       return;
     }
@@ -3316,16 +3394,13 @@ ${ctx}`;
       msgs2.push({ role: 'user', content: systemCtx + ' Mi primera consulta: ' + text });
     }
 
-    var res2 = await fetch('/api/anthropic', {
-      method: 'POST',
-      headers: getAPIHeaders(),
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 600, messages: msgs2 })
-    });
+    var res2 = await rwAnthropicFetch({ model: 'claude-sonnet-4-20250514', max_tokens: 600, messages: msgs2 });
 
     if (!res2.ok) {
       var errData = {};
       try { errData = await res2.json(); } catch(ex) {}
       var errMsg = (errData.error && errData.error.message) ? errData.error.message : ('HTTP ' + res2.status);
+      if (res2.status === 401) rwClearSessionKey();
       throw new Error(errMsg);
     }
 
@@ -3582,14 +3657,11 @@ async function fetchBenchmarks() {
 }`;
 
   try {
-    const res = await fetch('/api/anthropic', {
-      method: 'POST', headers: getAPIHeaders(),
-      body: JSON.stringify({
+    const res = await rwAnthropicFetch({
         model: 'claude-sonnet-4-20250514', max_tokens: 900,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
         messages: [{ role: 'user', content: prompt }]
-      })
-    });
+      });
     const data = await res.json();
     const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
     const match = text.match(/\{[\s\S]*\}/);
@@ -3734,10 +3806,7 @@ Estructura: Asunto + cuerpo. Firma: Riverwalk Real Estate Investments.`;
   openAITerminal();
   addAIMessage('user', `Genera email de presentación para ${invName}`);
   try {
-    const res = await fetch('/api/anthropic', {
-      method:'POST', headers:getAPIHeaders(),
-      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:500, messages:[{role:'user',content:prompt}] })
-    });
+    const res = await rwAnthropicFetch({ model:'claude-sonnet-4-20250514', max_tokens:500, messages:[{role:'user',content:prompt}] });
     const data = await res.json();
     const text = data.content?.find(b=>b.type==='text')?.text || '⚠ Sin respuesta.';
     addAIMessage('assistant', text, false);
@@ -4505,16 +4574,12 @@ Devuelve SOLO este JSON (sin markdown, sin explicación):
 
 Si no puedes extraer el precio o los m², devuelve los campos como null. No inventes datos.`;
 
-    const response = await fetch('/api/anthropic', {
-      method: 'POST',
-      headers: getAPIHeaders(),
-      body: JSON.stringify({
+    const response = await rwAnthropicFetch({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 400,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
         messages: [{ role: 'user', content: prompt }]
-      })
-    });
+      });
 
     const data = await response.json();
 

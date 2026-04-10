@@ -8,16 +8,22 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  // Rate limit: 10 AI calls per user per hour
-  const userId = (session.user as { id?: string }).id ?? session.user?.email ?? 'unknown'
-  if (!checkRateLimit(`anthropic:${userId}`, 10, 60 * 60 * 1000)) {
-    return NextResponse.json(
-      { error: 'Límite de uso de IA alcanzado. Inténtalo de nuevo en una hora.' },
-      { status: 429 }
-    )
+  // Accept user-provided API key (stored in browser sessionStorage, never persisted server-side)
+  const userApiKey = req.headers.get('x-user-api-key') ?? ''
+  const usingUserKey = userApiKey.startsWith('sk-ant-')
+
+  // Rate limit only applies when using the shared server key
+  if (!usingUserKey) {
+    const userId = (session.user as { id?: string }).id ?? session.user?.email ?? 'unknown'
+    if (!checkRateLimit(`anthropic:${userId}`, 10, 60 * 60 * 1000)) {
+      return NextResponse.json(
+        { error: 'Límite de uso de IA alcanzado. Inténtalo de nuevo en una hora.' },
+        { status: 429 }
+      )
+    }
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY
+  const apiKey = usingUserKey ? userApiKey : process.env.ANTHROPIC_API_KEY
   if (!apiKey) return NextResponse.json({ error: 'Servicio de IA no configurado' }, { status: 503 })
 
   let body: Record<string, unknown>
