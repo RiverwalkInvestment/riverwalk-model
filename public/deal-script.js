@@ -916,6 +916,18 @@ function render(m) {
   const kTotalN   = $('kpi-total-n');
   if (kTotalLbl) kTotalLbl.textContent = isLev ? 'Capital invertido (equity)' : 'Inversión total';
   $('kpi-total').textContent = fmtK(isLev ? m.lev0.equity : m.totalInvest);
+
+  // Equity display in leverage inputs
+  const levEqDisplay = $('lev-equity-display');
+  if (levEqDisplay) {
+    if (isLev) {
+      levEqDisplay.style.display = 'block';
+      $('lev-equity-val').textContent = fmt(m.lev0.equity);
+      $('lev-equity-sub').textContent = `${levMode.toUpperCase()} ${(ltvFrac*100).toFixed(0)}% · deuda ${fmt(loanAmt)}`;
+    } else {
+      levEqDisplay.style.display = 'none';
+    }
+  }
   // add €/m² acquisition note
   const kpiTotalN2 = $('kpi-total-n');
   if (kpiTotalN2 && !isLev) {
@@ -6330,6 +6342,12 @@ function rwSlide4(dealName, m, narr) {
         </div>`).join('')}
       </div>
 
+      ${narr.tesis && narr.tesis.length > 15 ? `
+      <div style="border-left:2px solid #C4975A;padding:12px 16px;background:#FAF7F2;flex-shrink:0;">
+        <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;margin-bottom:7px;font-weight:600;">Tesis inversora</div>
+        <div style="font-size:10px;line-height:1.7;color:#3D3730;font-weight:300;">${rwMd(narr.tesis)}</div>
+      </div>` : ''}
+
       <!-- Two-column: costs + scenarios -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
 
@@ -6389,11 +6407,6 @@ function rwSlide4(dealName, m, narr) {
         </div>
       </div>
 
-      ${narr.tesis && narr.tesis.length > 15 ? `
-      <div style="border-left:2px solid #C4975A;padding:12px 16px;background:#FAF7F2;flex-shrink:0;">
-        <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;margin-bottom:7px;font-weight:600;">Tesis inversora</div>
-        <div style="font-size:10px;line-height:1.7;color:#3D3730;font-weight:300;">${rwMd(narr.tesis)}</div>
-      </div>` : ''}
     </div>
     ${ftr()}
   `);
@@ -6422,11 +6435,9 @@ function rwSlide5(dealName, planoActual, planoObjetivo, narr) {
   return pg(`
     ${hdr('Distribución', dealName, 5)}
     <div style="padding:20px 44px;height:${BODY_H}px;box-sizing:border-box;display:flex;flex-direction:column;gap:0;">
-      <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:300;color:#1A1D23;margin-bottom:16px;flex-shrink:0;">Distribución · Actual y objetivo</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:300;color:#1A1D23;margin-bottom:16px;flex-shrink:0;">Distribución actual</div>
       <div style="flex:1;display:flex;flex-direction:column;gap:14px;min-height:0;">
-        ${hasBoth
-          ? planoCard(planoActual, 'Distribución actual', '1') + planoCard(planoObjetivo, 'Distribución objetivo', '1')
-          : planoCard(planoActual || planoObjetivo, planoActual ? 'Distribución actual' : 'Distribución objetivo', '1')}
+        ${planoCard(planoActual || planoObjetivo, 'Distribución actual', '1')}
       </div>
       ${narr.proyecto && narr.proyecto.length > 10 ? `
       <div style="flex-shrink:0;margin-top:14px;padding:11px 14px;border-left:2px solid rgba(196,151,90,0.5);background:#FAF7F2;">
@@ -6444,52 +6455,65 @@ function rwSlide6(dealName, dealAddr, mapData, narr, m, orientation) {
   const hasNarr  = narrText.length > 15;
   const MAP_H    = 520;
 
-  // Orientation compass SVG (inline, no external deps)
-  let oriPanel = '';
+  // Orientation: full-width bar at the bottom of the map
+  let oriBar = '';
   if (orientation && orientation.solar) {
     const sd  = orientation.solar;
     const ang = orientation.angle || 0;
-    const compassSVG = `<svg width="52" height="52" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="26" cy="26" r="24" fill="none" stroke="rgba(196,151,90,0.3)" stroke-width="0.8"/>
-      <circle cx="26" cy="26" r="1.5" fill="rgba(196,151,90,0.8)"/>
+    const compassSVG = `<svg width="44" height="44" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="26" cy="26" r="24" fill="none" stroke="rgba(196,151,90,0.35)" stroke-width="1"/>
+      <circle cx="26" cy="26" r="1.8" fill="${sd.color}"/>
       ${['N','E','S','O'].map((l,i) => {
         const a = i * 90 * Math.PI / 180;
-        const r = 17, tr = 21;
+        const r = 16, tr = 21;
         const x = 26 + Math.sin(a)*r, y = 26 - Math.cos(a)*r;
         const tx = 26 + Math.sin(a)*tr, ty = 26 - Math.cos(a)*tr + 1;
-        return `<line x1="26" y1="26" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,${l==='N'?0.5:0.2})" stroke-width="0.7"/>
-                <text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" fill="rgba(255,255,255,${l==='N'?0.9:0.4})" font-size="5.5" text-anchor="middle" dominant-baseline="middle" font-family="Raleway,sans-serif" font-weight="600">${l}</text>`;
+        return `<line x1="26" y1="26" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,${l==='N'?0.6:0.2})" stroke-width="0.8"/>
+                <text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" fill="rgba(255,255,255,${l==='N'?1:0.45})" font-size="5.5" text-anchor="middle" dominant-baseline="middle" font-family="Raleway,sans-serif" font-weight="700">${l}</text>`;
       }).join('')}
       <g transform="rotate(${ang}, 26, 26)">
-        <polygon points="26,6 24,22 26,19 28,22" fill="${sd.color}" opacity="0.9"/>
-        <polygon points="26,46 24,30 26,33 28,30" fill="rgba(255,255,255,0.15)"/>
+        <polygon points="26,5 23.5,22 26,18 28.5,22" fill="${sd.color}" opacity="0.95"/>
+        <polygon points="26,47 23.5,30 26,34 28.5,30" fill="rgba(255,255,255,0.12)"/>
       </g>
     </svg>`;
-    oriPanel = `
-    <div style="position:absolute;bottom:16px;right:44px;z-index:10;background:rgba(10,11,15,0.82);border:0.5px solid rgba(196,151,90,0.35);padding:12px 16px;backdrop-filter:blur(4px);display:flex;align-items:center;gap:12px;">
-      ${compassSVG}
-      <div>
-        <div style="font-size:6px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(196,151,90,0.6);margin-bottom:3px;">Orientación fachada</div>
-        <div style="font-family:'Cormorant Garamond',serif;font-size:16px;color:${sd.color};line-height:1;margin-bottom:2px;">${sd.label}</div>
-        <div style="font-size:8px;color:rgba(255,255,255,0.35);">${ang}° · ${sd.short || ''}</div>
+    const lines = (sd.lines || []);
+    oriBar = `
+    <div style="position:absolute;bottom:0;left:0;right:0;z-index:10;background:rgba(10,11,15,0.88);backdrop-filter:blur(4px);display:flex;align-items:center;gap:0;height:60px;">
+      <!-- Compass + direction -->
+      <div style="flex-shrink:0;display:flex;align-items:center;gap:14px;padding:0 24px;border-right:1px solid rgba(196,151,90,0.2);">
+        ${compassSVG}
+        <div>
+          <div style="font-size:6px;letter-spacing:0.22em;text-transform:uppercase;color:rgba(196,151,90,0.55);margin-bottom:2px;font-weight:600;">Orientación fachada</div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:20px;color:${sd.color};line-height:1;margin-bottom:1px;">${sd.label}</div>
+          <div style="font-size:7.5px;color:rgba(255,255,255,0.3);">${ang}° · ${sd.short || ''}</div>
+        </div>
+      </div>
+      <!-- Solar info lines -->
+      <div style="flex:1;display:flex;align-items:center;gap:0;padding:0 24px;overflow:hidden;">
+        ${lines.map((line, i) => `
+        <div style="flex:1;padding:0 16px;${i>0?'border-left:1px solid rgba(196,151,90,0.15);':''}">
+          <div style="font-size:8.5px;color:rgba(255,255,255,0.55);line-height:1.5;font-weight:300;">${line}</div>
+        </div>`).join('')}
       </div>
     </div>`;
   }
 
-  // Address label
+  // Address label — above ori bar if present, else floating bottom-left
+  const addrBottom = oriBar ? '70px' : '16px';
   const addrLabel = hasMap ? `
-    <div style="position:absolute;bottom:16px;left:44px;padding:5px 12px;background:rgba(247,244,238,0.93);border-left:2px solid #C4975A;z-index:10;">
+    <div style="position:absolute;bottom:${addrBottom};left:44px;padding:5px 12px;background:rgba(247,244,238,0.93);border-left:2px solid #C4975A;z-index:10;">
       <div style="font-size:7.5px;color:#1A1D23;letter-spacing:0.08em;font-weight:500;">${dealAddr || 'Ubicación del activo'}</div>
     </div>` : '';
 
-  const contentH = 1123 - 74 - MAP_H - 40; // header - map - footer
+  const MAP_H_WITH_BAR = MAP_H; // bar is inside the map div
+  const contentH = 1123 - 74 - MAP_H_WITH_BAR - 40 - 20; // extra 20px bottom margin
 
   return pg(`
     ${hdr('La Zona', dealAddr || dealName, 6)}
     <div style="width:794px;height:${MAP_H}px;overflow:hidden;position:relative;flex-shrink:0;background:#EDE9E0;">
       ${hasMap
         ? `<img src="${mapData.url}" style="width:794px;height:${MAP_H}px;display:block;image-rendering:auto;">
-           <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(247,244,238,0) 60%,rgba(247,244,238,0.85) 88%,rgba(247,244,238,1) 100%);pointer-events:none;"></div>`
+           <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(247,244,238,0) 55%,rgba(10,11,15,0.4) 100%);pointer-events:none;"></div>`
         : `<div style="height:100%;display:flex;align-items:center;justify-content:center;background:#1A1D23;">
              <div style="text-align:center;">
                <div style="font-size:9px;color:rgba(196,151,90,0.5);letter-spacing:0.2em;text-transform:uppercase;">Sin mapa</div>
@@ -6497,11 +6521,11 @@ function rwSlide6(dealName, dealAddr, mapData, narr, m, orientation) {
              </div>
            </div>`}
       ${addrLabel}
-      ${oriPanel}
+      ${oriBar}
     </div>
 
-    <div style="padding:${hasNarr?'20px':'14px'} 44px;height:${contentH}px;box-sizing:border-box;display:flex;gap:36px;align-items:flex-start;overflow:hidden;">
-      <div style="flex:1;min-width:0;overflow:hidden;">
+    <div style="padding:${hasNarr?'18px':'14px'} 44px 20px;height:${contentH}px;box-sizing:border-box;display:flex;gap:36px;align-items:flex-start;">
+      <div style="flex:1;min-width:0;">
         ${hasNarr ? `
         <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">Microzona</div>
         <div style="font-size:9.5px;line-height:1.7;color:rgba(50,44,36,0.75);font-weight:300;">${rwMd(narrText)}</div>
@@ -6765,12 +6789,11 @@ function rwSlideProyectoPDF(dealName, m, narr, planoObjetivo, materials, interio
         </div>
       </div>
 
-      <!-- SEPARATOR -->
+      ${planoObjetivo ? `
+      <!-- SEPARATOR when plan exists -->
       <div style="height:16px;flex-shrink:0;display:flex;align-items:center;">
         <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:600;">Distribución objetivo</div>
       </div>
-
-      ${planoObjetivo ? `
       <!-- PLAN ZONE -->
       <div style="height:${PLAN_H}px;flex-shrink:0;background:#FFFFFF;overflow:hidden;display:flex;align-items:center;justify-content:center;">
         <img src="${planoObjetivo}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;">
@@ -6781,8 +6804,8 @@ function rwSlideProyectoPDF(dealName, m, narr, planoObjetivo, materials, interio
         <img src="${interiorismImg}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;">
       </div>` : ''}
       ` : interiorismImg ? `
-      <!-- NO PLAN: interiorism expands to fill combined space -->
-      <div style="height:${PLAN_H + MAT_H + 12}px;flex-shrink:0;background:#FFFFFF;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+      <!-- NO PLAN: interiorism image fills all remaining space -->
+      <div style="flex:1;background:#FFFFFF;display:flex;align-items:center;justify-content:center;overflow:hidden;min-height:0;">
         <img src="${interiorismImg}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;">
       </div>
       ` : ''}
@@ -7098,38 +7121,42 @@ function rwSlideHighlightsPDF(dealName, m, d) {
 
   return pg(`
     ${hdr('Highlights de la inversión', dealName, 11)}
-    <div style="padding:18px 44px 0;display:grid;grid-template-columns:1fr 1fr;gap:24px;height:calc(100% - 74px - 40px);overflow:hidden;">
+    <div style="padding:24px 44px 24px;display:grid;grid-template-columns:1fr 1fr;gap:28px;height:calc(100% - 74px - 40px);box-sizing:border-box;">
       <!-- LEFT: KPIs + escenarios -->
-      <div style="display:flex;flex-direction:column;gap:12px;overflow:hidden;">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-          ${[
-            ['Inversión total',  rwFmtK(m.totalInvest),       '#C4975A'],
-            ['Ticket mínimo',    ticketMin,                    '#1A1D23'],
-            ['ROI bruto base',   rwPct(m.base.roiGross),       '#1A6B3C'],
-            ['TIR anual base',   m.irrBase>0?rwPct(m.irrBase):'—', '#1A6B3C'],
-            ['Plazo estimado',   m.totalMonths + ' meses',    '#1A1D23'],
-            ['Breakeven',        beM2.toLocaleString('es-ES') + ' €/m²', '#8B8074'],
-          ].map(([l,v,c])=>`
-          <div style="padding:10px 12px;background:#F4F1EB;border-left:2px solid rgba(196,151,90,0.3);">
-            <div style="font-family:'DM Mono',monospace;font-size:14px;color:${c};line-height:1;margin-bottom:4px;">${v}</div>
-            <div style="font-size:7px;letter-spacing:0.12em;text-transform:uppercase;color:#A09282;">${l}</div>
-          </div>`).join('')}
+      <div style="display:flex;flex-direction:column;justify-content:space-between;gap:0;">
+        <!-- KPI grid -->
+        <div>
+          <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:12px;">Métricas clave</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            ${[
+              ['Inversión total',  rwFmtK(m.totalInvest),       '#C4975A'],
+              ['Ticket mínimo',    ticketMin,                    '#1A1D23'],
+              ['ROI bruto base',   rwPct(m.base.roiGross),       '#1A6B3C'],
+              ['TIR anual base',   m.irrBase>0?rwPct(m.irrBase):'—', '#1A6B3C'],
+              ['Plazo estimado',   m.totalMonths + ' meses',    '#1A1D23'],
+              ['Breakeven',        beM2.toLocaleString('es-ES') + ' €/m²', '#8B8074'],
+            ].map(([l,v,c])=>`
+            <div style="padding:14px 14px 12px;background:#F4F1EB;border-left:3px solid ${c};">
+              <div style="font-family:'DM Mono',monospace;font-size:16px;color:${c};line-height:1;margin-bottom:6px;">${v}</div>
+              <div style="font-size:7px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;">${l}</div>
+            </div>`).join('')}
+          </div>
         </div>
 
         <!-- ROI bars -->
         <div>
-          <div style="font-size:6.5px;letter-spacing:0.2em;text-transform:uppercase;color:#8B8074;margin-bottom:8px;">Proyección ROI bruto por escenario</div>
+          <div style="font-size:6.5px;letter-spacing:0.2em;text-transform:uppercase;color:#8B8074;margin-bottom:10px;">Proyección ROI bruto por escenario</div>
           ${[
             {lbl:'Pesimista',  v:roiPess.toFixed(1)+'%', bar:(roiPess/maxRoi*100).toFixed(1), c:'#B05050', ep:V('exitP')},
             {lbl:'Base',       v:roiBase.toFixed(1)+'%', bar:(roiBase/maxRoi*100).toFixed(1), c:'#C4975A', ep:V('exitB')},
             {lbl:'Optimista',  v:roiOpt.toFixed(1)+'%',  bar:(roiOpt/maxRoi*100).toFixed(1),  c:'#1A6B3C', ep:V('exitO')},
           ].map(s=>`
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
             <div style="width:64px;font-size:7.5px;letter-spacing:0.1em;text-transform:uppercase;color:${s.c};flex-shrink:0;">${s.lbl}</div>
-            <div style="flex:1;height:5px;background:rgba(196,151,90,0.12);border-radius:2px;overflow:hidden;">
-              <div style="height:100%;width:${s.bar}%;background:${s.c};border-radius:2px;"></div>
+            <div style="flex:1;height:6px;background:rgba(196,151,90,0.12);border-radius:3px;overflow:hidden;">
+              <div style="height:100%;width:${s.bar}%;background:${s.c};border-radius:3px;"></div>
             </div>
-            <div style="font-family:'DM Mono',monospace;font-size:12px;color:${s.c};font-weight:600;width:44px;text-align:right;">${s.v}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:13px;color:${s.c};font-weight:600;width:44px;text-align:right;">${s.v}</div>
             <div style="font-family:'DM Mono',monospace;font-size:8px;color:#A09282;width:80px;">${s.ep.toLocaleString('es-ES')} €/m²</div>
           </div>`).join('')}
         </div>
@@ -7137,7 +7164,7 @@ function rwSlideHighlightsPDF(dealName, m, d) {
         <!-- Scenario mini-table -->
         <div style="background:#FAF7F2;border:0.5px solid rgba(196,151,90,0.2);">
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px solid rgba(196,151,90,0.15);">
-            ${['Escenario','€/m²','ROI bruto','TIR anual'].map(h=>`<div style="padding:5px 8px;font-size:7px;letter-spacing:0.1em;text-transform:uppercase;color:#A09282;">${h}</div>`).join('')}
+            ${['Escenario','€/m²','ROI bruto','TIR anual'].map(h=>`<div style="padding:7px 8px;font-size:7px;letter-spacing:0.1em;text-transform:uppercase;color:#A09282;">${h}</div>`).join('')}
           </div>
           ${[
             {lbl:'Pesimista', ep:V('exitP'), sc:m.pess, col:'#B05050'},
@@ -7145,43 +7172,45 @@ function rwSlideHighlightsPDF(dealName, m, d) {
             {lbl:'Optimista', ep:V('exitO'), sc:m.opt,  col:'#1A6B3C'},
           ].map(({lbl,ep,sc,col})=>`
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px solid rgba(196,151,90,0.08);">
-            <div style="padding:6px 8px;font-size:9px;color:${col};font-weight:600;">${lbl}</div>
-            <div style="padding:6px 8px;font-family:'DM Mono',monospace;font-size:9px;color:#1A1D23;">${ep.toLocaleString('es-ES')}</div>
-            <div style="padding:6px 8px;font-family:'DM Mono',monospace;font-size:9px;color:${col};">${rwPct(sc.roiGross)}</div>
-            <div style="padding:6px 8px;font-family:'DM Mono',monospace;font-size:9px;color:${col};">${sc.irr>0?rwPct(sc.irr):'—'}</div>
+            <div style="padding:9px 8px;font-size:9px;color:${col};font-weight:600;">${lbl}</div>
+            <div style="padding:9px 8px;font-family:'DM Mono',monospace;font-size:9px;color:#1A1D23;">${ep.toLocaleString('es-ES')}</div>
+            <div style="padding:9px 8px;font-family:'DM Mono',monospace;font-size:9px;color:${col};">${rwPct(sc.roiGross)}</div>
+            <div style="padding:9px 8px;font-family:'DM Mono',monospace;font-size:9px;color:${col};">${sc.irr>0?rwPct(sc.irr):'—'}</div>
           </div>`).join('')}
         </div>
       </div>
 
       <!-- RIGHT: estructura + fees -->
-      <div style="display:flex;flex-direction:column;gap:12px;overflow:hidden;">
-        ${vLabel ? `<div style="padding:12px 14px;background:#FAF7F2;border-left:2px solid #C4975A;">
-          <div style="font-size:6.5px;letter-spacing:0.18em;text-transform:uppercase;color:#C4975A;margin-bottom:5px;font-weight:700;">Vehículo de inversión</div>
-          <div style="font-size:12px;color:#1A1D23;font-weight:600;margin-bottom:4px;">${vLabel}</div>
-          <div style="font-size:9.5px;color:#8B8074;line-height:1.6;">${vDesc}</div>
-        </div>` : ''}
-        ${aLabel ? `<div style="padding:12px 14px;background:#F4F1EB;border:0.5px solid rgba(196,151,90,0.2);">
-          <div style="font-size:6.5px;letter-spacing:0.18em;text-transform:uppercase;color:#8B8074;margin-bottom:5px;font-weight:700;">Forma de aportación</div>
-          <div style="font-size:12px;color:#1A1D23;font-weight:600;margin-bottom:4px;">${aLabel}</div>
-          <div style="font-size:9.5px;color:#8B8074;line-height:1.6;">${aDesc}</div>
-        </div>` : ''}
-        <!-- Fees structure -->
-        <div style="background:#FAF7F2;border:0.5px solid rgba(196,151,90,0.2);">
-          <div style="padding:8px 14px;border-bottom:1px solid rgba(196,151,90,0.15);">
-            <div style="font-size:6.5px;letter-spacing:0.18em;text-transform:uppercase;color:#C4975A;font-weight:700;">Estructura de fees Riverwalk</div>
+      <div style="display:flex;flex-direction:column;justify-content:space-between;gap:0;">
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          ${vLabel ? `<div style="padding:16px 18px;background:#FAF7F2;border-left:3px solid #C4975A;">
+            <div style="font-size:6.5px;letter-spacing:0.18em;text-transform:uppercase;color:#C4975A;margin-bottom:7px;font-weight:700;">Vehículo de inversión</div>
+            <div style="font-size:13px;color:#1A1D23;font-weight:600;margin-bottom:6px;">${vLabel}</div>
+            <div style="font-size:9.5px;color:#8B8074;line-height:1.7;">${vDesc}</div>
+          </div>` : ''}
+          ${aLabel ? `<div style="padding:16px 18px;background:#F4F1EB;border:0.5px solid rgba(196,151,90,0.2);">
+            <div style="font-size:6.5px;letter-spacing:0.18em;text-transform:uppercase;color:#8B8074;margin-bottom:7px;font-weight:700;">Forma de aportación</div>
+            <div style="font-size:13px;color:#1A1D23;font-weight:600;margin-bottom:6px;">${aLabel}</div>
+            <div style="font-size:9.5px;color:#8B8074;line-height:1.7;">${aDesc}</div>
+          </div>` : ''}
+          <!-- Fees structure -->
+          <div style="background:#FAF7F2;border:0.5px solid rgba(196,151,90,0.2);">
+            <div style="padding:10px 16px;border-bottom:1px solid rgba(196,151,90,0.15);">
+              <div style="font-size:6.5px;letter-spacing:0.18em;text-transform:uppercase;color:#C4975A;font-weight:700;">Estructura de fees Riverwalk</div>
+            </div>
+            ${[
+              ['Management fee',           `${V('mgmtFeePct')}% s/ precio + CapEx`],
+              [`Carry ROI < ${sf1T}%`,     '0% — íntegro al inversor'],
+              [`Carry ROI ${sf1T}–${sf2T}%`, `${sf1P}% Riverwalk · ${100-sf1P}% inversor`],
+              [`Carry ROI > ${sf2T}%`,     `${sf2P}% Riverwalk · ${100-sf2P}% inversor`],
+            ].map(([l,v])=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(196,151,90,0.08);">
+              <span style="font-size:9.5px;color:#8B8074;">${l}</span>
+              <span style="font-family:'DM Mono',monospace;font-size:10px;color:#1A1D23;">${v}</span>
+            </div>`).join('')}
           </div>
-          ${[
-            ['Management fee',           `${V('mgmtFeePct')}% s/ precio + CapEx`],
-            [`Carry ROI < ${sf1T}%`,     '0% — íntegro al inversor'],
-            [`Carry ROI ${sf1T}–${sf2T}%`, `${sf1P}% Riverwalk · ${100-sf1P}% inversor`],
-            [`Carry ROI > ${sf2T}%`,     `${sf2P}% Riverwalk · ${100-sf2P}% inversor`],
-          ].map(([l,v])=>`
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-bottom:1px solid rgba(196,151,90,0.08);">
-            <span style="font-size:9.5px;color:#8B8074;">${l}</span>
-            <span style="font-family:'DM Mono',monospace;font-size:10px;color:#1A1D23;">${v}</span>
-          </div>`).join('')}
         </div>
-        <div style="font-size:8.5px;color:#A09282;line-height:1.6;padding-top:4px;">Documento informativo. Las rentabilidades proyectadas no garantizan resultados futuros.</div>
+        <div style="font-size:8.5px;color:#A09282;line-height:1.7;">Documento informativo. Las rentabilidades proyectadas no garantizan resultados futuros.</div>
       </div>
     </div>
     ${ftr()}

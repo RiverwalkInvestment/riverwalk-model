@@ -591,6 +591,13 @@ const DEAL_HTML = `
         <div class="field"><label>Tipo interés bridge (% anual)</label><input type="number" id="bridgeRate" value="5" step="0.25" oninput="update()"></div>
         <div class="field"><label>Meses del bridge</label><input type="number" id="bridgeMonths" value="14" oninput="update()"></div>
       </div>
+      <div id="lev-equity-display" style="display:none;margin-top:10px;padding:10px 14px;background:rgba(42,82,152,0.08);border-left:2px solid rgba(42,82,152,0.5);">
+        <div style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(42,82,152,0.8);margin-bottom:4px;font-weight:600;">Equity necesario</div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;">
+          <div style="font-size:17px;font-weight:600;color:var(--text-b);font-family:'DM Mono',monospace;" id="lev-equity-val">—</div>
+          <div style="font-size:10px;color:var(--text-d);" id="lev-equity-sub"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1409,7 +1416,7 @@ const OVERLAY_HTML = `
 
 // Cache-buster for deal-script.js — bump this string whenever deal-script.js changes
 // so the browser fetches the latest version instead of the cached one.
-const DEAL_SCRIPT_VER = '20260410-03'
+const DEAL_SCRIPT_VER = '20260410-04'
 
 // Module-level flag: prevents createAndGo from firing more than once at a time,
 // guarding against double-clicks or remount-induced duplicate deal creation.
