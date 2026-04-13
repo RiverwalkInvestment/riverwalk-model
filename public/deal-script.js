@@ -5280,67 +5280,79 @@ function detectSourceFromUrl(url) {
   return null;
 }
 
+function rwIsVerified(c) {
+  if (!c) return false;
+  return !!(c.precio > 0 && c.m2 > 0 && c.planta != null && c.planta !== '' && c.tipo && c.url && c.url.trim());
+}
+
+// Persist comps into the active deal snapshot so they survive save/load
+function rwPersistComps() {
+  if (typeof deals !== 'undefined' && deals.length && typeof activeDealIdx !== 'undefined' && deals[activeDealIdx]) {
+    if (!deals[activeDealIdx].data) deals[activeDealIdx].data = {};
+    deals[activeDealIdx].data.comps = JSON.parse(JSON.stringify(comps));
+    deals[activeDealIdx].data.compNextId = compNextId;
+  }
+  if (typeof rwCheckCoherenceInline === 'function') rwCheckCoherenceInline();
+}
+
 function renderCompInputs() {
   const container = $('comp-rows-input');
   if (!container) return;
   container.innerHTML = comps.map(c => {
-    const ppm    = compPpm(c);
-    const ppmStr = ppm ? `<span class="${tipoClass[c.tipo]}">${ppm.toLocaleString('es-ES')} €</span>` : '<span style="color:var(--text-d)">—</span>';
-    const urlEl  = c.url ? `<a href="${c.url}" target="_blank" rel="noopener" class="comp-link" title="${c.url}">↗ ${c.source}</a>` : `<span style="font-size:9px;color:var(--text-d)">${c.source}</span>`;
-    return `<div class="comp-row" id="ci-${c.id}">
-      <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
-        <input type="text" value="${c.desc.replace(/"/g,'&quot;')}" placeholder="Descripción breve…"
-          oninput="comps.find(x=>x.id===${c.id}).desc=this.value;renderCompOutput()"
-          style="font-family:'Raleway',sans-serif;font-size:11px;padding:4px 7px">
-        <input type="url" value="${(c.url||'').replace(/"/g,'&quot;')}" placeholder="Enlace anuncio (opcional)"
-          oninput="(function(el){
-            const url=el.value.trim();
-            const comp=comps.find(x=>x.id===${c.id});
-            if(!comp)return;
-            comp.url=url;
-            const detected=detectSourceFromUrl(url);
-            if(detected){ comp.source=detected; }
-          })(this)"
-          style="font-family:'DM Mono',monospace;font-size:9px;padding:3px 7px;color:var(--text-d);border-color:var(--line2)">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:0 2px">
-          <span style="font-size:9px;color:var(--text-d)">${c.source || 'Manual'}</span>
-          ${c.url ? `<a href="${c.url}" target="_blank" rel="noopener" style="font-size:9px;color:var(--gold);text-decoration:none;letter-spacing:0.06em">↗ abrir</a>` : ''}
+    const ppm = compPpm(c);
+    const ppmText = ppm ? ppm.toLocaleString('es-ES') + ' €/m²' : '—';
+    const verified = rwIsVerified(c);
+    const precTag = c.precision === 'exacta' ? '📍 exacta' : c.precision === 'calle' ? '📍 calle' : c.precision === 'zona' ? '📍 zona' : '';
+    const badgeColor = verified ? 'var(--green)' : 'var(--amber)';
+    const badgeText = verified ? '✓ VERIFICADO' : '⚠ INCOMPLETO';
+    const sourceLabel = c.source || 'Manual';
+    return `
+      <div style="display:block;padding:10px;background:var(--d3);border:1px solid var(--line2);border-left:3px solid ${badgeColor};margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div style="display:flex;gap:8px;align-items:center;flex:1;min-width:0;flex-wrap:wrap">
+            <span style="font-size:9px;color:${badgeColor};font-weight:700;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap">${badgeText}</span>
+            <span style="font-size:9px;color:var(--text-d);letter-spacing:0.06em">· ${sourceLabel}</span>
+            ${precTag ? `<span style="font-size:9px;color:var(--text-d)">· ${precTag}</span>` : ''}
+          </div>
+          <div style="display:flex;gap:4px;flex-shrink:0">
+            <button type="button" class="comp-del-btn" onclick="removeComp(${c.id})" title="Eliminar" style="color:var(--text-d);font-size:14px">×</button>
+          </div>
         </div>
-      </div>
-      <div>
-        <select class="tipo-select"
-          style="font-family:'Raleway',sans-serif;font-size:10px;padding:5px 6px;width:100%;
-                 background:var(--d4);border:1px solid var(--d6);outline:none;
-                 color:${tipoColor[c.tipo]};font-weight:500"
-          onchange="comps.find(x=>x.id===${c.id}).tipo=this.value;renderCompInputs();renderCompOutput()">
-          <option value="reformar"  ${c.tipo==='reformar'  ?'selected':''}>A reformar</option>
-          <option value="reformado" ${c.tipo==='reformado' ?'selected':''}>Reformado</option>
-          <option value="estreno"   ${c.tipo==='estreno'   ?'selected':''}>Estreno</option>
-        </select>
-      </div>
-      <div>
-        <input type="text" data-fmt="money" value="${c.precio ? Math.round(c.precio).toLocaleString('es-ES') : ''}"
-          placeholder="Precio €"
-          onblur="comps.find(x=>x.id===${c.id}).precio=parseFloat(this.value.replace(/\\./g,'').replace(',','.'))||0;renderCompInputs();renderCompOutput()"
-          style="text-align:right;${!c.precio?'border-color:var(--amber);':''}"
-          title="${!c.precio?'Rellena el precio':''}">
-      </div>
-      <div>
-        <input type="number" value="${c.m2||''}" placeholder="m²"
-          oninput="comps.find(x=>x.id===${c.id}).m2=parseFloat(this.value)||0;renderCompInputs();renderCompOutput()"
-          style="text-align:right;${!c.m2?'border-color:var(--amber);':''}"
-          title="${!c.m2?'Rellena los m²':''}">
-      </div>
-      <div class="comp-ppm">${ppmStr}</div>
-      <div>
-        <button type="button" class="comp-del-btn" onclick="removeComp(${c.id})" title="Eliminar">×</button>
-      </div>
-    </div>`;
-  }).join('') || `<div style="font-size:11px;color:var(--text-d);padding:12px 0;font-style:italic">Sin testigos aún. Pega un enlace arriba o usa "+ Añadir testigo manual".</div>`;
+        <input type="text" value="${(c.desc||'').replace(/"/g,'&quot;')}" placeholder="Descripción (dirección, características…)"
+          onblur="comps.find(x=>x.id===${c.id}).desc=this.value;renderCompOutput();rwPersistComps()"
+          style="width:100%;box-sizing:border-box;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-size:11.5px;padding:6px 8px;margin-bottom:6px;font-family:'Raleway',sans-serif">
+        <div style="display:grid;grid-template-columns:2fr 1.2fr 1fr 0.8fr 1fr;gap:4px;font-size:11px;margin-bottom:6px">
+          <select
+            onchange="comps.find(x=>x.id===${c.id}).tipo=this.value;renderCompInputs();renderCompOutput();rwPersistComps()"
+            style="background:var(--d4);border:1px solid var(--d6);color:${c.tipo?tipoColor[c.tipo]:'var(--amber)'};font-family:'Raleway',sans-serif;font-size:10.5px;padding:6px">
+            <option value="" ${!c.tipo?'selected':''}>— Estado —</option>
+            <option value="reformado" ${c.tipo==='reformado'?'selected':''}>Reformado</option>
+            <option value="estreno"   ${c.tipo==='estreno'  ?'selected':''}>Estreno</option>
+            <option value="reformar"  ${c.tipo==='reformar' ?'selected':''}>A reformar</option>
+          </select>
+          <input type="text" value="${c.precio ? Math.round(c.precio).toLocaleString('es-ES') : ''}" placeholder="Precio €"
+            onblur="comps.find(x=>x.id===${c.id}).precio=parseFloat(this.value.replace(/\\./g,'').replace(',','.'))||0;renderCompInputs();renderCompOutput();rwPersistComps()"
+            style="background:var(--d4);border:1px solid ${c.precio?'var(--d6)':'var(--amber)'};color:var(--text-b);font-family:'DM Mono',monospace;font-size:11px;padding:6px;text-align:right">
+          <input type="number" value="${c.m2||''}" placeholder="m²" step="1"
+            onblur="comps.find(x=>x.id===${c.id}).m2=parseFloat(this.value)||0;renderCompInputs();renderCompOutput();rwPersistComps()"
+            style="background:var(--d4);border:1px solid ${c.m2?'var(--d6)':'var(--amber)'};color:var(--text-b);font-family:'DM Mono',monospace;font-size:11px;padding:6px;text-align:right">
+          <input type="number" value="${c.planta!=null&&c.planta!==''?c.planta:''}" placeholder="Plt" min="-2" max="40" step="1"
+            onblur="comps.find(x=>x.id===${c.id}).planta=this.value===''?null:parseInt(this.value);renderCompInputs();renderCompOutput();rwPersistComps()"
+            style="background:var(--d4);border:1px solid ${c.planta!=null&&c.planta!==''?'var(--d6)':'var(--amber)'};color:var(--text-b);font-family:'DM Mono',monospace;font-size:11px;padding:6px;text-align:center">
+          <div style="font-family:'DM Mono',monospace;font-size:11.5px;color:var(--gold);padding:6px;text-align:right;background:var(--d4);border:1px solid var(--line2)">${ppmText}</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="text" value="${(c.url||'').replace(/"/g,'&quot;')}" placeholder="https://… (link al anuncio — obligatorio para verificado)"
+            onblur="(function(el,id){var w=comps.find(x=>x.id===id);if(!w)return;w.url=el.value.trim();if(!w.source||w.source==='Manual'){var det=typeof rwDetectPortalFromUrl==='function'?rwDetectPortalFromUrl(w.url):(typeof detectSourceFromUrl==='function'?detectSourceFromUrl(w.url):null);if(det)w.source=det;}renderCompInputs();renderCompOutput();rwPersistComps();})(this,${c.id})"
+            style="flex:1;background:var(--d4);border:1px solid ${c.url?'var(--d6)':'var(--amber)'};color:${c.url?'var(--gold)':'var(--text-b)'};font-family:'DM Mono',monospace;font-size:10px;padding:6px 8px">
+          ${c.url ? `<a href="${c.url}" target="_blank" title="Abrir en pestaña nueva" style="flex-shrink:0;background:var(--d5);border:1px solid var(--gold-d);color:var(--gold);padding:5px 9px;font-size:11px;text-decoration:none">↗</a>` : ''}
+        </div>
+      </div>`;
+  }).join('') || `<div style="font-size:11px;color:var(--text-d);padding:12px;font-style:italic;text-align:center;background:var(--d3);border:1px dashed var(--line2)">Sin testigos aún. Pega un enlace arriba o usa «+ Añadir testigo manual».</div>`;
 }
 
 function addComp() {
-  comps.push({ id: compNextId++, desc:'', url:'', source:'Manual', tipo:'reformado', precio:0, m2:0 });
+  comps.push({ id: compNextId++, desc:'', url:'', source:'Manual', tipo:'', precio:0, m2:0, planta:null });
   renderCompInputs();
   renderCompOutput();
 }
