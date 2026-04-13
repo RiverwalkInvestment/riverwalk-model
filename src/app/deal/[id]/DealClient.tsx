@@ -1461,7 +1461,7 @@ const OVERLAY_HTML = `
 
 // Cache-buster for deal-script.js — bump this string whenever deal-script.js changes
 // so the browser fetches the latest version instead of the cached one.
-const DEAL_SCRIPT_VER = '20260413-07'
+const DEAL_SCRIPT_VER = '20260413-08'
 
 // Module-level flag: prevents createAndGo from firing more than once at a time,
 // guarding against double-clicks or remount-induced duplicate deal creation.
@@ -2000,14 +2000,24 @@ export default function DealClient({
 
           <button
             className="btn primary"
-            onClick={() => {
+            onClick={async () => {
               if (typeof window === 'undefined') return
               const w = window as any
               if (w.rwCheckCoherenceGate && w.rwShowCoherenceGate) {
                 const r = w.rwCheckCoherenceGate()
                 if (!r.ok) { w.rwShowCoherenceGate(r, 'presentation'); return }
               }
-              if (w.openPresentation) w.openPresentation()
+              if (typeof w.openPresentation === 'function') {
+                try { await w.openPresentation() }
+                catch(e: unknown) {
+                  const msg = e instanceof Error ? e.message : String(e)
+                  console.error('[Presentar]', e)
+                  alert('Error al abrir la presentación:\n' + msg)
+                }
+              } else {
+                console.error('[Presentar] openPresentation no disponible en window')
+                alert('Error: el módulo de presentación no está cargado. Recarga la página.')
+              }
             }}
             style={{ background: 'rgba(139,105,20,0.25)', border: '1px solid var(--gold)' }}
           >

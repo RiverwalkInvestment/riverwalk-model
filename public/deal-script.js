@@ -2565,7 +2565,7 @@ let presKeyHandler = null;
 // SLIDE_DEFS moved to buildSlides section
 
 async function openPresentation() {
-  saveDossierNarrative();
+  try { saveDossierNarrative(); } catch(e) { console.warn('saveDossierNarrative:', e); }
   const d = getCurrentDossier();
 
   // Always reset coords so a changed address triggers fresh geocoding
@@ -2576,8 +2576,16 @@ async function openPresentation() {
   presSlides = buildSlides(m, d);
   presSlideIdx = 0;
   const pm = $('presentation-mode');
-  if (!pm) return;
-  pm.style.display = 'block';
+  if (!pm) {
+    // Fallback: inject presentation-mode into body if missing
+    const div = document.createElement('div');
+    div.id = 'presentation-mode';
+    div.style.cssText = 'display:block;position:fixed;top:0;left:0;width:100%;height:100%;z-index:9000;background:#0F1014;font-family:Raleway,sans-serif;overflow:hidden';
+    document.body.appendChild(div);
+    console.error('[openPresentation] presentation-mode not found — injected fallback');
+  } else {
+    pm.style.display = 'block';
+  }
   renderPresSlide();
   renderPresDots();
   presKeyHandler = e => {
@@ -3265,10 +3273,17 @@ function buildSlides(m, d) {
     </div>` });
 
   // ── EL MERCADO — Negociación bid/ask timeline ───────────────────────────────
-  const negHitos = d.negotiation || [];
+  // negotiation puede ser array (formato antiguo) u objeto v5 {asking, rounds}
+  const _ng = d.negotiation;
+  const negHitos = Array.isArray(_ng) ? _ng
+    : (_ng && !Array.isArray(_ng)) ? [
+        ...(_ng.asking ? [{ tipo:'asking', importe: _ng.asking.importe, fecha: _ng.asking.fecha, nota: _ng.asking.nota }] : []),
+        ...(_ng.rounds || []).map(r => ({ tipo: r.tipo || 'oferta', importe: r.importe, fecha: r.fecha, nota: r.nota })),
+      ]
+    : [];
   const askingHito = negHitos.find(h => h.tipo === 'asking');
   const pactadoHito = negHitos.find(h => h.tipo === 'pactado');
-  const askingPrice = askingHito?.importe || 0;
+  const askingPrice = askingHito?.importe || (_ng && !Array.isArray(_ng) ? (_ng.asking?.importe || 0) : 0);
   const pactadoPrice = pactadoHito?.importe || m.buyPrice;
   const savingsAbs = askingPrice > 0 ? askingPrice - pactadoPrice : 0;
   const savingsPct = askingPrice > 0 ? ((savingsAbs / askingPrice) * 100).toFixed(1) : null;
