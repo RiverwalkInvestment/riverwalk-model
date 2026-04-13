@@ -40,8 +40,27 @@ const DEAL_HTML = `
 <!-- ════════════════════════════════ INPUT PANEL ═══════════════════════════════ -->
 <div class="input-panel">
 
+  <!-- TAB BAR -->
+  <div class="rw-tabs" id="rw-tabs">
+    <button class="rw-tab active" data-target="modelado" onclick="rwSwitchTab('modelado')">
+      <span class="rw-tab-num">01</span>
+      <span class="rw-tab-lbl">Modelado</span>
+      <span class="rw-tab-sub">Números y estructura</span>
+    </button>
+    <button class="rw-tab" data-target="mercado" onclick="rwSwitchTab('mercado')">
+      <span class="rw-tab-num">02</span>
+      <span class="rw-tab-lbl">Mercado</span>
+      <span class="rw-tab-sub">Testigos y negociación</span>
+    </button>
+    <button class="rw-tab" data-target="dossier" onclick="rwSwitchTab('dossier')">
+      <span class="rw-tab-num">03</span>
+      <span class="rw-tab-lbl">Dossier</span>
+      <span class="rw-tab-sub">Visual y narrativa</span>
+    </button>
+  </div>
+
   <!-- DEAL INFO -->
-  <div class="isec">
+  <div class="isec" data-tab="modelado">
     <div class="isec-hd" onclick="toggleSec(this)">
       <span class="isec-lbl">Datos del deal</span>
       <span class="isec-arr open">▼</span>
@@ -178,7 +197,7 @@ const DEAL_HTML = `
   </div>
 
   <!-- SALIDA -->
-  <div class="isec">
+  <div class="isec" data-tab="modelado">
     <div class="isec-hd" onclick="toggleSec(this)">
       <span class="isec-lbl" id="isec-precios-lbl">Precios de salida</span>
       <span class="isec-arr open">▼</span>
@@ -261,7 +280,7 @@ const DEAL_HTML = `
   </div>
 
   <!-- TIMING -->
-  <div class="isec">
+  <div class="isec" data-tab="modelado">
     <div class="isec-hd" onclick="toggleSec(this)">
       <span class="isec-lbl">Calendario de la operación</span>
       <span class="isec-arr open">▼</span>
@@ -269,7 +288,22 @@ const DEAL_HTML = `
     <div class="ibody">
       <div class="irow">
         <div class="field"><label>Meses entre arras y escritura</label><input type="number" id="arasMonths" value="2" min="1" oninput="autoFillDates();update()"></div>
-        <div class="field"><label>Meses escritura → venta</label><input type="number" id="monthsToSale" value="12" min="1" oninput="autoFillDates();update()"></div>
+        <div class="field"><label>Duración de obra (meses)</label><input type="number" id="obraMonths" value="9" min="1" oninput="rwSyncMonthsToSale();autoFillDates();update()" title="Desde escritura hasta fin de obra. Los pagos de CapEx se distribuyen 50/20/20/10 sobre este tramo."></div>
+      </div>
+      <div class="irow">
+        <div class="field"><label>Meses de comercialización hasta venta</label><input type="number" id="comercialMonths" value="3" min="0" oninput="rwSyncMonthsToSale();autoFillDates();update()" title="Desde fin de obra hasta firma de venta. Periodo sin desembolso de CapEx."></div>
+        <div class="field">
+          <label style="color:var(--text-d)">Total escritura → venta</label>
+          <div style="padding:10px 12px;background:var(--d4);border:1px solid var(--line2);color:var(--gold);font-family:'DM Mono',monospace;font-size:13px;letter-spacing:0.05em"><span id="monthsToSaleDisplay">12</span> meses</div>
+          <input type="hidden" id="monthsToSale" value="12">
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--text-d);margin:2px 0 8px;line-height:1.8;padding:8px 10px;background:var(--d3);border-left:2px solid var(--gold-d)">
+        <strong style="color:var(--gold)">Hitos de disposición CapEx</strong> sobre el tramo de obra:
+        <br>· <span style="color:var(--text-b)">50%</span> firma contrato de obra (mes 0 de obra)
+        <br>· <span style="color:var(--text-b)">20%</span> certificación de estructura (1/3 de obra)
+        <br>· <span style="color:var(--text-b)">20%</span> certificación de cerramientos (2/3 de obra)
+        <br>· <span style="color:var(--text-b)">10%</span> recepción final (fin de obra)
       </div>
 
       <div class="idivider">
@@ -301,7 +335,7 @@ const DEAL_HTML = `
   </div>
 
   <!-- ADQUISICIÓN -->
-  <div class="isec">
+  <div class="isec" data-tab="modelado">
     <div class="isec-hd" onclick="toggleSec(this)">
       <span class="isec-lbl">Fechas del cashflow</span>
       <span class="isec-arr open">▼</span>
@@ -386,7 +420,7 @@ const DEAL_HTML = `
   </div>
 
   <!-- ADQUISICIÓN -->
-  <div class="isec">
+  <div class="isec" data-tab="modelado">
     <div class="isec-hd" onclick="toggleSec(this)">
       <span class="isec-lbl">Adquisición</span>
       <span class="isec-arr open">▼</span>
@@ -451,7 +485,7 @@ const DEAL_HTML = `
   </div>
 
   <!-- CAPEX -->
-  <div class="isec" id="isec-capex">
+  <div class="isec" data-tab="modelado" id="isec-capex">
     <div class="isec-hd" onclick="toggleSec(this)">
       <span class="isec-lbl">CapEx (sin IVA)</span>
       <span class="isec-arr open">▼</span>
@@ -493,7 +527,7 @@ const DEAL_HTML = `
   </div>
 
   <!-- FEES RIVERWALK -->
-  <div class="isec">
+  <div class="isec" data-tab="modelado">
     <div class="isec-hd" onclick="toggleSec(this)">
       <span class="isec-lbl">Fees Riverwalk</span>
       <span class="isec-arr open">▼</span>
@@ -568,7 +602,7 @@ const DEAL_HTML = `
   </div>
 
   <!-- APALANCAMIENTO -->
-  <div class="isec">
+  <div class="isec" data-tab="modelado">
     <div class="isec-hd" onclick="toggleSec(this)">
       <span class="isec-lbl">Apalancamiento</span>
       <span class="isec-arr open">▼</span>
@@ -602,7 +636,7 @@ const DEAL_HTML = `
   </div>
 
   <!-- COMPARABLES -->
-  <div class="isec">
+  <div class="isec" data-tab="mercado">
     <div class="isec-hd" onclick="toggleSec(this)">
       <span class="isec-lbl">Testigos de mercado</span>
       <span class="isec-arr open">▼</span>
@@ -791,38 +825,12 @@ const DEAL_HTML = `
       <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--line2)">
         <div style="font-size:8.5px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-d);margin-bottom:8px;font-weight:500">Motor de valoración → precios de salida</div>
         <div id="pricing-engine-output"></div>
-      <!-- PLANS + MATERIALS in dossier -->
-      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line2)">
-        <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-d);margin-bottom:8px;font-weight:500">Planos y distribución (máx. 3)</div>
-        <div id="dossier-plans-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px"></div>
-        <label style="display:block;width:100%;background:var(--d4);border:1px dashed var(--d6);color:var(--text-d);font-family:'Raleway',sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;padding:8px;cursor:pointer;text-align:center" id="plans-upload-label">
-          + Añadir plano
-          <input type="file" accept="image/*" multiple style="display:none" id="plans-file-input" onchange="handlePlanUpload(this)">
-        </label>
-      </div>
-
-      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line2)">
-        <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-d);margin-bottom:8px;font-weight:500">Tipología de interiorismo</div>
-        <div style="position:relative">
-          <select id="interiorismStyle" onchange="saveInteriorismStyle()" style="width:100%;background:var(--d4);border:1px solid var(--d6);color:var(--text);font-family:'Raleway',sans-serif;font-size:11px;padding:10px 32px 10px 12px;cursor:pointer;appearance:none;-webkit-appearance:none;outline:none">
-            <option value="">— Seleccionar tipología —</option>
-            <option value="soft-minimalism">Soft Minimalism</option>
-            <option value="modern-classic">Modern Classic</option>
-            <option value="contemporary-warm">Contemporary Warm Luxury</option>
-          </select>
-          <div style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-d);font-size:10px">▾</div>
-        </div>
-        <div id="interiorism-preview" style="margin-top:8px;display:none;overflow:hidden;border:1px solid var(--line2)">
-          <img id="interiorism-preview-img" style="width:100%;height:80px;object-fit:cover;display:block;" src="" alt="">
-        </div>
-      </div>
-
       </div>
     </div>
   </div>
 
   <!-- SENSITIVITY PRICES -->
-  <div class="isec">
+  <div class="isec" data-tab="modelado">
     <div class="isec-hd" onclick="toggleSec(this)">
       <span class="isec-lbl">Rango de precios — matrices de sensibilidad</span>
       <span class="isec-arr open">▼</span>
@@ -845,7 +853,7 @@ const DEAL_HTML = `
   </div>
 
   <!-- FISCAL -->
-  <div class="isec">
+  <div class="isec" data-tab="modelado">
     <div class="isec-hd" onclick="toggleSec(this)">
       <span class="isec-lbl">Fiscalidad</span>
       <span class="isec-arr open">▼</span>
@@ -876,7 +884,7 @@ const DEAL_HTML = `
   </div>
 
   <!-- NEGOCIACIÓN — HISTORIAL BID/ASK -->
-  <div class="isec" id="isec-negociacion">
+  <div class="isec" data-tab="mercado" id="isec-negociacion">
     <div class="isec-hd" onclick="toggleSec(this)">
       <span class="isec-lbl">Negociación — Historial bid/ask</span>
       <span class="isec-arr">▶</span>
@@ -891,7 +899,7 @@ const DEAL_HTML = `
   </div>
 
   <!-- ESTRUCTURACIÓN DE LA OPERACIÓN -->
-  <div class="isec" id="isec-estructura">
+  <div class="isec" data-tab="modelado" id="isec-estructura">
     <div class="isec-hd" onclick="toggleSec(this)">
       <span class="isec-lbl">Estructuración de la operación</span>
       <span class="isec-arr">▶</span>
@@ -969,7 +977,7 @@ const DEAL_HTML = `
   </div>
 
   <!-- DOSSIER DE PRESENTACIÓN -->
-  <div class="isec" id="isec-dossier">
+  <div class="isec" data-tab="dossier" id="isec-dossier">
     <div class="isec-hd" onclick="toggleSec(this)">
       <span class="isec-lbl">Dossier de presentación</span>
       <span class="isec-arr">▶</span>
@@ -1011,6 +1019,33 @@ const DEAL_HTML = `
           <div id="rw-dz-plano-obj" onclick="rwPickImage('planoObjetivo')" ondragover="event.preventDefault()" ondrop="rwDropImage(event,'planoObjetivo')" style="height:82px;background:var(--d4);border:1px dashed rgba(196,151,90,0.35);cursor:pointer;position:relative;background-size:contain;background-repeat:no-repeat;background-position:center;"><div class="rw-dz-lbl" style="display:flex;align-items:center;justify-content:center;height:100%;pointer-events:none;"><span style="font-size:8.5px;color:rgba(196,151,90,0.55);">+ Plano objetivo</span></div><div class="rw-dz-del" onclick="rwClearImage('planoObjetivo',0,event)" style="display:none;position:absolute;top:3px;right:3px;width:16px;height:16px;background:rgba(10,11,16,0.8);align-items:center;justify-content:center;cursor:pointer;font-size:9px;color:rgba(255,255,255,0.7);">✕</div></div>
         </div>
 
+      </div>
+
+      <!-- PLANS GRID (PDF) -->
+      <div style="margin-top:4px;padding-top:4px">
+        <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-d);margin-bottom:8px;font-weight:500">Planos y distribución (máx. 3)</div>
+        <div id="dossier-plans-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px"></div>
+        <label style="display:block;width:100%;background:var(--d4);border:1px dashed var(--d6);color:var(--text-d);font-family:'Raleway',sans-serif;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;padding:8px;cursor:pointer;text-align:center" id="plans-upload-label">
+          + Añadir plano
+          <input type="file" accept="image/*" multiple style="display:none" id="plans-file-input" onchange="handlePlanUpload(this)">
+        </label>
+      </div>
+
+      <!-- TIPOLOGÍA DE INTERIORISMO -->
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line2)">
+        <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-d);margin-bottom:8px;font-weight:500">Tipología de interiorismo</div>
+        <div style="position:relative">
+          <select id="interiorismStyle" onchange="saveInteriorismStyle()" style="width:100%;background:var(--d4);border:1px solid var(--d6);color:var(--text);font-family:'Raleway',sans-serif;font-size:11px;padding:10px 32px 10px 12px;cursor:pointer;appearance:none;-webkit-appearance:none;outline:none">
+            <option value="">— Seleccionar tipología —</option>
+            <option value="soft-minimalism">Soft Minimalism</option>
+            <option value="modern-classic">Modern Classic</option>
+            <option value="contemporary-warm">Contemporary Warm Luxury</option>
+          </select>
+          <div style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-d);font-size:10px">▾</div>
+        </div>
+        <div id="interiorism-preview" style="margin-top:8px;display:none;overflow:hidden;border:1px solid var(--line2)">
+          <img id="interiorism-preview-img" style="width:100%;height:80px;object-fit:cover;display:block;" src="" alt="">
+        </div>
       </div>
 
       <!-- CALIDADES PRESET -->
@@ -1416,7 +1451,7 @@ const OVERLAY_HTML = `
 
 // Cache-buster for deal-script.js — bump this string whenever deal-script.js changes
 // so the browser fetches the latest version instead of the cached one.
-const DEAL_SCRIPT_VER = '20260410-05'
+const DEAL_SCRIPT_VER = '20260413-01'
 
 // Module-level flag: prevents createAndGo from firing more than once at a time,
 // guarding against double-clicks or remount-induced duplicate deal creation.

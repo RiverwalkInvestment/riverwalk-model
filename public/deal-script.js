@@ -187,6 +187,39 @@ async function rwAnthropicFetch(body) {
 }
 
 // ══════════════════════════════════════════════════
+// TAB SWITCHER (v5 Tanda 3)
+// ══════════════════════════════════════════════════
+function rwSwitchTab(name) {
+  const tabs = document.querySelectorAll('.rw-tab');
+  tabs.forEach(t => t.classList.toggle('active', t.dataset.target === name));
+  document.body.classList.remove('rw-tab-modelado','rw-tab-mercado','rw-tab-dossier');
+  document.body.classList.add('rw-tab-' + name);
+  try { localStorage.setItem('rw_active_tab', name); } catch(e) {}
+  const panel = document.querySelector('.input-panel');
+  if (panel) panel.scrollTop = 0;
+}
+
+// Calendar sync helper (v5 Tanda 2)
+function rwSyncMonthsToSale() {
+  const obra  = parseInt(document.getElementById('obraMonths')?.value)     || 0;
+  const comer = parseInt(document.getElementById('comercialMonths')?.value) || 0;
+  const total = obra + comer;
+  const hidden = document.getElementById('monthsToSale');
+  if (hidden) hidden.value = total;
+  const disp = document.getElementById('monthsToSaleDisplay');
+  if (disp) disp.textContent = total;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Restore last active tab or default to modelado
+  const saved = (function(){ try { return localStorage.getItem('rw_active_tab'); } catch(e){ return null; } })();
+  const initial = saved && ['modelado','mercado','dossier'].includes(saved) ? saved : 'modelado';
+  rwSwitchTab(initial);
+  // Sync monthsToSale derived field
+  if (typeof rwSyncMonthsToSale === 'function') rwSyncMonthsToSale();
+});
+
+// ══════════════════════════════════════════════════
 // HELPERS
 // ══════════════════════════════════════════════════
 const $  = id => document.getElementById(id);
