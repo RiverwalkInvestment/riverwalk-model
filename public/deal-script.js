@@ -5321,25 +5321,29 @@ function renderCompInputs() {
         <input type="text" value="${(c.desc||'').replace(/"/g,'&quot;')}" placeholder="Descripción (dirección, características…)"
           onblur="comps.find(x=>x.id===${c.id}).desc=this.value;renderCompOutput();rwPersistComps()"
           style="width:100%;box-sizing:border-box;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-size:11.5px;padding:6px 8px;margin-bottom:6px;font-family:'Raleway',sans-serif">
-        <div style="display:grid;grid-template-columns:2fr 1.2fr 1fr 0.8fr 1fr;gap:4px;font-size:11px;margin-bottom:6px">
+        <!-- Row 1: Estado dropdown + €/m² display -->
+        <div style="display:grid;grid-template-columns:1fr auto;gap:4px;margin-bottom:4px">
           <select
             onchange="comps.find(x=>x.id===${c.id}).tipo=this.value;renderCompInputs();renderCompOutput();rwPersistComps()"
-            style="background:var(--d4);border:1px solid var(--d6);color:${c.tipo?tipoColor[c.tipo]:'var(--amber)'};font-family:'Raleway',sans-serif;font-size:10.5px;padding:6px">
+            style="background:var(--d4);border:1px solid var(--d6);color:${c.tipo?tipoColor[c.tipo]:'var(--amber)'};font-family:'Raleway',sans-serif;font-size:10.5px;padding:6px;width:100%">
             <option value="" ${!c.tipo?'selected':''}>— Estado —</option>
             <option value="reformado" ${c.tipo==='reformado'?'selected':''}>Reformado</option>
             <option value="estreno"   ${c.tipo==='estreno'  ?'selected':''}>Estreno</option>
             <option value="reformar"  ${c.tipo==='reformar' ?'selected':''}>A reformar</option>
           </select>
+          <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--gold);padding:6px 10px;background:var(--d4);border:1px solid var(--line2);white-space:nowrap;min-width:90px;text-align:right">${ppmText}</div>
+        </div>
+        <!-- Row 2: Precio + m² + Planta -->
+        <div style="display:grid;grid-template-columns:1fr 80px 60px;gap:4px;margin-bottom:6px">
           <input type="text" value="${c.precio ? Math.round(c.precio).toLocaleString('es-ES') : ''}" placeholder="Precio €"
             onblur="comps.find(x=>x.id===${c.id}).precio=parseFloat(this.value.replace(/\\./g,'').replace(',','.'))||0;renderCompInputs();renderCompOutput();rwPersistComps()"
-            style="background:var(--d4);border:1px solid ${c.precio?'var(--d6)':'var(--amber)'};color:var(--text-b);font-family:'DM Mono',monospace;font-size:11px;padding:6px;text-align:right">
+            style="background:var(--d4);border:1px solid ${c.precio?'var(--d6)':'var(--amber)'};color:var(--text-b);font-family:'DM Mono',monospace;font-size:11px;padding:6px;text-align:right;width:100%">
           <input type="number" value="${c.m2||''}" placeholder="m²" step="1"
             onblur="comps.find(x=>x.id===${c.id}).m2=parseFloat(this.value)||0;renderCompInputs();renderCompOutput();rwPersistComps()"
-            style="background:var(--d4);border:1px solid ${c.m2?'var(--d6)':'var(--amber)'};color:var(--text-b);font-family:'DM Mono',monospace;font-size:11px;padding:6px;text-align:right">
+            style="background:var(--d4);border:1px solid ${c.m2?'var(--d6)':'var(--amber)'};color:var(--text-b);font-family:'DM Mono',monospace;font-size:11px;padding:6px;text-align:right;width:100%">
           <input type="number" value="${c.planta!=null&&c.planta!==''?c.planta:''}" placeholder="Plt" min="-2" max="40" step="1"
             onblur="comps.find(x=>x.id===${c.id}).planta=this.value===''?null:parseInt(this.value);renderCompInputs();renderCompOutput();rwPersistComps()"
-            style="background:var(--d4);border:1px solid ${c.planta!=null&&c.planta!==''?'var(--d6)':'var(--amber)'};color:var(--text-b);font-family:'DM Mono',monospace;font-size:11px;padding:6px;text-align:center">
-          <div style="font-family:'DM Mono',monospace;font-size:11.5px;color:var(--gold);padding:6px;text-align:right;background:var(--d4);border:1px solid var(--line2)">${ppmText}</div>
+            style="background:var(--d4);border:1px solid ${c.planta!=null&&c.planta!==''?'var(--d6)':'var(--amber)'};color:var(--text-b);font-family:'DM Mono',monospace;font-size:11px;padding:6px;text-align:center;width:100%">
         </div>
         <div style="display:flex;gap:6px;align-items:center">
           <input type="text" value="${(c.url||'').replace(/"/g,'&quot;')}" placeholder="https://… (link al anuncio — obligatorio para verificado)"
