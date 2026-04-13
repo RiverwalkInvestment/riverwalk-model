@@ -573,25 +573,37 @@ Devuelve SOLO el JSON sin explicaciones adicionales, con esta estructura:
   "descripcionLarga": "descripción resumida relevante"
 }`;
 
-    const userContent = payload.type === 'text'
-      ? `URL: ${payload.url || 'no proporcionada'}\n\nTexto del anuncio:\n${payload.content}`
-      : [
-          { type: 'text', text: `URL: ${payload.url || 'no proporcionada'}\n\nExtrae los datos del anuncio inmobiliario de esta captura de pantalla:` },
-          { type: 'image_url', image_url: { url: payload.content } }
-        ];
+    let userContent;
+    if (payload.type === 'text') {
+      userContent = `URL: ${payload.url || 'no proporcionada'}\n\nTexto del anuncio:\n${payload.content}`;
+    } else {
+      // Convert data URL to Anthropic image format (source.base64)
+      const dataUrlMatch = payload.content.match(/^data:([^;]+);base64,(.+)$/);
+      const mediaType = (dataUrlMatch ? dataUrlMatch[1] : 'image/jpeg');
+      const b64data   = (dataUrlMatch ? dataUrlMatch[2] : payload.content);
+      userContent = [
+        { type: 'text', text: `URL: ${payload.url || 'no proporcionada'}\n\nExtrae los datos del anuncio inmobiliario de esta captura de pantalla:` },
+        { type: 'image', source: { type: 'base64', media_type: mediaType, data: b64data } }
+      ];
+    }
 
     const resp = await fetch('/api/anthropic', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-user-api-key': apiKey },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model: 'claude-haiku-4-5',
         max_tokens: 1024,
         system: systemPrompt,
         messages: [{ role: 'user', content: userContent }],
       })
     });
 
-    if (!resp.ok) throw new Error(`API error ${resp.status}`);
+    if (!resp.ok) {
+      const errBody = await resp.json().catch(() => ({}));
+      const errMsg = errBody?.error?.message || `Error ${resp.status}`;
+      if (resp.status === 401) { rwClearSessionKey(); throw new Error('API Key inválida — se ha eliminado. Vuelve a introducirla.'); }
+      throw new Error(errMsg);
+    }
     const data = await resp.json();
     const raw = data.content?.[0]?.text || data.content || '';
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
@@ -3864,7 +3876,8 @@ const NARR_PROMPTS = {
 };
 
 async function generateNarrative(section) {
-  if (!checkAPIKey()) return;
+  let _apiKey; try { _apiKey = await rwRequireApiKey(); } catch(e) { return; }
+  if (!_apiKey) return;
 
   const field = $('narr-' + section);
   // Find the ✦ Generar button for this section
@@ -3923,7 +3936,8 @@ async function aiQuickGen(section) {
 
 async function sendAIMessage() {
   if (aiGenerating) return;
-  if (!checkAPIKey()) return;
+  let _apiKey; try { _apiKey = await rwRequireApiKey(); } catch(e) { return; }
+  if (!_apiKey) return;
   const inp = $('ai-input');
   const text = inp?.value?.trim();
   if (!text) return;
@@ -4194,7 +4208,9 @@ function buildBenchmarkView() {
 }
 
 async function fetchBenchmarks() {
-  if (benchFetching || !checkAPIKey()) return;
+  if (benchFetching) return;
+  let _apiKey; try { _apiKey = await rwRequireApiKey(); } catch(e) { return; }
+  if (!_apiKey) return;
   benchFetching = true;
   const btn = document.getElementById('bench-btn');
   if (btn) btn.textContent = '⟳ Consultando mercados…';
@@ -4344,7 +4360,8 @@ function deleteInvestor(i) {
 }
 
 async function generateInvestorEmail(invName) {
-  if (!checkAPIKey()) return;
+  let _apiKey; try { _apiKey = await rwRequireApiKey(); } catch(e) { return; }
+  if (!_apiKey) return;
   const m = (() => { try { return calc(); } catch { return null; } })();
   if (!m) return;
   const investors = lsGet(LS_INV);
