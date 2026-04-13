@@ -1461,7 +1461,7 @@ const OVERLAY_HTML = `
 
 // Cache-buster for deal-script.js — bump this string whenever deal-script.js changes
 // so the browser fetches the latest version instead of the cached one.
-const DEAL_SCRIPT_VER = '20260413-04'
+const DEAL_SCRIPT_VER = '20260413-05'
 
 // Module-level flag: prevents createAndGo from firing more than once at a time,
 // guarding against double-clicks or remount-induced duplicate deal creation.
@@ -1921,6 +1921,26 @@ export default function DealClient({
             <option value="es">ES</option>
             <option value="en">EN</option>
           </select>
+          {/* API Key pill */}
+          <button
+            id="rw-apikey-pill"
+            onClick={() => {
+              if (typeof window === 'undefined') return
+              const w = window as any
+              const active = typeof w.rwGetSessionKey === 'function' && !!w.rwGetSessionKey()
+              if (active) {
+                if (confirm('¿Revocar la API Key de esta sesión?')) {
+                  if (w.rwClearSessionKey) w.rwClearSessionKey()
+                }
+              } else {
+                if (w.rwRequireApiKey) w.rwRequireApiKey().catch(() => {})
+              }
+            }}
+            style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.28)', fontFamily: "'Raleway',sans-serif", fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '5px 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 0 }}
+            title="Configurar Anthropic API Key para funciones IA"
+          >
+            <span style={{ fontSize: 9 }}>🔑</span><span style={{ marginLeft: 4 }}>IA: sin key</span>
+          </button>
           {/* Demo button (Tanda 11) */}
           <button
             onClick={() => { if (typeof window !== 'undefined' && (window as any).rwLoadDemoDeal) (window as any).rwLoadDemoDeal() }}

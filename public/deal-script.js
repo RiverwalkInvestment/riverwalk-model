@@ -113,11 +113,25 @@ function rwGetSessionKey() {
 function rwSetSessionKey(key) {
   sessionStorage.setItem(RW_SK, key);
   sessionStorage.setItem(RW_SKX, String(Date.now() + RW_TTL));
+  rwUpdateApiKeyPill();
 }
 
 function rwClearSessionKey() {
   sessionStorage.removeItem(RW_SK);
   sessionStorage.removeItem(RW_SKX);
+  rwUpdateApiKeyPill();
+}
+
+function rwUpdateApiKeyPill() {
+  const pill = document.getElementById('rw-apikey-pill');
+  if (!pill) return;
+  const active = !!rwGetSessionKey();
+  pill.innerHTML = active
+    ? '<span style="color:#4CAF82;font-size:9px">🔑</span><span style="margin-left:4px">IA activa</span>'
+    : '<span style="color:rgba(255,255,255,0.3);font-size:9px">🔑</span><span style="margin-left:4px">IA: sin key</span>';
+  pill.style.borderColor = active ? 'rgba(76,175,130,0.4)' : 'rgba(255,255,255,0.08)';
+  pill.style.color = active ? 'rgba(76,175,130,0.85)' : 'rgba(255,255,255,0.28)';
+  pill.title = active ? 'API Key activa (clic para revocar)' : 'Clic para configurar tu Anthropic API Key';
 }
 
 function rwRequireApiKey() {
@@ -536,8 +550,8 @@ async function rwImporterSubmit(mode) {
   if (submitBtn) { submitBtn.disabled = true; submitBtn.style.opacity = '0.5'; }
 
   try {
-    const apiKey = (typeof rwGetSessionKey === 'function') ? rwGetSessionKey() : null;
-    if (!apiKey) { if (statusEl) statusEl.textContent = '⚠ Configura tu API key primero.'; return; }
+    const apiKey = await rwRequireApiKey();
+    if (!apiKey) { if (statusEl) statusEl.textContent = '⚠ API key requerida.'; return; }
 
     const systemPrompt = `Eres un asistente especializado en extracción de datos de anuncios inmobiliarios españoles. Dado un texto o descripción de imagen de un anuncio, extrae los datos estructurados en formato JSON.
 
@@ -568,13 +582,12 @@ Devuelve SOLO el JSON sin explicaciones adicionales, con esta estructura:
 
     const resp = await fetch('/api/anthropic', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-user-api-key': apiKey },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
         system: systemPrompt,
         messages: [{ role: 'user', content: userContent }],
-        apiKey
       })
     });
 
@@ -7981,6 +7994,7 @@ setTimeout(() => {
     const saved = localStorage.getItem('rw_lang');
     if (saved) { RW_LANG = saved; const sel = document.getElementById('rw-lang-selector'); if (sel) sel.value = saved; }
   } catch(e) {}
+  try { rwUpdateApiKeyPill(); } catch(e) {}
 }, 200);
 
 const RW_AI_SYSTEM = {
