@@ -644,7 +644,45 @@ Devuelve SOLO el JSON sin explicaciones adicionales, con esta estructura:
 }
 
 function rwOpenLibrary() {
-  alert('Biblioteca de testigos — próximamente. Usa "Pegar texto" o "Pegar captura" para importar testigos.');
+  const existing = document.getElementById('rw-library-modal');
+  if (existing) existing.remove();
+
+  const verified = (typeof comps !== 'undefined' ? comps : []).filter(c => c.precio > 0 && c.m2 > 0);
+  const all = (typeof comps !== 'undefined' ? comps : []);
+
+  const rowsHtml = all.length === 0
+    ? '<div style="padding:32px 0;text-align:center;color:rgba(255,255,255,0.25);font-size:13px">No hay testigos importados aún.<br><span style="font-size:11px">Usa "Pegar texto" o "Pegar captura" para importar.</span></div>'
+    : all.map((c, i) => {
+        const isV = rwIsVerified(c);
+        const pm2 = (c.precio > 0 && c.m2 > 0) ? Math.round(c.precio / c.m2) : null;
+        return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:3px;margin-bottom:6px">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+              <span style="font-size:9px;padding:2px 6px;border-radius:2px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;${isV?'background:rgba(82,192,122,0.12);color:#52C07A;border:1px solid rgba(82,192,122,0.3)':'background:rgba(196,151,90,0.1);color:var(--amber);border:1px solid rgba(196,151,90,0.25)'}">${isV?'✓ Verificado':'⚠ Incompleto'}</span>
+              ${pm2?`<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--gold)">${pm2.toLocaleString('es-ES')} €/m²</span>`:''}
+            </div>
+            <div style="font-size:12px;color:var(--text-b);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.descripcion||'Testigo #'+(i+1)}</div>
+            <div style="font-size:10px;color:var(--text-d);margin-top:2px">${c.precio>0?c.precio.toLocaleString('es-ES')+' €':'—'} · ${c.m2>0?c.m2+' m²':'—'}${c.planta?' · '+c.planta:''}${c.tipo?' · '+c.tipo:''}</div>
+          </div>
+          <a href="${c.url||'#'}" target="_blank" rel="noopener" style="font-size:10px;color:var(--text-d);text-decoration:none;padding:4px 8px;border:1px solid rgba(255,255,255,0.1);border-radius:2px;flex-shrink:0;${!c.url?'opacity:0.3;pointer-events:none':''}">↗</a>
+        </div>`;
+      }).join('');
+
+  const modal = document.createElement('div');
+  modal.id = 'rw-library-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6)';
+  modal.innerHTML = `<div style="background:var(--d2,#16181E);border:1px solid rgba(255,255,255,0.1);border-radius:4px;width:520px;max-width:95vw;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,0.7)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.07)">
+      <div>
+        <div style="font-size:14px;font-weight:600;color:var(--text-b)">Biblioteca de testigos</div>
+        <div style="font-size:10px;color:var(--text-d);margin-top:2px">${all.length} testigo${all.length!==1?'s':''} · ${verified.length} verificado${verified.length!==1?'s':''}</div>
+      </div>
+      <button onclick="document.getElementById('rw-library-modal')?.remove()" style="background:none;border:none;color:var(--text-d);cursor:pointer;font-size:18px;padding:4px 8px">✕</button>
+    </div>
+    <div style="overflow-y:auto;padding:14px 16px;flex:1">${rowsHtml}</div>
+  </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
 }
 
 // ══════════════════════════════════════════════════
@@ -3273,14 +3311,9 @@ function buildSlides(m, d) {
     </div>` });
 
   // ── EL MERCADO — Negociación bid/ask timeline ───────────────────────────────
-  // negotiation puede ser array (formato antiguo) u objeto v5 {asking, rounds}
+  // Normalize both old flat-array format and v5 {asking, rounds} object format
   const _ng = d.negotiation;
-  const negHitos = Array.isArray(_ng) ? _ng
-    : (_ng && !Array.isArray(_ng)) ? [
-        ...(_ng.asking ? [{ tipo:'asking', importe: _ng.asking.importe, fecha: _ng.asking.fecha, nota: _ng.asking.nota }] : []),
-        ...(_ng.rounds || []).map(r => ({ tipo: r.tipo || 'oferta', importe: r.importe, fecha: r.fecha, nota: r.nota })),
-      ]
-    : [];
+  const negHitos = typeof rwFlattenNegotiation === 'function' ? rwFlattenNegotiation(_ng) : (Array.isArray(_ng) ? _ng : []);
   const askingHito = negHitos.find(h => h.tipo === 'asking');
   const pactadoHito = negHitos.find(h => h.tipo === 'pactado');
   const askingPrice = askingHito?.importe || (_ng && !Array.isArray(_ng) ? (_ng.asking?.importe || 0) : 0);
@@ -3809,6 +3842,21 @@ function buildSlides(m, d) {
         </div>
       </div>
     </div>` });
+
+  // ── MATRICES DE SENSIBILIDAD — add selected matrices ─────────────────────
+  try {
+    const selPres = (typeof rwSensSelection !== 'undefined' && rwSensSelection.inPresentation) ? rwSensSelection.inPresentation : {};
+    const selectedIds = Object.keys(selPres).filter(id => selPres[id]);
+    if (typeof RW_SENS_MATRICES !== 'undefined' && selectedIds.length > 0) {
+      selectedIds.forEach(id => {
+        const matHtml = rwSlideExtMatrix(id, m);
+        if (matHtml) {
+          // Wrap in presentation dark theme to match other slides
+          slides.push({ id: 'matrix-' + id, html: baseCSS + `<div class="inner sl-light" style="padding:0;overflow:hidden">${matHtml}</div>` });
+        }
+      });
+    }
+  } catch(e) { console.warn('[buildSlides] matrix slides error', e); }
 
   return slides;
 }
@@ -6767,7 +6815,7 @@ function rwTrunc(text, maxLen) {
 function rwMd(text) {
   if (!text) return '';
   return text
-    .replace(/\*\*(.+?)\*\*/g, '<br><strong style="font-weight:700;display:inline-block;margin-top:6px;margin-bottom:1px;">$1</strong><br>')
+    .replace(/\*\*(.+?)\*\*/g, '<br><strong style="font-weight:700;display:inline-block;margin-top:2px;margin-bottom:0px;">$1</strong><br>')
     .replace(/\n\n/g, '<br><br>')
     .replace(/\n/g, '<br>')
     .replace(/^<br>/, '');
@@ -7255,7 +7303,7 @@ function rwSlide8() {
 
 // ── PDF SLIDE: EL MERCADO ─────────────────────────────────────
 function rwSlideMercadoPDF(dealName, negotiation, m) {
-  const neg = negotiation || [];
+  const neg = (typeof rwFlattenNegotiation === 'function' ? rwFlattenNegotiation(negotiation) : null) || (Array.isArray(negotiation) ? negotiation : []);
   const askH  = neg.find(h => h.tipo === 'asking');
   const pactH = neg.find(h => h.tipo === 'pactado');
   const savAbs = (askH?.importe > 0 && pactH?.importe > 0) ? askH.importe - pactH.importe : 0;
@@ -7872,7 +7920,7 @@ async function exportDossierPDF() {
       rwSlide2(dealName, dealAddr, m, narr, rwDossierImages.fachada),
       rwSlide3(dealName, rwDossierImages.interiores),
       rwSlide4(dealName, m, narr),
-      (d.negotiation && d.negotiation.length > 0) ? rwSlideMercadoPDF(dealName, d.negotiation, m) : null,
+      (d.negotiation && (Array.isArray(d.negotiation) ? d.negotiation.length > 0 : (d.negotiation.asking?.importe > 0 || (d.negotiation.rounds||[]).length > 0))) ? rwSlideMercadoPDF(dealName, d.negotiation, m) : null,
       rwSlide5(dealName, rwDossierImages.planoActual, rwDossierImages.planoObjetivo, narr),
       (narr.proyecto || rwDossierImages.planoObjetivo || d.interiorismStyle) ? rwSlideProyectoPDF(dealName, m, narr, rwDossierImages.planoObjetivo, [], d.interiorismStyle || '') : null,
       rwSlide6(dealName, dealAddr, mapData, narr, m, d.orientation || null),
@@ -7882,6 +7930,15 @@ async function exportDossierPDF() {
       rwSlideProteccionPDF(dealName, m),
       rwSlideHighlightsPDF(dealName, m, d),
       rwSlide8(),
+      // Sensitivity matrices selected for PDF
+      ...(() => {
+        try {
+          const selPDF = (typeof rwSensSelection !== 'undefined' && rwSensSelection.inPDF) ? rwSensSelection.inPDF : {};
+          const ids = Object.keys(selPDF).filter(id => selPDF[id]);
+          if (typeof RW_SENS_MATRICES === 'undefined' || ids.length === 0) return [];
+          return ids.map(id => rwSlideExtMatrix(id, m)).filter(Boolean);
+        } catch(e) { return []; }
+      })(),
     ].filter(Boolean);
 
     const jsPDFCtor = window.jspdf?.jsPDF || window.jsPDF;
