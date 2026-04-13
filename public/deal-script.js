@@ -3660,9 +3660,9 @@ function buildSlides(m, d) {
       })].join('')}</tr>`;
   }).join('');
 
-  // Matrix 2: CapEx variation × price
-  const capexAdjs = [-0.20,-0.10,0,+0.10,+0.20,+0.30];
-  const capexExits = [V('exitP'),V('exitB'),V('exitO')].filter((v,i,a)=>a.indexOf(v)===i);
+  // Matrix 2: CapEx variation × price (5 scenarios × all sensPrices, matching the in-page model)
+  const capexAdjs = [-0.10,0,+0.10,+0.20,+0.30];
+  const capexExits = (sensPrices && sensPrices.length ? [...sensPrices] : [V('exitP'),V('exitB'),V('exitO')]).slice(0,6);
 
   function cellROI2(capexMult, ep) {
     const cn = m.capexNet * capexMult;
@@ -3691,6 +3691,18 @@ function buildSlides(m, d) {
     </div>`).join('')}
     <div style="margin-left:auto;font-size:8.5px;color:rgba(255,255,255,0.2)">· = escenario base</div>
   </div>`;
+
+  // ── BIBLIOTECA DE MATRICES — inserted inside Protección de capital ────────
+  try {
+    const selPres = (typeof rwSensSelection !== 'undefined' && rwSensSelection.inPresentation) ? rwSensSelection.inPresentation : {};
+    const selectedIds = Object.keys(selPres).filter(id => selPres[id]);
+    if (typeof RW_SENS_MATRICES !== 'undefined' && selectedIds.length > 0) {
+      selectedIds.forEach(id => {
+        const matHtml = typeof rwSlideExtMatrixDark === 'function' ? rwSlideExtMatrixDark(id, m) : null;
+        if (matHtml) slides.push({ id: 'matrix-' + id, html: baseCSS + matHtml });
+      });
+    }
+  } catch(e) { console.warn('[buildSlides] matrix slides error', e); }
 
   slides.push({ id:'sensibilidad', html: baseCSS + `
     <div class="inner" style="padding:28px 44px;gap:16px">
@@ -3842,21 +3854,6 @@ function buildSlides(m, d) {
         </div>
       </div>
     </div>` });
-
-  // ── MATRICES DE SENSIBILIDAD — add selected matrices ─────────────────────
-  try {
-    const selPres = (typeof rwSensSelection !== 'undefined' && rwSensSelection.inPresentation) ? rwSensSelection.inPresentation : {};
-    const selectedIds = Object.keys(selPres).filter(id => selPres[id]);
-    if (typeof RW_SENS_MATRICES !== 'undefined' && selectedIds.length > 0) {
-      selectedIds.forEach(id => {
-        const matHtml = rwSlideExtMatrix(id, m);
-        if (matHtml) {
-          // Wrap in presentation dark theme to match other slides
-          slides.push({ id: 'matrix-' + id, html: baseCSS + `<div class="inner sl-light" style="padding:0;overflow:hidden">${matHtml}</div>` });
-        }
-      });
-    }
-  } catch(e) { console.warn('[buildSlides] matrix slides error', e); }
 
   return slides;
 }
@@ -7637,8 +7634,8 @@ function rwSlideProteccionPDF(dealName, m) {
     return 'background:rgba(26,107,60,0.08);color:#1A6B3C;border:0.5px solid rgba(26,107,60,0.2);';
   }
 
-  const capexAdjs = [-0.20,-0.10,0,+0.10,+0.20,+0.30];
-  const capexExits = [V('exitP'),V('exitB'),V('exitO')].filter((v,i,a)=>a.indexOf(v)===i);
+  const capexAdjs = [-0.10,0,+0.10,+0.20,+0.30];
+  const capexExits = priceCols;
 
   const thStyle = 'padding:5px 10px;font-size:7.5px;letter-spacing:0.1em;text-transform:uppercase;color:#8B8074;font-weight:400;text-align:center;border-bottom:1px solid rgba(196,151,90,0.2);';
   const thLeftStyle = 'padding:5px 12px;font-size:7.5px;letter-spacing:0.1em;text-transform:uppercase;color:#8B8074;font-weight:400;text-align:left;border-bottom:1px solid rgba(196,151,90,0.2);';
@@ -8571,6 +8568,52 @@ function rwSlideExtMatrix(matrixId, m) {
     + '<div style="position:absolute;bottom:40px;left:52px;right:52px;display:flex;justify-content:space-between;font-size:9px;color:#9A9A9A;letter-spacing:0.1em;text-transform:uppercase"><span>' + (typeof t === 'function' ? t('confidential_doc') : 'Riverwalk Real Estate · documento confidencial') + '</span><span>' + md.metric + '</span></div>'
   + '</div>';
   return html;
+}
+
+function rwSlideExtMatrixDark(matrixId, m) {
+  if (typeof RW_SENS_MATRICES === 'undefined') return '';
+  const md = RW_SENS_MATRICES[matrixId]; if (!md) return '';
+  const rows = md.rowsFn(m); const cols = md.colsFn(m);
+  const matrixLegend = `<div style="display:flex;gap:14px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06)">
+    ${[['#E05555','< 0% · Pérdidas'],['rgba(255,165,0,0.9)','0–8%'],['rgba(196,151,90,0.9)','8–15%'],['#52C07A','> 15% · Objetivo']].map(([c,l])=>`
+    <div style="display:flex;align-items:center;gap:5px">
+      <div style="width:8px;height:8px;background:${c};opacity:0.7;border-radius:1px;flex-shrink:0"></div>
+      <span style="font-size:8.5px;color:rgba(255,255,255,0.3)">${l}</span>
+    </div>`).join('')}
+    <div style="margin-left:auto;font-size:8.5px;color:rgba(255,255,255,0.2)">· = escenario base</div>
+  </div>`;
+  const tableRows = rows.map(row => {
+    const rowLabelStyle = `padding:7px 12px;font-family:'DM Mono',monospace;font-size:10.5px;white-space:nowrap;border-right:1px solid rgba(255,255,255,0.06);${row.isBase?'color:rgba(196,151,90,0.95);background:rgba(139,105,20,0.08);':'color:rgba(255,255,255,0.5);'}`;
+    const cells = cols.map(col => {
+      const cell = md.cellFn(m, row, col);
+      const clsC = md.colorFn(cell.value);
+      let bg='rgba(255,255,255,0.03)', text='rgba(255,255,255,0.5)', border='rgba(255,255,255,0.06)';
+      if (clsC==='c1'){bg='rgba(180,30,30,0.35)';text='#E05555';border='rgba(224,85,85,0.25)';}
+      else if(clsC==='c2'){bg='rgba(180,100,20,0.25)';text='rgba(255,165,0,0.9)';border='rgba(255,165,0,0.2)';}
+      else if(clsC==='c3'){bg='rgba(139,105,20,0.22)';text='rgba(196,151,90,0.95)';border='rgba(196,151,90,0.2)';}
+      else if(clsC==='c4'){bg='rgba(20,100,50,0.25)';text='#52C07A';border='rgba(82,192,122,0.2)';}
+      return `<td style="padding:7px 8px;text-align:center;background:${bg};border:1px solid ${border}"><div style="font-family:'DM Mono',monospace;font-size:12.5px;color:${text};font-weight:500;line-height:1">${cell.display}</div>${cell.extra?`<div style="font-size:8px;color:rgba(255,255,255,0.3);margin-top:2px">${cell.extra}</div>`:''}</td>`;
+    }).join('');
+    return `<tr><td style="${rowLabelStyle}">${row.label}</td>${cells}</tr>`;
+  }).join('');
+  return `<div class="inner" style="padding:28px 44px;gap:16px">
+    <div style="flex-shrink:0">
+      <div class="ps-tag">Protección de capital</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:#fff;margin-top:2px">${md.label}</div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:4px;line-height:1.5">${md.sub}</div>
+    </div>
+    <div style="flex:1;min-height:0;overflow:auto">
+      <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:8px">${md.metric}</div>
+      <table style="width:100%;border-collapse:separate;border-spacing:2px">
+        <thead><tr>
+          <th style="padding:5px 12px;text-align:left;font-size:8px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.25);font-weight:400;border-bottom:1px solid rgba(255,255,255,0.08)"></th>
+          ${cols.map(c=>`<th style="padding:5px 8px;text-align:center;font-family:'DM Mono',monospace;font-size:10px;color:${c.isBase?'rgba(196,151,90,0.8)':'rgba(255,255,255,0.35)'};font-weight:400;border-bottom:1px solid rgba(255,255,255,0.08)">${c.label}</th>`).join('')}
+        </tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+      ${matrixLegend}
+    </div>
+  </div>`;
 }
 
 const RW_SENS_MATRICES = {
