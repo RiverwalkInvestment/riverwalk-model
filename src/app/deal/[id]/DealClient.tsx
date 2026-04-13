@@ -1461,7 +1461,7 @@ const OVERLAY_HTML = `
 
 // Cache-buster for deal-script.js — bump this string whenever deal-script.js changes
 // so the browser fetches the latest version instead of the cached one.
-const DEAL_SCRIPT_VER = '20260413-03'
+const DEAL_SCRIPT_VER = '20260413-04'
 
 // Module-level flag: prevents createAndGo from firing more than once at a time,
 // guarding against double-clicks or remount-induced duplicate deal creation.
@@ -1918,11 +1918,8 @@ export default function DealClient({
             title="Idioma de presentación, PDF y narrativa IA"
             style={{ background: 'var(--d4)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)', fontFamily: "'Raleway',sans-serif", fontSize: 10, letterSpacing: '0.1em', padding: '5px 7px', cursor: 'pointer', textTransform: 'uppercase' }}
           >
-            <option value="es">🌐 ES</option>
-            <option value="en">🌐 EN</option>
-            <option value="fr">🌐 FR</option>
-            <option value="de">🌐 DE</option>
-            <option value="pt">🌐 PT</option>
+            <option value="es">ES</option>
+            <option value="en">EN</option>
           </select>
           {/* Demo button (Tanda 11) */}
           <button

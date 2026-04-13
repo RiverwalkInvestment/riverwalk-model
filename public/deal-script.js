@@ -2250,11 +2250,10 @@ function loadDossierToForm() {
   // Interiorism style
   const intSel = $('interiorismStyle');
   if (intSel) { intSel.value = d.interiorismStyle || ''; saveInteriorismStyle(); }
-  // Calidades
-  const cpSel = $('calidadesPreset');
-  if (cpSel) { cpSel.value = d.calidades?.preset || ''; applyCalidadesPreset(); }
-  const customEl = $('calidadesCustomText');
-  if (customEl && d.calidades?.customText) customEl.value = d.calidades.customText;
+  // Calidades v5 gallery
+  if (typeof rwCalidadesLib !== 'undefined' && typeof rwLoadCalidadesPresets === 'function') rwCalidadesLib = rwLoadCalidadesPresets();
+  if (typeof rwRenderCalidadesGallery === 'function') rwRenderCalidadesGallery();
+  if (typeof rwValidateCapExPreset === 'function') rwValidateCapExPreset();
   // Estructura
   if (d.estructura?.vehiculo) setVehiculo(d.estructura.vehiculo);
   if (d.estructura?.aportacion) setAportacion(d.estructura.aportacion);
@@ -2264,6 +2263,9 @@ function loadDossierToForm() {
   renderNegHitos();
   renderCatalizadores();
   renderDossierPhotos();
+  if (typeof rwRenderNegotiation === 'function') rwRenderNegotiation();
+  if (typeof rwUpdateContextStatus === 'function') rwUpdateContextStatus();
+  if (typeof rwCheckCoherenceInline === 'function') rwCheckCoherenceInline();
 }
 
 // ── ORIENTACIÓN OVERRIDE ───────────────────────────
@@ -5803,6 +5805,7 @@ function update() {
         if (tabEl && !tabEl.querySelector('input')) tabEl.textContent = deals[activeDealIdx].name;
       }
     }
+    try { if (typeof rwRenderExtendedMatrices === 'function') rwRenderExtendedMatrices(); } catch(e) {}
   } catch(e) { console.error('update error:', e); }
 }
 
@@ -7973,12 +7976,12 @@ function rwSetLang(code) {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+setTimeout(() => {
   try {
     const saved = localStorage.getItem('rw_lang');
     if (saved) { RW_LANG = saved; const sel = document.getElementById('rw-lang-selector'); if (sel) sel.value = saved; }
   } catch(e) {}
-});
+}, 200);
 
 const RW_AI_SYSTEM = {
   es: 'Eres el equipo de comunicación de Riverwalk Real Estate Investments, una firma de inversión inmobiliaria de alta gama en Madrid. Escribes en castellano con tono profesional, discreto y sofisticado — sin exageraciones ni superlativos vacíos.',
@@ -8411,11 +8414,9 @@ function applyCalidadesPreset() { /* noop — legacy shim */ }
 function toggleCalidadesEditor() { rwOpenCalidadesEditor(rwGetSelectedPreset() ? rwGetSelectedPreset().id : null); }
 function saveCalidadesCustom() { /* noop — legacy shim */ }
 
-document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(() => {
-    try { rwCalidadesLib = rwLoadCalidadesPresets(); rwRenderCalidadesGallery(); rwValidateCapExPreset(); } catch(e) {}
-  }, 400);
-});
+setTimeout(() => {
+  try { rwCalidadesLib = rwLoadCalidadesPresets(); rwRenderCalidadesGallery(); rwValidateCapExPreset(); } catch(e) {}
+}, 600);
 
 // ══════════════════════════════════════════════════════════════════════
 // TANDA 7 · Extended sensitivity matrices
@@ -8697,12 +8698,9 @@ function rwRenderExtendedMatrices() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  rwLoadSensSelection();
-  setTimeout(() => {
-    try { rwRenderMatrixSelector(); rwRenderExtendedMatrices(); } catch(e) {}
-  }, 350);
-});
+setTimeout(() => {
+  try { rwLoadSensSelection(); rwRenderMatrixSelector(); rwRenderExtendedMatrices(); } catch(e) {}
+}, 700);
 
 // ══════════════════════════════════════════════════════════════════════
 // TANDA 6 · Coherence gate
@@ -8779,11 +8777,9 @@ document.addEventListener('change', function() {
   if (typeof rwCheckCoherenceInline === 'function') rwCheckCoherenceInline();
   if (typeof rwRenderExtendedMatrices === 'function') { try { rwRenderExtendedMatrices(); } catch(e) {} }
 });
-document.addEventListener('DOMContentLoaded', function() {
-  setTimeout(function() {
-    try { rwUpdateContextStatus(); rwCheckCoherenceInline(); } catch(e) {}
-  }, 300);
-});
+setTimeout(function() {
+  try { rwUpdateContextStatus(); rwCheckCoherenceInline(); } catch(e) {}
+}, 500);
 
 // ══════════════════════════════════════════════════════════════════════
 // TANDA 9 · International portals registry
