@@ -187,6 +187,504 @@ async function rwAnthropicFetch(body) {
 }
 
 // ══════════════════════════════════════════════════
+// NOTARÍA BREAKDOWN v5 (Tanda 4)
+// ══════════════════════════════════════════════════
+function rwMarkManualNotaria(kind) {
+  const id = 'notaria' + kind;
+  const el = document.getElementById(id);
+  if (!el) return;
+  const raw = (el.value || '').replace(/\./g,'').replace(',','.').replace(/[^\d.\-]/g,'');
+  const parsed = parseFloat(raw);
+  if (el.value.trim() === '' || isNaN(parsed)) {
+    delete el.dataset.manualOverride;
+  } else {
+    el.dataset.manualOverride = '1';
+  }
+}
+
+function rwUseAutoNotaria(kind) {
+  const id = 'notaria' + kind;
+  const el = document.getElementById(id);
+  if (el) { el.value = ''; delete el.dataset.manualOverride; if (typeof update === 'function') update(); }
+}
+
+function rwToggleAsumeVendedor() {
+  const on = !!document.getElementById('notariaAsumeVendedor')?.checked;
+  ['notariaMinuta','notariaRegistro','notariaGestoria','notariaOtros'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.disabled = on; el.style.opacity = on ? '0.35' : '1'; }
+  });
+}
+
+// ══════════════════════════════════════════════════
+// NEGOCIACIÓN v5 (Tanda 5) — Asking + Rondas
+// ══════════════════════════════════════════════════
+function rwEnsureNegotiation() {
+  const d = (typeof getCurrentDossier === 'function') ? getCurrentDossier() : {};
+  if (!d.negotiation || Array.isArray(d.negotiation)) {
+    const flat = Array.isArray(d.negotiation) ? d.negotiation : [];
+    const ng = { asking: { importe: 0, fecha: '' }, rounds: [] };
+    let currentRound = null;
+    for (const h of flat) {
+      if (h.tipo === 'asking') { ng.asking = { importe: h.importe || 0, fecha: h.fecha || '' }; }
+      else if (h.tipo === 'oferta') {
+        currentRound = { oferta:{importe:h.importe||0,fecha:h.fecha||''}, respuesta:{tipo:'',importe:0,fecha:''}, decision:{tipo:'',fecha:''} };
+        ng.rounds.push(currentRound);
+      } else if (h.tipo === 'rechazada' && currentRound && !currentRound.respuesta.tipo) {
+        currentRound.respuesta = { tipo:'rechazo', importe:0, fecha:h.fecha||'' };
+      } else if (h.tipo === 'contraoferta' && currentRound && !currentRound.respuesta.tipo) {
+        currentRound.respuesta = { tipo:'contraoferta', importe:h.importe||0, fecha:h.fecha||'' };
+      } else if (h.tipo === 'pactado') {
+        if (currentRound && currentRound.respuesta.tipo === 'contraoferta') {
+          currentRound.decision = { tipo:'acepto', fecha:h.fecha||'' };
+        } else if (currentRound) {
+          currentRound.respuesta = { tipo:'acepto', importe:0, fecha:h.fecha||'' };
+        }
+      }
+    }
+    d.negotiation = ng;
+  }
+  if (!d.negotiation.asking) d.negotiation.asking = { importe: 0, fecha: '' };
+  if (!Array.isArray(d.negotiation.rounds)) d.negotiation.rounds = [];
+  return d.negotiation;
+}
+
+function rwFlattenNegotiation(negOrArr) {
+  if (!negOrArr) return [];
+  if (Array.isArray(negOrArr)) return negOrArr;
+  const out = [];
+  if (negOrArr.asking && (negOrArr.asking.importe || negOrArr.asking.fecha)) {
+    out.push({ tipo:'asking', importe: negOrArr.asking.importe||0, fecha: negOrArr.asking.fecha||'', nota:'' });
+  }
+  for (const r of (negOrArr.rounds || [])) {
+    if (r.oferta && (r.oferta.importe || r.oferta.fecha)) {
+      out.push({ tipo:'oferta', importe: r.oferta.importe||0, fecha: r.oferta.fecha||'', nota:'' });
+    }
+    if (r.respuesta && r.respuesta.tipo) {
+      if (r.respuesta.tipo === 'acepto') {
+        out.push({ tipo:'pactado', importe: r.oferta?.importe||0, fecha: r.respuesta.fecha||'', nota:'Aceptada por vendedor' });
+      } else if (r.respuesta.tipo === 'rechazo') {
+        out.push({ tipo:'rechazada', importe: r.oferta?.importe||0, fecha: r.respuesta.fecha||'', nota:'' });
+      } else if (r.respuesta.tipo === 'contraoferta') {
+        out.push({ tipo:'contraoferta', importe: r.respuesta.importe||0, fecha: r.respuesta.fecha||'', nota:'' });
+      }
+    }
+    if (r.decision && r.decision.tipo) {
+      if (r.decision.tipo === 'acepto') {
+        out.push({ tipo:'pactado', importe: r.respuesta?.importe||0, fecha: r.decision.fecha||'', nota:'Aceptada por Riverwalk' });
+      } else if (r.decision.tipo === 'rechazo') {
+        out.push({ tipo:'rechazada', importe: r.respuesta?.importe||0, fecha: r.decision.fecha||'', nota:'Rechazada por Riverwalk' });
+      }
+    }
+  }
+  return out;
+}
+
+function rwUpdateAsking(field, val) {
+  const ng = rwEnsureNegotiation();
+  if (field === 'importe') {
+    const raw = (val || '').toString().replace(/\./g,'').replace(',','.').replace(/[^\d.\-]/g,'');
+    ng.asking.importe = parseFloat(raw) || 0;
+  } else if (field === 'fecha') {
+    ng.asking.fecha = val || '';
+  }
+  rwRenderNegotiation();
+}
+
+function rwAddRound() {
+  const ng = rwEnsureNegotiation();
+  const last = ng.rounds[ng.rounds.length - 1];
+  if (last) {
+    const lastClosed =
+      last.respuesta.tipo === 'acepto' ||
+      (last.respuesta.tipo === 'contraoferta' && last.decision.tipo === 'acepto');
+    if (lastClosed) {
+      const w = document.getElementById('neg-global-warn');
+      if (w) { w.textContent = '⚠ La negociación ya está cerrada con acuerdo.'; setTimeout(()=>{ if (w) w.textContent=''; }, 4000); }
+      return;
+    }
+  }
+  ng.rounds.push({
+    oferta: { importe: 0, fecha: '' },
+    respuesta: { tipo: '', importe: 0, fecha: '' },
+    decision: { tipo: '', fecha: '' },
+  });
+  rwRenderNegotiation();
+}
+
+function rwRemoveRound(i) {
+  const ng = rwEnsureNegotiation();
+  ng.rounds.splice(i, 1);
+  rwRenderNegotiation();
+}
+
+function rwUpdateRound(i, slot, field, val) {
+  const ng = rwEnsureNegotiation();
+  const r = ng.rounds[i]; if (!r) return;
+  if (slot === 'oferta' || slot === 'respuesta' || slot === 'decision') {
+    if (field === 'importe') {
+      const raw = (val || '').toString().replace(/\./g,'').replace(',','.').replace(/[^\d.\-]/g,'');
+      r[slot].importe = parseFloat(raw) || 0;
+    } else {
+      r[slot][field] = val || '';
+    }
+    if (slot === 'respuesta' && field === 'tipo' && val !== 'contraoferta') {
+      r.decision = { tipo: '', fecha: '' };
+    }
+  }
+  rwRenderNegotiation();
+  if (typeof update === 'function') update();
+}
+
+function rwRenderNegotiation() {
+  const ng = rwEnsureNegotiation();
+  const aImp = document.getElementById('neg-asking-importe');
+  const aFec = document.getElementById('neg-asking-fecha');
+  if (aImp && document.activeElement !== aImp) aImp.value = ng.asking.importe ? ng.asking.importe.toLocaleString('es-ES') : '';
+  if (aFec && document.activeElement !== aFec) aFec.value = ng.asking.fecha || '';
+
+  const list = document.getElementById('neg-rondas-list');
+  if (!list) return;
+
+  list.innerHTML = ng.rounds.map((r, i) => {
+    const acepto = r.respuesta.tipo === 'acepto' || (r.respuesta.tipo === 'contraoferta' && r.decision.tipo === 'acepto');
+    const rechazoFinal = r.respuesta.tipo === 'rechazo' || (r.respuesta.tipo === 'contraoferta' && r.decision.tipo === 'rechazo');
+    const borderColor = acepto ? 'var(--green)' : rechazoFinal ? 'rgba(224,85,85,0.5)' : 'var(--gold-d)';
+
+    const showDecision = r.respuesta.tipo === 'contraoferta';
+
+    return `
+      <div style="background:var(--d3);border:1px solid var(--d6);border-left:3px solid ${borderColor};padding:12px 14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-size:9.5px;letter-spacing:0.16em;text-transform:uppercase;color:var(--gold);font-weight:700">Ronda ${i+1}</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            ${acepto ? '<span style="font-size:9px;color:var(--green);font-weight:600">✓ Acuerdo</span>' : ''}
+            ${rechazoFinal ? '<span style="font-size:9px;color:#E05555;font-weight:600">✕ Sin acuerdo</span>' : ''}
+            <button onclick="rwRemoveRound(${i})" style="background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.25);color:#E05555;font-size:10px;padding:3px 8px;cursor:pointer">✕</button>
+          </div>
+        </div>
+        <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-d);margin-bottom:6px">① Mi oferta</div>
+        <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:8px;margin-bottom:10px">
+          <div class="field" style="margin:0"><label style="font-size:9px">Importe (€)</label>
+            <input type="text" data-fmt="money" value="${r.oferta.importe ? r.oferta.importe.toLocaleString('es-ES') : ''}" placeholder="0"
+              onblur="rwUpdateRound(${i},'oferta','importe',this.value)"
+              style="font-family:'DM Mono',monospace;font-size:12px"></div>
+          <div class="field" style="margin:0"><label style="font-size:9px">Fecha</label>
+            <input type="date" value="${r.oferta.fecha||''}"
+              onblur="rwUpdateRound(${i},'oferta','fecha',this.value)"
+              style="font-size:11px"></div>
+        </div>
+        <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-d);margin-bottom:6px">② Respuesta del vendedor</div>
+        <div style="display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:8px;margin-bottom:${showDecision?'10px':'0'}">
+          <div class="field" style="margin:0"><label style="font-size:9px">Tipo</label>
+            <select onchange="rwUpdateRound(${i},'respuesta','tipo',this.value)"
+              style="font-family:'Raleway',sans-serif;font-size:11px;padding:8px 6px;background:var(--d4);border:1px solid var(--d6);color:var(--text-b)">
+              <option value="" ${!r.respuesta.tipo?'selected':''}>—</option>
+              <option value="acepto" ${r.respuesta.tipo==='acepto'?'selected':''}>Acepta</option>
+              <option value="rechazo" ${r.respuesta.tipo==='rechazo'?'selected':''}>Rechaza</option>
+              <option value="contraoferta" ${r.respuesta.tipo==='contraoferta'?'selected':''}>Contraoferta</option>
+            </select></div>
+          <div class="field" style="margin:0"><label style="font-size:9px">Importe (€)</label>
+            <input type="text" data-fmt="money" value="${r.respuesta.importe ? r.respuesta.importe.toLocaleString('es-ES') : ''}" placeholder="0" ${r.respuesta.tipo!=='contraoferta'?'disabled style="opacity:0.3"':''}
+              onblur="rwUpdateRound(${i},'respuesta','importe',this.value)"
+              style="font-family:'DM Mono',monospace;font-size:12px"></div>
+          <div class="field" style="margin:0"><label style="font-size:9px">Fecha</label>
+            <input type="date" value="${r.respuesta.fecha||''}"
+              onblur="rwUpdateRound(${i},'respuesta','fecha',this.value)"
+              style="font-size:11px"></div>
+        </div>
+        ${showDecision ? `
+        <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-d);margin-bottom:6px">③ Nuestra decisión sobre la contraoferta</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="field" style="margin:0"><label style="font-size:9px">Decisión</label>
+            <select onchange="rwUpdateRound(${i},'decision','tipo',this.value)"
+              style="font-family:'Raleway',sans-serif;font-size:11px;padding:8px 6px;background:var(--d4);border:1px solid var(--d6);color:var(--text-b)">
+              <option value="" ${!r.decision.tipo?'selected':''}>—</option>
+              <option value="acepto" ${r.decision.tipo==='acepto'?'selected':''}>Aceptamos</option>
+              <option value="rechazo" ${r.decision.tipo==='rechazo'?'selected':''}>Rechazamos</option>
+            </select></div>
+          <div class="field" style="margin:0"><label style="font-size:9px">Fecha</label>
+            <input type="date" value="${r.decision.fecha||''}"
+              onblur="rwUpdateRound(${i},'decision','fecha',this.value)"
+              style="font-size:11px"></div>
+        </div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+// Backward compat: addNegHito now just adds a blank round
+function addNegHito(hito) { rwAddRound(); }
+
+// ══════════════════════════════════════════════════
+// TESTIGOS IMPORTER v5 (Tanda 1)
+// ══════════════════════════════════════════════════
+function rwAddBlankWitness() {
+  if (typeof comps !== 'undefined' && typeof renderCompInputs === 'function') {
+    comps.push({
+      id: (typeof compNextId !== 'undefined' ? compNextId++ : Date.now()),
+      desc:'', url:'', source:'Manual', tipo:'', precio:0, m2:0,
+      planta:null, exterior:null, ascensor:null,
+      direccion:'', cp:'', lat:null, lon:null,
+      fechaPublicacion:'', descripcionLarga:'',
+      fechaAlta: new Date().toISOString(),
+    });
+    renderCompInputs();
+    if (typeof renderCompOutput === 'function') renderCompOutput();
+    if (typeof rwPersistComps === 'function') rwPersistComps();
+  }
+}
+
+function rwOpenImporter(mode) {
+  if (typeof checkAPIKey === 'function' && !checkAPIKey()) return;
+  const existing = document.getElementById('rw-importer-modal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'rw-importer-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px';
+  modal.innerHTML = `
+    <div style="background:var(--d2);border:1px solid var(--gold-d);max-width:680px;width:100%;max-height:90vh;overflow-y:auto;padding:28px 32px;font-family:'Raleway',sans-serif">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--line)">
+        <div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:400;color:var(--text-b)">Importar testigo</div>
+          <div style="font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--gold);margin-top:2px">${mode==='text'?'Pegar texto del anuncio':'Pegar captura del anuncio'}</div>
+        </div>
+        <button onclick="document.getElementById('rw-importer-modal').remove()"
+          style="background:transparent;border:1px solid var(--d6);color:var(--text-d);width:32px;height:32px;font-size:16px;cursor:pointer">×</button>
+      </div>
+      ${mode === 'text' ? `
+        <div style="font-size:11px;color:var(--text-d);line-height:1.8;margin-bottom:12px">
+          Abre la ficha del anuncio en cualquier portal (Idealista, Fotocasa, Engel & Völkers, Lucas Fox, etc). Selecciona todo el contenido, cópialo y pégalo aquí. Incluye también el link del anuncio.
+        </div>
+        <div class="field" style="margin-bottom:10px">
+          <label>Link del anuncio (opcional)</label>
+          <input type="text" id="rw-imp-url" placeholder="https://..." style="font-size:12px;padding:9px 10px">
+        </div>
+        <div class="field">
+          <label>Texto del anuncio</label>
+          <textarea id="rw-imp-text" rows="10" placeholder="Pega aquí todo el contenido del anuncio…"
+            style="width:100%;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:'Raleway',sans-serif;font-size:12px;padding:12px;resize:vertical;min-height:220px"></textarea>
+        </div>
+      ` : `
+        <div style="font-size:11px;color:var(--text-d);line-height:1.8;margin-bottom:12px">
+          Desde el móvil: haz una captura de pantalla del anuncio y súbela aquí. Desde desktop: pega una captura copiada al portapapeles (Cmd+Ctrl+Shift+4 Mac, Windows+Shift+S PC).
+        </div>
+        <div class="field" style="margin-bottom:10px">
+          <label>Link del anuncio (opcional)</label>
+          <input type="text" id="rw-imp-url" placeholder="https://..." style="font-size:12px;padding:9px 10px">
+        </div>
+        <label id="rw-imp-drop" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:var(--d4);border:1.5px dashed var(--gold-d);color:var(--text-d);padding:36px 24px;cursor:pointer;font-size:11px;letter-spacing:0.1em;text-transform:uppercase">
+          <div style="font-size:36px;color:var(--gold);opacity:0.7">📸</div>
+          <div id="rw-imp-droptxt">Pulsa para subir captura o pega aquí (Ctrl+V)</div>
+          <input type="file" accept="image/*" style="display:none" id="rw-imp-file" onchange="rwImporterHandleFile(this.files[0])">
+          <img id="rw-imp-preview" style="display:none;max-width:100%;max-height:280px;margin-top:8px">
+        </label>
+      `}
+      <div id="rw-imp-status" style="font-size:11px;color:var(--text-d);margin-top:10px;min-height:18px"></div>
+      <div style="display:flex;gap:10px;margin-top:18px">
+        <button onclick="document.getElementById('rw-importer-modal').remove()"
+          style="flex:1;background:transparent;border:1px solid var(--d6);color:var(--text-d);font-family:'Raleway',sans-serif;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;padding:12px;cursor:pointer">Cancelar</button>
+        <button onclick="rwImporterSubmit('${mode}')" id="rw-imp-submit"
+          style="flex:2;background:var(--gold);border:none;color:#fff;font-family:'Raleway',sans-serif;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;padding:12px;cursor:pointer">✦ Extraer con IA</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  if (mode === 'image') {
+    const onPaste = (e) => {
+      if (!document.getElementById('rw-importer-modal')) { document.removeEventListener('paste', onPaste); return; }
+      const items = (e.clipboardData || window.clipboardData).items;
+      for (const item of items) {
+        if (item.type.startsWith('image/')) { rwImporterHandleFile(item.getAsFile()); e.preventDefault(); break; }
+      }
+    };
+    document.addEventListener('paste', onPaste);
+  }
+}
+
+function rwImporterHandleFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const prev = document.getElementById('rw-imp-preview');
+    const txt  = document.getElementById('rw-imp-droptxt');
+    if (prev) { prev.src = e.target.result; prev.style.display = 'block'; }
+    if (txt)  { txt.textContent = file.name; }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function rwImporterSubmit(mode) {
+  const statusEl = document.getElementById('rw-imp-status');
+  const urlEl    = document.getElementById('rw-imp-url');
+  const url      = urlEl ? urlEl.value.trim() : '';
+
+  let payload;
+  if (mode === 'text') {
+    const txt = (document.getElementById('rw-imp-text')?.value || '').trim();
+    if (!txt) { if (statusEl) statusEl.textContent = '⚠ Pega el texto del anuncio primero.'; return; }
+    payload = { type: 'text', content: txt, url };
+  } else {
+    const fileEl = document.getElementById('rw-imp-file');
+    const prevEl = document.getElementById('rw-imp-preview');
+    const imgSrc = prevEl?.src;
+    if (!imgSrc || prevEl?.style.display === 'none') { if (statusEl) statusEl.textContent = '⚠ Sube o pega una captura primero.'; return; }
+    payload = { type: 'image', content: imgSrc, url };
+  }
+
+  if (statusEl) statusEl.innerHTML = '<span style="color:var(--gold)">✦ Extrayendo datos con IA…</span>';
+  const submitBtn = document.getElementById('rw-imp-submit');
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.style.opacity = '0.5'; }
+
+  try {
+    const apiKey = (typeof rwGetSessionKey === 'function') ? rwGetSessionKey() : null;
+    if (!apiKey) { if (statusEl) statusEl.textContent = '⚠ Configura tu API key primero.'; return; }
+
+    const systemPrompt = `Eres un asistente especializado en extracción de datos de anuncios inmobiliarios españoles. Dado un texto o descripción de imagen de un anuncio, extrae los datos estructurados en formato JSON.
+
+Devuelve SOLO el JSON sin explicaciones adicionales, con esta estructura:
+{
+  "desc": "dirección/descripción corta del anuncio",
+  "url": "url del anuncio si se proporciona",
+  "source": "nombre del portal (Idealista/Fotocasa/etc)",
+  "tipo": "reformado|estreno|reformar|buenestado",
+  "precio": precio_total_numero,
+  "m2": superficie_construida_numero,
+  "planta": numero_planta_o_null,
+  "exterior": true_o_false_o_null,
+  "ascensor": true_o_false_o_null,
+  "direccion": "calle y número",
+  "cp": "código postal",
+  "habitaciones": numero_o_null,
+  "banos": numero_o_null,
+  "descripcionLarga": "descripción resumida relevante"
+}`;
+
+    const userContent = payload.type === 'text'
+      ? `URL: ${payload.url || 'no proporcionada'}\n\nTexto del anuncio:\n${payload.content}`
+      : [
+          { type: 'text', text: `URL: ${payload.url || 'no proporcionada'}\n\nExtrae los datos del anuncio inmobiliario de esta captura de pantalla:` },
+          { type: 'image_url', image_url: { url: payload.content } }
+        ];
+
+    const resp = await fetch('/api/anthropic', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userContent }],
+        apiKey
+      })
+    });
+
+    if (!resp.ok) throw new Error(`API error ${resp.status}`);
+    const data = await resp.json();
+    const raw = data.content?.[0]?.text || data.content || '';
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No se pudo extraer JSON de la respuesta');
+    const extracted = JSON.parse(jsonMatch[0]);
+
+    // Add to comps
+    const comp = {
+      id: (typeof compNextId !== 'undefined' ? compNextId++ : Date.now()),
+      desc: extracted.desc || '',
+      url: extracted.url || payload.url || '',
+      source: extracted.source || 'IA',
+      tipo: extracted.tipo || '',
+      precio: extracted.precio || 0,
+      m2: extracted.m2 || 0,
+      planta: extracted.planta != null ? extracted.planta : null,
+      exterior: extracted.exterior != null ? extracted.exterior : null,
+      ascensor: extracted.ascensor != null ? extracted.ascensor : null,
+      direccion: extracted.direccion || '',
+      cp: extracted.cp || '',
+      lat: null, lon: null,
+      habitaciones: extracted.habitaciones || null,
+      banos: extracted.banos || null,
+      descripcionLarga: extracted.descripcionLarga || '',
+      fechaAlta: new Date().toISOString(),
+    };
+    if (typeof comps !== 'undefined') comps.push(comp);
+    if (typeof renderCompInputs === 'function') renderCompInputs();
+    if (typeof renderCompOutput === 'function') renderCompOutput();
+    if (typeof rwPersistComps === 'function') rwPersistComps();
+
+    document.getElementById('rw-importer-modal')?.remove();
+    if (typeof update === 'function') update();
+  } catch(e) {
+    if (statusEl) statusEl.textContent = '⚠ Error al extraer: ' + e.message;
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.style.opacity = '1'; }
+  }
+}
+
+function rwOpenLibrary() {
+  alert('Biblioteca de testigos — próximamente. Usa "Pegar texto" o "Pegar captura" para importar testigos.');
+}
+
+// ══════════════════════════════════════════════════
+// CONTEXT STATUS + COHERENCE (Tanda 6)
+// ══════════════════════════════════════════════════
+function rwUpdateContextStatus() {
+  const el = document.getElementById('narr-context-general');
+  const statusEl = document.getElementById('narr-context-status');
+  const charsEl  = document.getElementById('narr-context-chars');
+  const genAllBtn = document.getElementById('narr-gen-all-btn');
+  if (!el) return;
+  const len = (el.value || '').trim().length;
+  if (charsEl) charsEl.textContent = String(len);
+  const ready = len >= 40;
+  if (statusEl) {
+    statusEl.textContent = ready ? '✓ Listo' : '⚠ Vacío';
+    statusEl.style.color = ready ? 'var(--green)' : 'var(--amber)';
+  }
+  document.querySelectorAll('.rw-narr-gen-btn').forEach(btn => {
+    btn.disabled = !ready;
+    btn.style.opacity = ready ? '1' : '0.4';
+    btn.style.cursor = ready ? 'pointer' : 'not-allowed';
+  });
+  if (genAllBtn) {
+    genAllBtn.disabled = !ready;
+    genAllBtn.style.opacity = ready ? '1' : '0.45';
+    genAllBtn.style.cursor = ready ? 'pointer' : 'not-allowed';
+  }
+}
+
+async function rwGenerateAllNarratives() {
+  const el = document.getElementById('narr-context-general');
+  if (!el || (el.value || '').trim().length < 40) {
+    alert('Rellena primero el contexto (mínimo 40 caracteres) para que la IA tenga algo con lo que trabajar.');
+    return;
+  }
+  for (const s of ['activo','zona','mercado','proyecto','tesis']) {
+    if (typeof generateNarrative === 'function') await generateNarrative(s);
+  }
+}
+
+function rwCheckCoherenceInline() {
+  const pill = document.getElementById('rw-gate-pill');
+  if (!pill) return;
+  const missing = [];
+  if (typeof V === 'function') {
+    if (!V('buyPrice')) missing.push('Precio de compra');
+    if (!V('surfCapex')) missing.push('Superficie m²');
+    if (!V('exitB')) missing.push('Precio de salida base');
+  }
+  if (!(document.getElementById('dealName')?.value || '').trim()) missing.push('Nombre del activo');
+  const ctxLen = ((document.getElementById('narr-context-general')?.value || '').trim()).length;
+  if (ctxLen < 40) missing.push('Contexto IA (mín. 40 chars)');
+  if (missing.length === 0) {
+    pill.innerHTML = '<span style="color:var(--green)">✓ Coherencia OK · listo para presentar</span>';
+    pill.style.background = 'rgba(82,192,122,0.08)';
+    pill.style.borderColor = 'rgba(82,192,122,0.3)';
+  } else {
+    pill.innerHTML = '<span style="color:var(--amber)">⚠ ' + missing.length + ' campo' + (missing.length===1?'':'s') + ' pendiente' + (missing.length===1?'':'s') + '</span>';
+    pill.style.background = 'rgba(224,150,58,0.08)';
+    pill.style.borderColor = 'rgba(224,150,58,0.3)';
+  }
+}
+
+// ══════════════════════════════════════════════════
 // TAB SWITCHER (v5 Tanda 3)
 // ══════════════════════════════════════════════════
 function rwSwitchTab(name) {

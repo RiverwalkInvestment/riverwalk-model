@@ -437,21 +437,47 @@ const DEAL_HTML = `
         </div>
       </div>
 
-      <div class="idivider">Gastos notariales — calculados automáticamente</div>
-      <div style="font-size:10.5px;color:var(--text-d);margin:2px 0 8px;line-height:1.8">
-        Arancel RD 1426/1989 + registro estimado. Se recalcula automáticamente con el precio de compra.
+      <div class="idivider">Gastos de adquisición · Desglose</div>
+      <div style="font-size:10.5px;color:var(--text-d);margin:2px 0 10px;line-height:1.8">
+        Cálculo automático según arancel RD 1426/1989 + estimaciones de mercado. Cada línea es editable: el importe auto aparece en gris como referencia, tú puedes escribir el tuyo encima.
       </div>
-      <div id="notaria-calc-display" style="background:var(--d4);border:1px solid var(--line);padding:10px 12px;margin-bottom:8px;font-size:10px;font-family:'DM Mono',monospace;line-height:1.9"></div>
-      <div class="irow">
-        <div class="field">
-          <label>Notaría compra (€) <span class="tag-optional">auto-calculado</span></label>
-          <input type="text" id="notaria" data-fmt="money" value="3000" placeholder="Auto-calculado">
+
+      <label style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(82,192,122,0.05);border:1px solid rgba(82,192,122,0.15);margin-bottom:10px;cursor:pointer">
+        <input type="checkbox" id="notariaAsumeVendedor" onchange="rwToggleAsumeVendedor();update()" style="accent-color:var(--green);width:14px;height:14px;cursor:pointer">
+        <span style="font-size:10.5px;color:var(--text-b);line-height:1.5">
+          <strong style="color:var(--green);font-size:11px">Los gastos de adquisición los asume el vendedor</strong>
+          <br><span style="color:var(--text-d);font-size:9.5px">Pone notaría + registro + gestoría + otros a 0 y lo refleja en el dossier como ventaja negociada.</span>
+        </span>
+      </label>
+
+      <div id="notaria-breakdown" style="background:var(--d4);border:1px solid var(--line);padding:10px 12px;margin-bottom:10px">
+        <div style="display:grid;grid-template-columns:1fr 90px 110px;gap:8px;align-items:center;margin-bottom:7px">
+          <div style="font-size:10.5px;color:var(--text-b)">Minuta notarial <span style="color:var(--text-d);font-size:9px">· RD 1426/1989</span></div>
+          <div id="notaria-minuta-auto" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-d);text-align:right;cursor:pointer" title="Clic para usar valor automático" onclick="rwUseAutoNotaria('Minuta')">—</div>
+          <input type="text" id="notariaMinuta" data-fmt="money" value="" placeholder="Auto" onblur="rwMarkManualNotaria('Minuta');update()" style="font-family:'DM Mono',monospace;font-size:11.5px;text-align:right;padding:7px 9px;background:var(--d3);border:1px solid var(--d6);color:var(--text-b);width:100%">
         </div>
-        <div class="field">
-          <label>Ajuste manual (€) <span class="tag-optional">±</span></label>
-          <input type="text" id="notariaAjuste" data-fmt="money" value="0" placeholder="0 — añadir o restar">
+        <div style="display:grid;grid-template-columns:1fr 90px 110px;gap:8px;align-items:center;margin-bottom:7px">
+          <div style="font-size:10.5px;color:var(--text-b)">Aranceles registrales <span style="color:var(--text-d);font-size:9px">· Registro Propiedad</span></div>
+          <div id="notaria-registro-auto" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-d);text-align:right;cursor:pointer" title="Clic para usar valor automático" onclick="rwUseAutoNotaria('Registro')">—</div>
+          <input type="text" id="notariaRegistro" data-fmt="money" value="" placeholder="Auto" onblur="rwMarkManualNotaria('Registro');update()" style="font-family:'DM Mono',monospace;font-size:11.5px;text-align:right;padding:7px 9px;background:var(--d3);border:1px solid var(--d6);color:var(--text-b);width:100%">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 90px 110px;gap:8px;align-items:center;margin-bottom:7px">
+          <div style="font-size:10.5px;color:var(--text-b)">Gestoría <span style="color:var(--text-d);font-size:9px">· tramitación</span></div>
+          <div id="notaria-gestoria-auto" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-d);text-align:right;cursor:pointer" title="Clic para usar valor automático" onclick="rwUseAutoNotaria('Gestoria')">—</div>
+          <input type="text" id="notariaGestoria" data-fmt="money" value="" placeholder="Auto" onblur="rwMarkManualNotaria('Gestoria');update()" style="font-family:'DM Mono',monospace;font-size:11.5px;text-align:right;padding:7px 9px;background:var(--d3);border:1px solid var(--d6);color:var(--text-b);width:100%">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 90px 110px;gap:8px;align-items:center;margin-bottom:9px">
+          <div style="font-size:10.5px;color:var(--text-b)">Otros <span style="color:var(--text-d);font-size:9px">· copias, certificaciones</span></div>
+          <div id="notaria-otros-auto" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-d);text-align:right">0 €</div>
+          <input type="text" id="notariaOtros" data-fmt="money" value="" placeholder="0" onblur="update()" style="font-family:'DM Mono',monospace;font-size:11.5px;text-align:right;padding:7px 9px;background:var(--d3);border:1px solid var(--d6);color:var(--text-b);width:100%">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 110px;gap:8px;align-items:center;padding-top:8px;border-top:1px solid var(--line)">
+          <div style="font-size:10.5px;color:var(--gold);font-weight:600;letter-spacing:0.08em;text-transform:uppercase">Total notaría compra</div>
+          <div id="notaria-total-display" style="font-family:'DM Mono',monospace;font-size:13.5px;color:var(--gold);text-align:right;font-weight:600">—</div>
         </div>
       </div>
+      <input type="hidden" id="notaria" value="0">
+      <input type="hidden" id="notariaAjuste" value="0">
 
       <div class="idivider">Costes de salida variables</div>
       <div style="font-size:10.5px;color:var(--text-d);margin:2px 0 8px;line-height:1.8">
@@ -643,95 +669,41 @@ const DEAL_HTML = `
     </div>
     <div class="ibody">
       <div style="font-size:10.5px;color:var(--text-d);margin:4px 0 12px;line-height:1.8">
-        Tres formas de añadir testigos: <strong style="color:var(--text-b)">bookmarklet</strong> desde Idealista/Fotocasa en un clic, <strong style="color:var(--text-b)">Registro</strong> con datos reales de cierre, o <strong style="color:var(--text-b)">entrada rápida</strong> desde el móvil.
+        Pega el anuncio o una captura y la IA extrae los datos. Los testigos con todos los campos obligatorios (precio, m², planta, estado, link) aparecen como <strong style="color:var(--green)">✓ verificados</strong> en la presentación.
       </div>
 
-      <!-- BOOKMARKLET -->
-      <div style="background:rgba(139,105,20,0.06);border:1px solid rgba(139,105,20,0.2);padding:12px 14px;margin-bottom:12px">
-        <div style="font-size:8.5px;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;font-weight:600">🔖 Bookmarklet — importar desde Idealista / Fotocasa</div>
-        <div style="font-size:10.5px;color:var(--text-d);line-height:1.75;margin-bottom:10px">
-          Instala el botón en Chrome y úsalo en cualquier anuncio para capturar precio, m², planta y orientación en un clic.
+      <!-- IMPORTER IA -->
+      <div style="background:linear-gradient(135deg,rgba(196,151,90,0.08),rgba(196,151,90,0.03));border:1px solid rgba(196,151,90,0.3);padding:14px;margin-bottom:12px">
+        <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;font-weight:600">✦ Importar testigo</div>
+        <div style="font-size:10.5px;color:var(--text-d);line-height:1.7;margin-bottom:10px">
+          Pega el texto del anuncio (desktop) o una captura de pantalla (móvil). La IA extraerá precio, m², planta, estado, orientación y demás campos.
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <a id="bookmarklet-link" href="#"
-            style="display:inline-block;background:var(--d5);border:1px solid var(--gold);color:var(--gold);
-                   font-family:'Raleway',sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;
-                   font-weight:600;padding:8px 14px;text-decoration:none;cursor:move;user-select:none;flex-shrink:0"
-            ondragstart="event.dataTransfer.setData('text/plain',this.href)"
-            onclick="alert('Arrastra este botón a la barra de favoritos de Chrome.\\n\\nCuando estés en un anuncio de Idealista o Fotocasa, pulsa ese favorito → los datos se copian al portapapeles → vuelve aquí y pulsa \\'Pegar testigo\\'.');return false;"
-            title="Arrastra a la barra de favoritos de Chrome">
-            📌 Importar testigo
-          </a>
-          <span style="font-size:9px;color:var(--text-d)">← arrastra a Favoritos de Chrome</span>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button type="button" onclick="rwOpenImporter('text')"
+            style="background:var(--d5);border:1px solid var(--gold-d);color:var(--gold);
+                   font-family:'Raleway',sans-serif;font-size:10.5px;letter-spacing:0.12em;text-transform:uppercase;
+                   font-weight:600;padding:11px 14px;cursor:pointer">
+            📝 Pegar texto
+          </button>
+          <button type="button" onclick="rwOpenImporter('image')"
+            style="background:var(--d5);border:1px solid var(--gold-d);color:var(--gold);
+                   font-family:'Raleway',sans-serif;font-size:10.5px;letter-spacing:0.12em;text-transform:uppercase;
+                   font-weight:600;padding:11px 14px;cursor:pointer">
+            📸 Pegar captura
+          </button>
         </div>
-      </div>
-
-      <!-- MOBILE QUICK ENTRY -->
-      <div style="margin-bottom:12px">
-        <button onclick="toggleQuickEntry()"
-          style="width:100%;background:var(--d4);border:1px solid var(--line);color:var(--text-d);
-                 font-family:'Raleway',sans-serif;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;
-                 font-weight:600;padding:9px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between">
-          <span>📱 Entrada rápida</span>
-          <span id="quick-entry-arr" style="transition:transform 0.2s">▼</span>
-        </button>
-        <div id="quick-entry-panel" style="display:none;background:var(--d3);border:1px solid var(--line2);border-top:none;padding:14px">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-            <div class="field"><label>Precio total (€)</label>
-              <input type="number" id="qe-precio" placeholder="450000" oninput="updateQEPreview()"
-                style="font-size:16px;padding:12px 10px;-webkit-appearance:none"></div>
-            <div class="field"><label>Superficie (m²)</label>
-              <input type="number" id="qe-m2" placeholder="85" oninput="updateQEPreview()"
-                style="font-size:16px;padding:12px 10px;-webkit-appearance:none"></div>
-          </div>
-          <div class="field" style="margin-bottom:8px"><label>Descripción / calle</label>
-            <input type="text" id="qe-desc" placeholder="Ej: Velázquez 12, 3º ext."
-              style="font-size:15px;padding:11px 10px"></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-            <div class="field"><label>Estado</label>
-              <select id="qe-tipo" style="font-size:13px;padding:10px 8px;background:var(--d4);border:1px solid var(--d6);color:var(--text-b)">
-                <option value="reformado">Reformado</option>
-                <option value="estreno">Estreno</option>
-                <option value="reformar">A reformar</option>
-              </select></div>
-            <div class="field"><label>Fuente</label>
-              <select id="qe-source" style="font-size:13px;padding:10px 8px;background:var(--d4);border:1px solid var(--d6);color:var(--text-b)">
-                <option>Idealista</option><option>Fotocasa</option><option>Manual</option><option>Registro</option>
-              </select></div>
-          </div>
-          <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:6px;margin-bottom:10px">
-            <div class="field"><label>Planta</label>
-              <input type="number" id="qe-planta" placeholder="—" min="0" max="30"
-                style="font-size:14px;padding:10px 8px;text-align:center"></div>
-            <div style="display:flex;flex-direction:column;gap:4px">
-              <label style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-d);font-weight:500">Orientación</label>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">
-                <button id="qe-ext-btn" onclick="setQEExt(true)"
-                  style="padding:10px 4px;background:rgba(30,122,69,0.25);border:1px solid var(--green);
-                         color:var(--green);font-size:10px;cursor:pointer;font-weight:700">Ext</button>
-                <button id="qe-int-btn" onclick="setQEExt(false)"
-                  style="padding:10px 4px;background:var(--d4);border:1px solid var(--d6);
-                         color:var(--text-d);font-size:10px;cursor:pointer">Int</button>
-              </div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:4px">
-              <label style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-d);font-weight:500">Ascensor</label>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">
-                <button id="qe-asc-si" onclick="setQEAsc(true)"
-                  style="padding:10px 4px;background:rgba(30,122,69,0.25);border:1px solid var(--green);
-                         color:var(--green);font-size:10px;cursor:pointer;font-weight:700">Sí</button>
-                <button id="qe-asc-no" onclick="setQEAsc(false)"
-                  style="padding:10px 4px;background:var(--d4);border:1px solid var(--d6);
-                         color:var(--text-d);font-size:10px;cursor:pointer">No</button>
-              </div>
-            </div>
-          </div>
-          <div id="qe-preview" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--gold);
-               margin-bottom:10px;min-height:18px;font-feature-settings:'tnum' 1;text-align:center"></div>
-          <button onclick="addQuickEntry()"
-            style="width:100%;background:var(--gold);border:none;color:#fff;font-family:'Raleway',sans-serif;
-                   font-size:11px;letter-spacing:0.15em;text-transform:uppercase;font-weight:700;padding:13px;cursor:pointer">
-            + Añadir testigo
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button type="button" onclick="rwOpenLibrary()"
+            style="flex:1;background:transparent;border:1px solid var(--line);color:var(--text-d);
+                   font-family:'Raleway',sans-serif;font-size:9.5px;letter-spacing:0.14em;text-transform:uppercase;
+                   font-weight:500;padding:8px 14px;cursor:pointer">
+            🗂 Biblioteca de testigos
+          </button>
+          <button type="button" onclick="rwAddBlankWitness()"
+            style="background:transparent;border:1px solid var(--line);color:var(--text-d);
+                   font-family:'Raleway',sans-serif;font-size:9.5px;letter-spacing:0.14em;text-transform:uppercase;
+                   font-weight:500;padding:8px 14px;cursor:pointer" title="Crear testigo vacío">
+            +
           </button>
         </div>
       </div>
@@ -798,28 +770,10 @@ const DEAL_HTML = `
         <div id="registro-stats" style="display:none;margin-top:8px;padding:8px 10px;background:var(--d3);font-size:10.5px;color:var(--text-d);line-height:1.7"></div>
       </div>
 
-      <!-- BOOKMARKLET PASTE -->
-      <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
-        <button type="button" onclick="rwPasteComp()"
-          style="flex:1;background:rgba(139,105,20,0.12);border:1px solid rgba(196,151,90,0.35);
-                 color:var(--gold);font-family:'Raleway',sans-serif;font-size:10px;letter-spacing:0.15em;
-                 text-transform:uppercase;font-weight:600;padding:9px 16px;cursor:pointer">
-          📋 Pegar testigo desde bookmarklet
-        </button>
-      </div>
       <div id="comp-extract-status" style="font-size:10px;color:var(--text-d);margin-bottom:10px;min-height:16px"></div>
 
       <!-- COMP LIST -->
-      <div class="comp-row header">
-        <div>Descripción</div>
-        <div>Estado</div>
-        <div>Precio</div>
-        <div>M²</div>
-        <div>€/m²</div>
-        <div></div>
-      </div>
       <div id="comp-rows-input"></div>
-      <button class="comp-add-btn" onclick="addComp()">+ Añadir testigo manual</button>
 
       <!-- PRICING ENGINE OUTPUT -->
       <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--line2)">
@@ -849,6 +803,13 @@ const DEAL_HTML = `
       <div style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-d);margin-bottom:8px">Personalizar columnas</div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px" id="sens-price-inputs"></div>
       <div style="margin-top:10px;font-size:9px;color:var(--text-d)" id="sens-price-preview"></div>
+
+      <!-- MATRIX SELECTOR -->
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line2)">
+        <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-d);margin-bottom:4px;font-weight:500">Biblioteca de matrices · selector</div>
+        <div style="font-size:10px;color:var(--text-d);line-height:1.7;margin-bottom:12px">Marca las matrices que quieres calcular y decide dónde aparecen: <strong style="color:var(--text-b)">output</strong>, <strong style="color:var(--text-b)">presentación</strong> y <strong style="color:var(--text-b)">PDF</strong>.</div>
+        <div id="sens-matrix-selector" style="display:flex;flex-direction:column;gap:5px"></div>
+      </div>
     </div>
   </div>
 
@@ -891,10 +852,37 @@ const DEAL_HTML = `
     </div>
     <div class="ibody" style="display:none">
       <div style="font-size:10.5px;color:var(--text-d);margin:4px 0 12px;line-height:1.8">
-        Registra el recorrido de negociación desde el precio inicial hasta el precio pactado. Se mostrará como un timeline visual en la presentación.
+        Registra el recorrido desde el <strong style="color:var(--text-b)">asking del vendedor</strong> hasta el precio pactado como una sucesión de rondas. Cada ronda captura un ciclo acción → reacción: tu oferta, la respuesta del vendedor, y si hay contraoferta, tu decisión.
       </div>
-      <div id="neg-hitos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
-      <button type="button" onclick="addNegHito()" style="width:100%;background:rgba(196,151,90,0.08);border:1px dashed rgba(196,151,90,0.3);color:rgba(196,151,90,0.7);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;padding:8px;cursor:pointer;font-family:'Raleway',sans-serif">+ Añadir hito</button>
+
+      <!-- ASKING del vendedor -->
+      <div style="background:linear-gradient(135deg,rgba(196,151,90,0.08),rgba(196,151,90,0.02));border:1px solid rgba(196,151,90,0.35);padding:12px 14px;margin-bottom:14px">
+        <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;font-weight:700">● Asking del vendedor</div>
+        <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px">
+          <div class="field" style="margin:0">
+            <label style="font-size:9px">Importe asking (€)</label>
+            <input type="text" id="neg-asking-importe" data-fmt="money" value="" placeholder="1.680.000"
+              onblur="rwUpdateAsking('importe', this.value); update()"
+              style="font-family:'DM Mono',monospace;font-size:12px">
+          </div>
+          <div class="field" style="margin:0">
+            <label style="font-size:9px">Fecha</label>
+            <input type="date" id="neg-asking-fecha" value=""
+              onblur="rwUpdateAsking('fecha', this.value); update()"
+              style="font-size:11px">
+          </div>
+        </div>
+        <div id="neg-asking-warn" style="font-size:9.5px;color:var(--amber);margin-top:6px;min-height:12px"></div>
+      </div>
+
+      <!-- Rondas -->
+      <div id="neg-rondas-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px"></div>
+
+      <button id="neg-add-ronda-btn" onclick="rwAddRound()"
+        style="width:100%;background:rgba(196,151,90,0.08);border:1px dashed rgba(196,151,90,0.3);color:rgba(196,151,90,0.7);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;padding:10px;cursor:pointer;font-family:'Raleway',sans-serif">
+        + Nueva ronda
+      </button>
+      <div id="neg-global-warn" style="font-size:10px;color:var(--amber);margin-top:8px;min-height:14px"></div>
     </div>
   </div>
 
@@ -1080,44 +1068,70 @@ const DEAL_HTML = `
       <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--line2)">
         <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-d);margin-bottom:10px;font-weight:500">Textos narrativos</div>
 
+        <!-- CONTEXT BOX — required before IA can generate -->
+        <div style="background:linear-gradient(135deg,rgba(196,151,90,0.08),rgba(196,151,90,0.02));border:1px solid rgba(196,151,90,0.35);padding:12px 14px;margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+            <div>
+              <div style="font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:var(--gold);font-weight:700;margin-bottom:3px">✦ Contexto para la IA</div>
+              <div style="font-size:10px;color:var(--text-d);line-height:1.6">Antes de generar textos, cuéntale a la IA lo que los números no dicen: ángulo del deal, perfil del vendedor, particularidades únicas, insights.</div>
+            </div>
+            <span id="narr-context-status" style="font-size:9px;color:var(--amber);letter-spacing:0.08em;text-transform:uppercase;font-weight:600;white-space:nowrap">⚠ Vacío</span>
+          </div>
+          <textarea id="narr-context-general" rows="4" placeholder="Ej: Vendedor es un fondo que necesita cerrar balance antes de fin de año. El activo lleva 11 meses en mercado sin movimiento. La zona está en plena transformación por la peatonalización de Alcalá. Nuestro comprador objetivo es institucional internacional buscando yield en prime Madrid."
+            oninput="saveDossierNarrative(); rwUpdateContextStatus(); rwCheckCoherenceInline()"
+            style="width:100%;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:'Raleway',sans-serif;font-size:11.5px;padding:9px 11px;resize:vertical;line-height:1.7;min-height:90px"></textarea>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+            <div style="font-size:9px;color:var(--text-d)"><span id="narr-context-chars">0</span> caracteres · mínimo 40 para desbloquear IA</div>
+            <button onclick="rwGenerateAllNarratives()" id="narr-gen-all-btn" disabled
+              style="background:rgba(196,151,90,0.2);border:1px solid var(--gold);color:var(--gold);font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase;padding:5px 12px;cursor:not-allowed;font-family:'Raleway',sans-serif;font-weight:700;opacity:0.45">
+              ✦ Generar todos
+            </button>
+          </div>
+        </div>
+
         <div class="field" style="margin-bottom:10px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
             <label style="margin:0">Descripción del activo</label>
-            <button onclick="generateNarrative('activo')" style="background:rgba(60,100,180,0.15);border:1px solid #5588cc;color:#88aadd;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;cursor:pointer;font-family:'Raleway',sans-serif">✦ Generar</button>
+            <button onclick="generateNarrative('activo')" class="rw-narr-gen-btn" disabled style="background:rgba(60,100,180,0.15);border:1px solid #5588cc;color:#88aadd;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;cursor:not-allowed;font-family:'Raleway',sans-serif;opacity:0.4">✦ Generar</button>
           </div>
           <textarea id="narr-activo" rows="3" placeholder="Piso en quinta planta con ascensor, exterior sur, finca de principios del s.XX en buen estado de conservación…" oninput="saveDossierNarrative()" style="width:100%;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:'Raleway',sans-serif;font-size:11px;padding:8px 10px;resize:vertical;line-height:1.6"></textarea>
+          <input type="text" id="narr-emphasis-activo" placeholder="↳ énfasis opcional · Ej: destacar balcones al sur" oninput="saveDossierNarrative()" style="width:100%;background:transparent;border:none;border-bottom:1px dashed var(--line2);color:var(--text-d);font-family:'Raleway',sans-serif;font-size:10px;padding:5px 2px;margin-top:4px;font-style:italic">
         </div>
 
         <div class="field" style="margin-bottom:10px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
             <label style="margin:0">Contexto de la zona</label>
-            <button onclick="generateNarrative('zona')" style="background:rgba(60,100,180,0.15);border:1px solid #5588cc;color:#88aadd;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;cursor:pointer;font-family:'Raleway',sans-serif">✦ Generar</button>
+            <button onclick="generateNarrative('zona')" class="rw-narr-gen-btn" disabled style="background:rgba(60,100,180,0.15);border:1px solid #5588cc;color:#88aadd;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;cursor:not-allowed;font-family:'Raleway',sans-serif;opacity:0.4">✦ Generar</button>
           </div>
           <textarea id="narr-zona" rows="3" placeholder="La microzona de Justicia se consolida como una de las más dinámicas del mercado prime madrileño…" oninput="saveDossierNarrative()" style="width:100%;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:'Raleway',sans-serif;font-size:11px;padding:8px 10px;resize:vertical;line-height:1.6"></textarea>
+          <input type="text" id="narr-emphasis-zona" placeholder="↳ énfasis opcional · Ej: énfasis en peatonalización" oninput="saveDossierNarrative()" style="width:100%;background:transparent;border:none;border-bottom:1px dashed var(--line2);color:var(--text-d);font-family:'Raleway',sans-serif;font-size:10px;padding:5px 2px;margin-top:4px;font-style:italic">
         </div>
 
         <div class="field" style="margin-bottom:10px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
             <label style="margin:0">Análisis de mercado y oportunidad</label>
-            <button onclick="generateNarrative('mercado')" style="background:rgba(60,100,180,0.15);border:1px solid #5588cc;color:#88aadd;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;cursor:pointer;font-family:'Raleway',sans-serif">✦ Generar</button>
+            <button onclick="generateNarrative('mercado')" class="rw-narr-gen-btn" disabled style="background:rgba(60,100,180,0.15);border:1px solid #5588cc;color:#88aadd;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;cursor:not-allowed;font-family:'Raleway',sans-serif;opacity:0.4">✦ Generar</button>
           </div>
           <textarea id="narr-mercado" rows="3" placeholder="El activo se adquiere con un descuento del X% sobre el precio de mercado para pisos a reformar en la zona…" oninput="saveDossierNarrative()" style="width:100%;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:'Raleway',sans-serif;font-size:11px;padding:8px 10px;resize:vertical;line-height:1.6"></textarea>
+          <input type="text" id="narr-emphasis-mercado" placeholder="↳ énfasis opcional · Ej: subrayar descuento vs testigos" oninput="saveDossierNarrative()" style="width:100%;background:transparent;border:none;border-bottom:1px dashed var(--line2);color:var(--text-d);font-family:'Raleway',sans-serif;font-size:10px;padding:5px 2px;margin-top:4px;font-style:italic">
         </div>
 
         <div class="field" style="margin-bottom:10px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
             <label style="margin:0">Tesis del proyecto y calidades</label>
-            <button onclick="generateNarrative('proyecto')" style="background:rgba(60,100,180,0.15);border:1px solid #5588cc;color:#88aadd;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;cursor:pointer;font-family:'Raleway',sans-serif">✦ Generar</button>
+            <button onclick="generateNarrative('proyecto')" class="rw-narr-gen-btn" disabled style="background:rgba(60,100,180,0.15);border:1px solid #5588cc;color:#88aadd;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;cursor:not-allowed;font-family:'Raleway',sans-serif;opacity:0.4">✦ Generar</button>
           </div>
           <textarea id="narr-proyecto" rows="3" placeholder="La reforma seguirá un estándar de acabados premium: suelos de madera natural, cocina integrada, baños en mármol…" oninput="saveDossierNarrative()" style="width:100%;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:'Raleway',sans-serif;font-size:11px;padding:8px 10px;resize:vertical;line-height:1.6"></textarea>
+          <input type="text" id="narr-emphasis-proyecto" placeholder="↳ énfasis opcional · Ej: curvas pladur + mármol" oninput="saveDossierNarrative()" style="width:100%;background:transparent;border:none;border-bottom:1px dashed var(--line2);color:var(--text-d);font-family:'Raleway',sans-serif;font-size:10px;padding:5px 2px;margin-top:4px;font-style:italic">
         </div>
 
         <div class="field">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
             <label style="margin:0">Tesis de inversión (cierre)</label>
-            <button onclick="generateNarrative('tesis')" style="background:rgba(60,100,180,0.15);border:1px solid #5588cc;color:#88aadd;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;cursor:pointer;font-family:'Raleway',sans-serif">✦ Generar</button>
+            <button onclick="generateNarrative('tesis')" class="rw-narr-gen-btn" disabled style="background:rgba(60,100,180,0.15);border:1px solid #5588cc;color:#88aadd;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;cursor:not-allowed;font-family:'Raleway',sans-serif;opacity:0.4">✦ Generar</button>
           </div>
           <textarea id="narr-tesis" rows="3" placeholder="Riverwalk presenta una operación de reforma integral en el corazón de Madrid con un retorno bruto del X%…" oninput="saveDossierNarrative()" style="width:100%;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:'Raleway',sans-serif;font-size:11px;padding:8px 10px;resize:vertical;line-height:1.6"></textarea>
+          <input type="text" id="narr-emphasis-tesis" placeholder="↳ énfasis opcional · Ej: tono para family office" oninput="saveDossierNarrative()" style="width:100%;background:transparent;border:none;border-bottom:1px dashed var(--line2);color:var(--text-d);font-family:'Raleway',sans-serif;font-size:10px;padding:5px 2px;margin-top:4px;font-style:italic">
         </div>
       </div>
     </div>
@@ -1451,7 +1465,7 @@ const OVERLAY_HTML = `
 
 // Cache-buster for deal-script.js — bump this string whenever deal-script.js changes
 // so the browser fetches the latest version instead of the cached one.
-const DEAL_SCRIPT_VER = '20260413-01'
+const DEAL_SCRIPT_VER = '20260413-02'
 
 // Module-level flag: prevents createAndGo from firing more than once at a time,
 // guarding against double-clicks or remount-induced duplicate deal creation.
