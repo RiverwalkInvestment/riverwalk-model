@@ -8738,32 +8738,33 @@ setTimeout(() => {
 // ══════════════════════════════════════════════════════════════════════
 function rwCheckCoherenceGate() {
   const missing = [];
+  const warnings = [];
+
+  // ── Bloqueantes: datos mínimos sin los que la presentación no tiene sentido ──
   const buyPrice = (typeof V === 'function') ? V('buyPrice') : 0;
   if (!buyPrice || buyPrice <= 0) missing.push({key:'buyPrice', label:'Precio de compra', fix:'Pestaña Modelado → Adquisición'});
   const surfCapex = (typeof V === 'function') ? V('surfCapex') : 0;
   if (!surfCapex || surfCapex <= 0) missing.push({key:'surfCapex', label:'Superficie (m²)', fix:'Pestaña Modelado → Datos del deal'});
-  const dealName = (document.getElementById('dealName')?.value || '').trim();
-  if (!dealName) missing.push({key:'dealName', label:'Nombre del activo', fix:'Pestaña Modelado → Datos del deal'});
-  const dealAddr = (document.getElementById('dealAddress')?.value || '').trim();
-  if (!dealAddr) missing.push({key:'dealAddress', label:'Dirección', fix:'Pestaña Modelado → Datos del deal'});
   const exitB = (typeof V === 'function') ? V('exitB') : 0;
   if (!exitB || exitB <= 0) missing.push({key:'exitB', label:'Precio objetivo de venta (base)', fix:'Pestaña Modelado → Precios de salida'});
+  const dealName = (document.getElementById('dealName')?.value || '').trim();
+  if (!dealName) missing.push({key:'dealName', label:'Nombre del activo', fix:'Pestaña Modelado → Datos del deal'});
+
+  // ── Avisos: se muestran pero no bloquean la presentación ──────────────────
+  const dealAddr = (document.getElementById('dealAddress')?.value || '').trim();
+  if (!dealAddr) warnings.push({key:'dealAddr', label:'Dirección no introducida', fix:'Pestaña Modelado → Datos del deal'});
   const obraM2 = (typeof V === 'function') ? V('obraM2') : 0;
-  if (!obraM2 || obraM2 <= 0) missing.push({key:'obraM2', label:'CapEx obra (€/m²)', fix:'Pestaña Modelado → CapEx'});
+  if (!obraM2 || obraM2 <= 0) warnings.push({key:'obraM2', label:'CapEx obra (€/m²) sin definir', fix:'Pestaña Modelado → CapEx'});
   const cps = (typeof comps !== 'undefined' && Array.isArray(comps)) ? comps : [];
-  const verified = cps.filter(c => c && c.precio > 0 && c.m2 > 0 && c.planta != null && c.tipo && c.url);
-  if (verified.length < 1) missing.push({key:'witnesses', label:'Al menos 1 testigo verificado (precio, m², planta, estado, link)', fix:'Pestaña Mercado → Testigos'});
+  if (!cps.some(c => c && c.precio > 0 && c.m2 > 0))
+    warnings.push({key:'witnesses', label:'Sin testigos de mercado con precio y m²', fix:'Pestaña Mercado → Testigos'});
   const d = (typeof getCurrentDossier === 'function') ? getCurrentDossier() : {};
   const ng = d.negotiation;
-  const askingOk = ng && !Array.isArray(ng) && ng.asking && ng.asking.importe > 0 && ng.asking.fecha;
-  const askingFlatOk = Array.isArray(ng) && ng.some(h => h.tipo === 'asking' && h.importe > 0);
-  if (!askingOk && !askingFlatOk) missing.push({key:'asking', label:'Asking del vendedor (precio inicial)', fix:'Pestaña Mercado → Negociación'});
-  const ctxLen = ((document.getElementById('narr-context-general')?.value || '').trim()).length;
-  if (ctxLen < 40) missing.push({key:'context', label:'Contexto para la IA (mínimo 40 caracteres)', fix:'Pestaña Dossier → Contexto para la IA'});
-  const narr = d.narrative || {};
-  const anyNarr = ['activo','zona','mercado','proyecto','tesis'].some(k => ((narr[k] || '').trim().length > 40));
-  if (!anyNarr) missing.push({key:'narratives', label:'Al menos una sección de narrativa rellena (genera con la IA)', fix:'Pestaña Dossier → Textos narrativos'});
-  return { ok: missing.length === 0, missing, warnings: [] };
+  const hasAsking = (ng && !Array.isArray(ng) && ng.asking && ng.asking.importe > 0)
+                 || (Array.isArray(ng) && ng.some(h => h.tipo === 'asking' && h.importe > 0));
+  if (!hasAsking) warnings.push({key:'asking', label:'Asking del vendedor no registrado', fix:'Pestaña Mercado → Negociación'});
+
+  return { ok: missing.length === 0, missing, warnings };
 }
 
 function rwShowCoherenceGate(result, intent) {
@@ -8773,33 +8774,59 @@ function rwShowCoherenceGate(result, intent) {
   modal.id = 'rw-gate-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;font-family:Raleway,sans-serif';
   const intentLbl = intent === 'pdf' ? 'generar el PDF' : 'abrir la presentación';
+  const hasMissing = result.missing && result.missing.length > 0;
+  const hasWarnings = result.warnings && result.warnings.length > 0;
+  const missingHtml = hasMissing
+    ? '<div style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#E05555;margin-bottom:6px">Datos obligatorios</div>'
+      + result.missing.map(function(m){ return '<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:var(--d3);border-left:2px solid #E05555;margin-bottom:6px"><span style="color:#E05555;font-size:13px;line-height:1">✕</span><div style="flex:1"><div style="font-size:11.5px;color:var(--text-b);font-weight:500">' + m.label + '</div><div style="font-size:9.5px;color:var(--text-d);letter-spacing:0.05em;margin-top:2px">→ ' + m.fix + '</div></div></div>'; }).join('')
+    : '';
+  const warningsHtml = hasWarnings
+    ? '<div style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--amber);margin:' + (hasMissing?'12px':'0') + ' 0 6px">Recomendaciones (no bloquean)</div>'
+      + result.warnings.map(function(w){ return '<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 12px;background:rgba(224,150,58,0.06);border-left:2px solid var(--amber);margin-bottom:4px"><span style="color:var(--amber);font-size:13px;line-height:1">⚠</span><div style="flex:1"><div style="font-size:11px;color:var(--text-c)">' + w.label + '</div><div style="font-size:9.5px;color:var(--text-d);margin-top:2px">→ ' + w.fix + '</div></div></div>'; }).join('')
+    : '';
   modal.innerHTML = '<div style="background:var(--d2);border:1px solid var(--gold-d);max-width:640px;width:100%;max-height:90vh;overflow-y:auto;padding:28px 32px">'
-    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'
-      + '<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:var(--text-b);margin-bottom:2px">No se puede ' + intentLbl + ' todavía</div>'
-      + '<div style="font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--amber)">Faltan campos para garantizar coherencia</div></div>'
-      + '<button onclick="document.getElementById(\'rw-gate-modal\').remove()" style="background:transparent;border:1px solid var(--d6);color:var(--text-d);width:32px;height:32px;cursor:pointer">×</button>'
+    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">'
+      + '<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:var(--text-b);margin-bottom:2px">'
+        + (hasMissing ? 'No se puede ' + intentLbl + ' todavía' : 'Avisos antes de ' + intentLbl) + '</div>'
+      + '<div style="font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:' + (hasMissing ? '#E05555' : 'var(--amber)') + '">'
+        + (hasMissing ? 'Faltan datos obligatorios' : 'Datos opcionales incompletos') + '</div></div>'
+      + '<button onclick="document.getElementById(\'rw-gate-modal\').remove()" style="background:transparent;border:1px solid var(--d6);color:var(--text-d);width:32px;height:32px;cursor:pointer;font-size:16px">×</button>'
     + '</div>'
-    + '<div style="font-size:11px;color:var(--text-d);line-height:1.75;margin:14px 0 16px;padding:12px 14px;background:rgba(224,150,58,0.08);border-left:2px solid var(--amber)">La herramienta impide generar PDF o presentación si los datos están incompletos. Completa los puntos de abajo y vuelve a intentarlo.</div>'
-    + '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px">'
-    + result.missing.map(function(m){ return '<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:var(--d3);border-left:2px solid var(--amber)"><span style="color:var(--amber);font-size:13px;line-height:1">⚠</span><div style="flex:1"><div style="font-size:11.5px;color:var(--text-b);font-weight:500">' + m.label + '</div><div style="font-size:9.5px;color:var(--text-d);letter-spacing:0.05em;margin-top:2px">→ ' + m.fix + '</div></div></div>'; }).join('')
+    + missingHtml + warningsHtml
+    + '<div style="display:flex;gap:8px;margin-top:18px">'
+    + (hasMissing ? '' : '<button id="rw-gate-proceed" style="flex:1;background:var(--gold);border:none;color:#fff;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;padding:12px;cursor:pointer">Continuar de todos modos</button>')
+    + '<button onclick="document.getElementById(\'rw-gate-modal\').remove()" style="flex:1;background:transparent;border:1px solid var(--d6);color:var(--text-d);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;padding:12px;cursor:pointer">'
+      + (hasMissing ? 'Entendido' : 'Cancelar') + '</button>'
     + '</div>'
-    + '<button onclick="document.getElementById(\'rw-gate-modal\').remove()" style="width:100%;background:var(--gold);border:none;color:#fff;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;padding:12px;cursor:pointer">Entendido</button>'
   + '</div>';
   document.body.appendChild(modal);
+  if (!hasMissing) {
+    const proceedBtn = document.getElementById('rw-gate-proceed');
+    if (proceedBtn) proceedBtn.onclick = function() {
+      modal.remove();
+      if (intent === 'pdf' && typeof window.generatePDF === 'function') window.generatePDF();
+      else if (typeof window.openPresentation === 'function') window.openPresentation();
+    };
+  }
 }
 
 function rwCheckCoherenceInline() {
   const r = rwCheckCoherenceGate();
   const pill = document.getElementById('rw-gate-pill');
   if (!pill) return;
-  if (r.ok) {
-    pill.innerHTML = '<span style="color:var(--green)">✓ Coherencia OK · listo para presentar</span>';
+  const totalIssues = (r.missing ? r.missing.length : 0) + (r.warnings ? r.warnings.length : 0);
+  if (r.ok && totalIssues === 0) {
+    pill.innerHTML = '<span style="color:var(--green)">✓ Listo para presentar</span>';
     pill.style.background = 'rgba(82,192,122,0.08)';
     pill.style.borderColor = 'rgba(82,192,122,0.3)';
+  } else if (r.ok) {
+    pill.innerHTML = '<span style="color:var(--amber)">⚠ ' + totalIssues + ' aviso' + (totalIssues===1?'':'s') + ' · puede presentar</span>';
+    pill.style.background = 'rgba(224,150,58,0.06)';
+    pill.style.borderColor = 'rgba(224,150,58,0.25)';
   } else {
-    pill.innerHTML = '<span style="color:var(--amber)">⚠ ' + r.missing.length + ' campo' + (r.missing.length===1?'':'s') + ' pendiente' + (r.missing.length===1?'':'s') + ' para presentar/exportar</span>';
-    pill.style.background = 'rgba(224,150,58,0.08)';
-    pill.style.borderColor = 'rgba(224,150,58,0.3)';
+    pill.innerHTML = '<span style="color:#E05555">✕ ' + r.missing.length + ' dato' + (r.missing.length===1?'':'s') + ' obligatorio' + (r.missing.length===1?'':'s') + ' pendiente' + (r.missing.length===1?'':'s') + '</span>';
+    pill.style.background = 'rgba(224,85,85,0.06)';
+    pill.style.borderColor = 'rgba(224,85,85,0.25)';
   }
 }
 
