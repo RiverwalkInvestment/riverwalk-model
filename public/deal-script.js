@@ -7874,3 +7874,962 @@ async function exportDossierPDF() {
   }
 }
 
+
+// ══════════════════════════════════════════════════════════════════════
+// TANDA 10 · i18n — 5 language support for presentation + PDF + IA
+// ══════════════════════════════════════════════════════════════════════
+let RW_LANG = 'es';
+
+const RW_I18N = {
+  asset:           { es:'El activo',                    en:'The asset',                  fr:'L\u2019actif',                de:'Das Objekt',                pt:'O ativo' },
+  location:        { es:'Ubicación',                    en:'Location',                   fr:'Emplacement',                 de:'Lage',                      pt:'Localização' },
+  zone:            { es:'La zona',                      en:'The neighborhood',           fr:'Le quartier',                 de:'Das Viertel',               pt:'A zona' },
+  market_neg:      { es:'El mercado · La negociación',  en:'Market \u00b7 Negotiation',  fr:'Marché \u00b7 Négociation',   de:'Markt \u00b7 Verhandlung',  pt:'Mercado \u00b7 Negociação' },
+  proj_sale:       { es:'Proyección de venta',          en:'Sale projection',            fr:'Projection de vente',         de:'Verkaufsprojektion',        pt:'Projeção de venda' },
+  the_project:     { es:'El proyecto',                  en:'The project',                fr:'Le projet',                   de:'Das Projekt',               pt:'O projeto' },
+  structure:       { es:'Estructura',                   en:'Structure',                  fr:'Structure',                   de:'Struktur',                  pt:'Estrutura' },
+  alignment:       { es:'Alineación de intereses',      en:'Alignment of interests',     fr:'Alignement des intérêts',     de:'Interessenausgleich',       pt:'Alinhamento de interesses' },
+  capital_prot:    { es:'Protección de capital',        en:'Capital protection',         fr:'Protection du capital',       de:'Kapitalschutz',             pt:'Proteção de capital' },
+  timeline:        { es:'Calendario',                   en:'Timeline',                   fr:'Calendrier',                  de:'Zeitplan',                  pt:'Calendário' },
+  highlights:      { es:'Highlights',                   en:'Highlights',                 fr:'Points forts',                de:'Highlights',                pt:'Destaques' },
+  the_operation:   { es:'La operación',                 en:'The operation',              fr:'L\u2019opération',            de:'Die Operation',             pt:'A operação' },
+  reform_integral: { es:'Reforma integral',             en:'Full renovation',            fr:'Rénovation complète',         de:'Komplettsanierung',         pt:'Reforma integral' },
+  qualities_palette:{ es:'Paleta de calidades',         en:'Materials palette',          fr:'Palette de matériaux',        de:'Materialpalette',           pt:'Paleta de acabamentos' },
+  qualities_memo:  { es:'Memoria de calidades',         en:'Specifications memo',        fr:'Mémoire des prestations',     de:'Ausstattungsbeschreibung',  pt:'Memória de qualidades' },
+  finishes_palette:{ es:'Paleta de acabados',           en:'Finishes palette',           fr:'Palette de finitions',        de:'Oberflächenpalette',        pt:'Paleta de acabamentos' },
+  current_layout:  { es:'Distribución actual',          en:'Current layout',             fr:'Distribution actuelle',       de:'Aktueller Grundriss',       pt:'Distribuição atual' },
+  capex_breakdown: { es:'Desglose CapEx',               en:'CapEx breakdown',            fr:'Détail CapEx',                de:'CapEx-Aufschlüsselung',     pt:'Desagregação CapEx' },
+  project_concept: { es:'Concepto del proyecto',        en:'Project concept',            fr:'Concept du projet',           de:'Projektkonzept',            pt:'Conceito do projeto' },
+  works:           { es:'Obra',                         en:'Construction',               fr:'Travaux',                     de:'Bauarbeiten',               pt:'Obra' },
+  interior_design: { es:'Interiorismo',                 en:'Interior design',            fr:'Architecture d\u2019intérieur',de:'Innenarchitektur',         pt:'Design de interiores' },
+  capex_net:       { es:'CapEx neto',                   en:'CapEx net',                  fr:'CapEx net',                   de:'CapEx netto',               pt:'CapEx líquido' },
+  capex_total:     { es:'CapEx total',                  en:'Total CapEx',                fr:'CapEx total',                 de:'CapEx gesamt',              pt:'CapEx total' },
+  reform_surface:  { es:'Superficie reforma',           en:'Renovation area',            fr:'Surface de rénovation',       de:'Sanierungsfläche',          pt:'Área de reforma' },
+  sale_scenarios:  { es:'Testigos · Escenarios de precio de salida', en:'Comparables · Exit price scenarios', fr:'Comparables · Scénarios de prix de sortie', de:'Vergleichswerte · Verkaufspreis-Szenarien', pt:'Comparáveis · Cenários de preço de saída' },
+  pessimistic:     { es:'Pesimista · P25',  en:'Pessimistic · P25',  fr:'Pessimiste · P25',  de:'Pessimistisch · P25', pt:'Pessimista · P25' },
+  base_median:     { es:'Base · Mediana',   en:'Base · Median',      fr:'Base · Médiane',     de:'Basis · Median',     pt:'Base · Mediana' },
+  optimistic:      { es:'Optimista · P75',  en:'Optimistic · P75',   fr:'Optimiste · P75',    de:'Optimistisch · P75', pt:'Otimista · P75' },
+  refurb_median:   { es:'Mediana testigos reformados', en:'Median renovated comparables', fr:'Médiane comparables rénovés', de:'Median renovierte Vergleichswerte', pt:'Mediana de comparáveis renovados' },
+  spread_renov:    { es:'Spread reforma / sin reformar', en:'Renovated / unrenovated spread', fr:'Écart rénové / non rénové', de:'Spread saniert / unsaniert', pt:'Diferença renovado / sem reformar' },
+  vs_witnesses:    { es:'vs testigos',  en:'vs comparables',  fr:'vs comparables',  de:'vs Vergleichswerte', pt:'vs comparáveis' },
+  filter_all:      { es:'Todos',      en:'All',             fr:'Tous',            de:'Alle',               pt:'Todos' },
+  filter_renovated:{ es:'Reformado',  en:'Renovated',       fr:'Rénové',          de:'Saniert',            pt:'Renovado' },
+  filter_new:      { es:'Estreno',    en:'New build',       fr:'Neuf',            de:'Neubau',             pt:'Novo' },
+  filter_refurbish:{ es:'A reformar', en:'To renovate',     fr:'À rénover',       de:'Sanierungsbedürftig',pt:'A reformar' },
+  verified:        { es:'Verificado', en:'Verified',        fr:'Vérifié',         de:'Verifiziert',        pt:'Verificado' },
+  incomplete:      { es:'Incompleto', en:'Incomplete',      fr:'Incomplet',       de:'Unvollständig',      pt:'Incompleto' },
+  asking:          { es:'Asking del vendedor', en:'Seller asking',   fr:'Prix demandé',    de:'Verkäuferpreis',  pt:'Pedido do vendedor' },
+  round:           { es:'Ronda',               en:'Round',           fr:'Tour',            de:'Runde',           pt:'Rodada' },
+  my_offer:        { es:'Mi oferta',           en:'My offer',        fr:'Mon offre',       de:'Mein Angebot',    pt:'Minha oferta' },
+  seller_response: { es:'Respuesta vendedor',  en:'Seller response', fr:'Réponse vendeur', de:'Verkäuferantwort',pt:'Resposta do vendedor' },
+  my_decision:     { es:'Mi decisión',         en:'My decision',     fr:'Ma décision',     de:'Meine Entscheidung',pt:'Minha decisão' },
+  closed_deal:     { es:'Cerrada · acuerdo',   en:'Closed · agreed', fr:'Conclu · accord', de:'Abgeschlossen · Einigung', pt:'Fechado · acordo' },
+  no_deal:         { es:'Sin acuerdo',         en:'No agreement',    fr:'Sans accord',     de:'Keine Einigung',  pt:'Sem acordo' },
+  contraoffer:     { es:'Contraoferta',        en:'Counteroffer',    fr:'Contre-offre',    de:'Gegenangebot',    pt:'Contraoferta' },
+  rejected:        { es:'Rechazo',             en:'Rejected',        fr:'Refusé',          de:'Abgelehnt',       pt:'Rejeitado' },
+  accepted:        { es:'Aceptado',            en:'Accepted',        fr:'Accepté',         de:'Angenommen',      pt:'Aceito' },
+  earnest:         { es:'Arras',          en:'Earnest deposit',   fr:'Arrhes',         de:'Anzahlung',          pt:'Sinal' },
+  deed:            { es:'Escritura',      en:'Deed',              fr:'Acte',           de:'Notarvertrag',       pt:'Escritura' },
+  works_phase:     { es:'Obra',           en:'Works',             fr:'Travaux',        de:'Bauphase',           pt:'Obra' },
+  commerc:         { es:'Comercialización',en:'Commercialization', fr:'Commercialisation',de:'Vermarktung',     pt:'Comercialização' },
+  works_end:       { es:'Fin obra',       en:'Works end',         fr:'Fin des travaux', de:'Bauende',           pt:'Fim da obra' },
+  sale:            { es:'Venta',          en:'Sale',              fr:'Vente',          de:'Verkauf',            pt:'Venda' },
+  earnest_period:  { es:'Período arras',  en:'Earnest period',    fr:'Période arrhes', de:'Anzahlungsphase',    pt:'Período de sinal' },
+  total_op:        { es:'Total operación',en:'Total operation',   fr:'Opération totale',de:'Gesamtoperation',   pt:'Operação total' },
+  months:          { es:'meses',          en:'months',            fr:'mois',           de:'Monate',             pt:'meses' },
+  contract_signing:{ es:'Firma del contrato', en:'Contract signing', fr:'Signature du contrat', de:'Vertragsunterzeichnung', pt:'Assinatura do contrato' },
+  works_start:     { es:'Inicio de obra',     en:'Works start',     fr:'Début des travaux', de:'Baubeginn',     pt:'Início da obra' },
+  reception:       { es:'Recepción · inicio comercialización', en:'Handover · commercialization start', fr:'Réception · début de commercialisation', de:'Übergabe · Vermarktungsbeginn', pt:'Recepção · início da comercialização' },
+  sale_signing:    { es:'Firma de venta', en:'Sale signing', fr:'Signature de vente', de:'Verkaufsunterzeichnung', pt:'Assinatura da venda' },
+  temporality:     { es:'Temporalidad de la operación', en:'Operation timeline', fr:'Calendrier de l\u2019opération', de:'Operationszeitplan', pt:'Cronograma da operação' },
+  buy_price:       { es:'Precio compra',  en:'Purchase price',   fr:'Prix d\u2019achat',  de:'Kaufpreis',         pt:'Preço de compra' },
+  itp_notary:      { es:'ITP + Notaría',  en:'Transfer tax + Notary', fr:'Droits + Notaire', de:'Steuer + Notar', pt:'ITP + Notário' },
+  capex_iva:       { es:'CapEx + IVA',    en:'CapEx + VAT',      fr:'CapEx + TVA',        de:'CapEx + MwSt.',     pt:'CapEx + IVA' },
+  mgmt_fee:        { es:'Management fee', en:'Management fee',   fr:'Frais de gestion',   de:'Verwaltungsgebühr', pt:'Taxa de gestão' },
+  costs_assumed_seller: { es:'✓ Gastos adquisición · asumidos por vendedor', en:'✓ Acquisition costs · assumed by seller', fr:'✓ Frais d\u2019acquisition · pris en charge par le vendeur', de:'✓ Erwerbskosten · vom Verkäufer übernommen', pt:'✓ Custos de aquisição · assumidos pelo vendedor' },
+  sens_matrices:   { es:'Matrices de sensibilidad', en:'Sensitivity matrices', fr:'Matrices de sensibilité', de:'Sensitivitätsmatrizen', pt:'Matrizes de sensibilidade' },
+  ext_matrices:    { es:'Matrices extendidas',      en:'Extended matrices',    fr:'Matrices étendues',       de:'Erweiterte Matrizen',  pt:'Matrizes estendidas' },
+  confidential_doc:{ es:'Riverwalk Real Estate · documento confidencial', en:'Riverwalk Real Estate · confidential document', fr:'Riverwalk Real Estate · document confidentiel', de:'Riverwalk Real Estate · vertrauliches Dokument', pt:'Riverwalk Real Estate · documento confidencial' },
+  page:            { es:'Página', en:'Page', fr:'Page', de:'Seite', pt:'Página' },
+};
+
+function t(key) {
+  const entry = RW_I18N[key];
+  if (!entry) return key;
+  return entry[RW_LANG] || entry.es || key;
+}
+
+function rwSetLang(code) {
+  if (!['es','en','fr','de','pt'].includes(code)) code = 'es';
+  RW_LANG = code;
+  try { localStorage.setItem('rw_lang', code); } catch(e) {}
+  const pm = document.getElementById('presentation-mode');
+  if (pm && pm.style.display === 'block' && typeof buildSlides === 'function' && typeof renderPresSlide === 'function') {
+    try {
+      const m = calc(); const d = getCurrentDossier();
+      window.presSlides = buildSlides(m, d);
+      renderPresSlide();
+    } catch(e) { console.warn('lang rebuild failed', e); }
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    const saved = localStorage.getItem('rw_lang');
+    if (saved) { RW_LANG = saved; const sel = document.getElementById('rw-lang-selector'); if (sel) sel.value = saved; }
+  } catch(e) {}
+});
+
+const RW_AI_SYSTEM = {
+  es: 'Eres el equipo de comunicación de Riverwalk Real Estate Investments, una firma de inversión inmobiliaria de alta gama en Madrid. Escribes en castellano con tono profesional, discreto y sofisticado — sin exageraciones ni superlativos vacíos.',
+  en: 'You are the communications team of Riverwalk Real Estate Investments, a high-end real estate investment firm based in Madrid. Write in English with a professional, discreet and sophisticated tone — no exaggeration, no empty superlatives.',
+  fr: 'Vous êtes l\u2019équipe de communication de Riverwalk Real Estate Investments, une firme d\u2019investissement immobilier haut de gamme basée à Madrid. Écrivez en français avec un ton professionnel, discret et sophistiqué — sans exagération ni superlatifs creux.',
+  de: 'Sie sind das Kommunikationsteam von Riverwalk Real Estate Investments, einer hochwertigen Immobilien-Investmentfirma in Madrid. Schreiben Sie auf Deutsch mit einem professionellen, diskreten und anspruchsvollen Ton — ohne Übertreibung, ohne leere Superlative.',
+  pt: 'Você é a equipe de comunicação da Riverwalk Real Estate Investments, uma firma de investimento imobiliário de alto padrão em Madrid. Escreva em português com tom profissional, discreto e sofisticado — sem exageros nem superlativos vazios.',
+};
+
+const RW_NARR_PROMPTS_I18N = {
+  es: {
+    activo:  'Escribe una descripción del activo inmobiliario para un dossier de inversión (2-3 frases, tono profesional y atractivo, menciona lo más relevante del inmueble).',
+    zona:    'Escribe el contexto de la zona/microzona donde está el activo (2-3 frases sobre el barrio, tendencias, dinámica del mercado local).',
+    mercado: 'Escribe un análisis del mercado y la oportunidad: posicionamiento del precio de entrada vs testigos, descuento, justificación financiera (2-3 frases).',
+    proyecto:'Escribe la tesis del proyecto de reforma y las calidades previstas (2-3 frases, sin enumerar todos los acabados).',
+    tesis:   'Escribe la tesis de inversión de cierre (resumen ejecutivo del por qué es una buena oportunidad, qué aporta Riverwalk, el retorno esperado).',
+  },
+  en: {
+    activo:  'Write a description of the real estate asset for an investment dossier (2-3 sentences, professional and attractive tone, mention the most relevant features of the property).',
+    zona:    'Write the context of the area/microzone where the asset is located (2-3 sentences about the neighborhood, trends, local market dynamics).',
+    mercado: 'Write an analysis of the market and opportunity: positioning of the entry price vs comparables, discount, financial justification (2-3 sentences).',
+    proyecto:'Write the renovation project thesis and the planned material specifications (2-3 sentences, without listing every finish).',
+    tesis:   'Write the closing investment thesis (executive summary of why this is a good opportunity, what Riverwalk brings, expected return).',
+  },
+  fr: {
+    activo:  'Écrivez une description de l\u2019actif immobilier pour un dossier d\u2019investissement (2-3 phrases, ton professionnel et attractif).',
+    zona:    'Écrivez le contexte du quartier/micro-zone où se situe l\u2019actif (2-3 phrases sur le quartier, les tendances, la dynamique du marché local).',
+    mercado: 'Écrivez une analyse du marché et de l\u2019opportunité (2-3 phrases).',
+    proyecto:'Écrivez la thèse du projet de rénovation et les prestations prévues (2-3 phrases).',
+    tesis:   'Écrivez la thèse d\u2019investissement de clôture (résumé exécutif).',
+  },
+  de: {
+    activo:  'Schreiben Sie eine Beschreibung der Immobilie für ein Investment-Dossier (2-3 Sätze, professioneller Ton).',
+    zona:    'Schreiben Sie den Kontext des Stadtteils/der Mikrozone (2-3 Sätze).',
+    mercado: 'Schreiben Sie eine Analyse des Marktes und der Chance (2-3 Sätze).',
+    proyecto:'Schreiben Sie die Sanierungsprojekt-These (2-3 Sätze).',
+    tesis:   'Schreiben Sie die abschließende Investment-These (Executive Summary).',
+  },
+  pt: {
+    activo:  'Escreva uma descrição do ativo imobiliário para um dossiê de investimento (2-3 frases, tom profissional).',
+    zona:    'Escreva o contexto do bairro/microzona (2-3 frases).',
+    mercado: 'Escreva uma análise do mercado e da oportunidade (2-3 frases).',
+    proyecto:'Escreva a tese do projeto de renovação (2-3 frases).',
+    tesis:   'Escreva a tese de investimento de fechamento (resumo executivo).',
+  },
+};
+
+// ══════════════════════════════════════════════════════════════════════
+// TANDA 11 · Demo loader
+// ══════════════════════════════════════════════════════════════════════
+const RW_DEMO_IMG_PICSUM = (id, w, h) => 'https://picsum.photos/id/' + id + '/' + (w||800) + '/' + (h||600);
+
+function rwDemoSvgPlaceholder(label, tone) {
+  const colorA = tone === 'dark' ? '#1A1D28' : '#2A2D38';
+  const colorB = tone === 'dark' ? '#0A0B10' : '#1A1D28';
+  const accent = '#C4975A';
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">'
+    + '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + colorA + '"/><stop offset="1" stop-color="' + colorB + '"/></linearGradient></defs>'
+    + '<rect width="800" height="600" fill="url(#g)"/>'
+    + '<line x1="0" y1="300" x2="800" y2="300" stroke="' + accent + '" stroke-width="0.5" opacity="0.3"/>'
+    + '<line x1="400" y1="0" x2="400" y2="600" stroke="' + accent + '" stroke-width="0.5" opacity="0.3"/>'
+    + '<text x="400" y="295" font-family="Cormorant Garamond, serif" font-size="36" fill="' + accent + '" text-anchor="middle" font-weight="400" letter-spacing="2">' + label + '</text>'
+    + '<text x="400" y="325" font-family="Raleway, sans-serif" font-size="11" fill="rgba(255,255,255,0.5)" text-anchor="middle" letter-spacing="3">DEMO · RIVERWALK</text>'
+    + '</svg>';
+  return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+}
+
+function rwDemoImg(picsumId, label) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const picsumUrl = RW_DEMO_IMG_PICSUM(picsumId);
+    let done = false;
+    const timer = setTimeout(() => { if (!done) { done = true; resolve(rwDemoSvgPlaceholder(label, 'dark')); } }, 3500);
+    img.onload  = () => { if (!done) { done = true; clearTimeout(timer); resolve(picsumUrl); } };
+    img.onerror = () => { if (!done) { done = true; clearTimeout(timer); resolve(rwDemoSvgPlaceholder(label, 'dark')); } };
+    img.src = picsumUrl;
+  });
+}
+
+async function rwLoadDemoDeal() {
+  const ok = confirm('⚡ Cargar operación demo\n\nSe creará una operación "[DEMO] Hortaleza 28 · Chueca" con datos realistas (5 testigos verificados, negociación completa, paleta Premium, matrices extendidas activas, narrativa IA rellena).\n\nNO afecta a tus operaciones actuales.\n\n¿Continuar?');
+  if (!ok) return;
+
+  if (typeof addDeal === 'function') addDeal('[DEMO] Hortaleza 28 · Chueca');
+
+  const setVal = (id, value) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = value;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+
+  setVal('dealName', '[DEMO] Hortaleza 28 · Chueca');
+  setVal('dealAddress', 'Calle Hortaleza 28');
+  setVal('dealCP', '28004');
+  setVal('dealMunicipio', 'Madrid');
+  setVal('dealFloor', '3');
+  setVal('dealPuerta', 'Izq');
+  setVal('surfCapex', 145);
+  setVal('exitP', 18500);
+  setVal('exitB', 21000);
+  setVal('exitO', 23500);
+  setVal('brokerExit', 3);
+  setVal('exitFixed', 8000);
+  setVal('arasMonths', 2);
+  setVal('obraMonths', 5);
+  setVal('comercialMonths', 3);
+  setVal('buyPrice', 2400000);
+  setVal('arasAmt', 240000);
+  setVal('arasPct', 10);
+  setVal('itpPct', 6);
+  setVal('comunidad', 380);
+  setVal('ibi', 1800);
+  setVal('obraM2', 1850);
+  setVal('decoM2', 350);
+  setVal('ivaObra', 21);
+  setVal('mgmtFeePct', 4);
+  setVal('sf0P', 0);
+  setVal('sf1P', 30);
+  setVal('sf2P', 50);
+  setVal('sf1T', 12.5);
+  setVal('sf2T', 25);
+  setVal('taxRate', 25);
+
+  if (typeof comps !== 'undefined') {
+    comps.length = 0;
+    if (typeof compNextId !== 'undefined') compNextId = 1;
+    comps.push(
+      { id:1, desc:'Hortaleza 32 · reformado exterior', source:'Idealista', url:'https://www.idealista.com/inmueble/104567890/', tipo:'reformado', precio:2950000, m2:138, planta:4, exterior:true, ascensor:true, orientacion:'S', direccion:'Calle Hortaleza 32', cp:'28004', lat:40.4228, lon:-3.6969, precision:'exacta', fechaPublicacion:'2026-02-14', fechaAlta:new Date().toISOString() },
+      { id:2, desc:'Augusto Figueroa 18 · estreno rehabilitado', source:'Engel & Völkers', url:'https://www.engelvoelkers.com/es-es/propiedad/ref-W-02HBCD/', tipo:'estreno', precio:3400000, m2:155, planta:5, exterior:true, ascensor:true, orientacion:'SE', direccion:'Calle Augusto Figueroa 18', cp:'28004', lat:40.4219, lon:-3.6978, precision:'exacta', fechaPublicacion:'2026-01-28', fechaAlta:new Date().toISOString() },
+      { id:3, desc:'Barquillo 12 · reforma de autor', source:"Sotheby's International Realty", url:'https://www.sothebysrealty.com/eng/sales/detail/madrid-chueca/', tipo:'reformado', precio:3750000, m2:160, planta:6, exterior:true, ascensor:true, orientacion:'S', direccion:'Calle Barquillo 12', cp:'28004', lat:40.4197, lon:-3.6950, precision:'exacta', fechaPublicacion:'2026-03-02', fechaAlta:new Date().toISOString() },
+      { id:4, desc:'Almirante 8 · a reformar', source:'Lucas Fox', url:'https://www.lucasfox.es/venta-piso-almirante-madrid/', tipo:'reformar', precio:1950000, m2:142, planta:2, exterior:false, ascensor:true, orientacion:'N', direccion:'Calle Almirante 8', cp:'28004', lat:40.4209, lon:-3.6941, precision:'exacta', fechaPublicacion:'2026-02-20', fechaAlta:new Date().toISOString() },
+      { id:5, desc:'Infantas 22 · reformado prime', source:'Gilmar', url:'https://www.gilmar.es/inmueble/madrid-centro-infantas/', tipo:'reformado', precio:3100000, m2:148, planta:3, exterior:true, ascensor:true, orientacion:'E', direccion:'Calle Infantas 22', cp:'28004', lat:40.4203, lon:-3.6982, precision:'exacta', fechaPublicacion:'2026-02-05', fechaAlta:new Date().toISOString() }
+    );
+    if (typeof renderCompInputs === 'function') renderCompInputs();
+    if (typeof renderCompOutput === 'function') renderCompOutput();
+    if (typeof rwPersistComps === 'function') rwPersistComps();
+  }
+
+  const d = (typeof getCurrentDossier === 'function') ? getCurrentDossier() : {};
+  d.negotiation = {
+    asking: { importe: 2800000, fecha: '2026-01-18' },
+    rounds: [
+      { oferta: { importe: 2350000, fecha: '2026-01-24' }, respuesta: { tipo: 'contraoferta', importe: 2550000, fecha: '2026-01-31' }, decision: { tipo: 'rechazo', fecha: '2026-02-03' } },
+      { oferta: { importe: 2400000, fecha: '2026-02-10' }, respuesta: { tipo: 'acepto', importe: 0, fecha: '2026-02-14' }, decision: { tipo: '', fecha: '' } },
+    ],
+  };
+  if (typeof rwRenderNegotiation === 'function') rwRenderNegotiation();
+
+  if (typeof rwRenderCalidadesGallery === 'function') {
+    d.calidades = d.calidades || {};
+    d.calidades.presetId = 'builtin_premium';
+    rwRenderCalidadesGallery();
+    if (typeof rwValidateCapExPreset === 'function') rwValidateCapExPreset();
+  }
+
+  d.narrative = d.narrative || {};
+  d.narrative.context = 'Propietario es un family office que compró el activo en 2019 como trofeo y ahora necesita liquidez antes de cierre fiscal. Llevan 9 meses en mercado con un broker boutique, ya han rebajado 300k del asking inicial (estaban en 3.1M). La zona Chueca-Justicia está en plena transformación por la peatonalización de calles adyacentes.';
+  d.narrative.activo  = 'Piso de 145 m² en la tercera planta de un edificio histórico de 1880 en el corazón de Chueca. Orientación sur-este con tres balcones a la calle Hortaleza.';
+  d.narrative.zona    = 'Chueca se ha consolidado como uno de los barrios más dinámicos del centro de Madrid, combinando el carácter histórico-arquitectónico con una oferta gastronómica y cultural de primer nivel.';
+  d.narrative.mercado = 'El activo se adquiere con un descuento del 14% sobre la mediana de testigos reformados en la microzona. El spread entre estado actual y producto reformado es del 47% en €/m².';
+  d.narrative.proyecto= 'Reforma integral a estándar Premium con preservación de los elementos históricos originales: molduras, suelos hidráulicos recuperables y puertas de madera maciza.';
+  d.narrative.tesis   = 'Riverwalk presenta una operación de valor añadido en prime Madrid con retorno bruto objetivo del 31% en 10 meses desde escritura.';
+  d.narrative.emphasis = { activo: '', zona: '', mercado: '', proyecto: '', tesis: '' };
+  setVal('narr-context-general', d.narrative.context);
+  setVal('narr-activo', d.narrative.activo);
+  setVal('narr-zona', d.narrative.zona);
+  setVal('narr-mercado', d.narrative.mercado);
+  setVal('narr-proyecto', d.narrative.proyecto);
+  setVal('narr-tesis', d.narrative.tesis);
+
+  rwSensSelection = rwSensSelection || { active: {}, inPresentation: {}, inPDF: {}, overrides: {} };
+  rwSensSelection.active = { roi_price_duration:true, roi_capex_price:true, tir_ltv_price:true, margin_entry_exit:true, roi_overrun:true, breakeven_holding:false };
+  rwSensSelection.inPresentation = { roi_price_duration:true, roi_capex_price:true, tir_ltv_price:true, margin_entry_exit:true };
+  rwSensSelection.inPDF = { roi_price_duration:true, roi_capex_price:true, tir_ltv_price:true };
+  try { localStorage.setItem('rw_sens_selection', JSON.stringify(rwSensSelection)); } catch(e) {}
+  if (typeof rwRenderMatrixSelector === 'function') rwRenderMatrixSelector();
+  if (typeof rwRenderExtendedMatrices === 'function') rwRenderExtendedMatrices();
+
+  d.mapLat = 40.4233; d.mapLng = -3.6975;
+
+  const gate = document.getElementById('rw-gate-pill');
+  if (gate) gate.innerHTML = '<span style="color:var(--amber)">⏳ Cargando imágenes demo...</span>';
+
+  try {
+    const [fachada, salon, cocina, dorm, planAct, planObj, mat1, mat2, mat3, mat4] = await Promise.all([
+      rwDemoImg(164,'Fachada'), rwDemoImg(106,'Salón'), rwDemoImg(193,'Cocina'), rwDemoImg(42,'Dormitorio'),
+      rwDemoImg(238,'Plano actual'), rwDemoImg(326,'Plano objetivo'),
+      rwDemoImg(48,'Mármol'), rwDemoImg(1060,'Madera'), rwDemoImg(431,'Cocina · detalle'), rwDemoImg(1077,'Baño'),
+    ]);
+    d.photos = [
+      { dataUrl:fachada, caption:'Fachada · Hortaleza 28' },
+      { dataUrl:salon,   caption:'Salón doble · techos 3.4m' },
+      { dataUrl:cocina,  caption:'Cocina actual · pendiente de reforma' },
+      { dataUrl:dorm,    caption:'Dormitorio principal' },
+    ];
+    d.plans = [{ dataUrl:planAct, caption:'Distribución actual' }, { dataUrl:planObj, caption:'Distribución objetivo' }];
+    const premiumPreset = rwCalidadesLib.find(p => p.id === 'builtin_premium');
+    if (premiumPreset) {
+      premiumPreset.images = [mat1, mat2, mat3, mat4];
+      rwSaveCalidadesPresets(rwCalidadesLib);
+      if (typeof rwRenderCalidadesGallery === 'function') rwRenderCalidadesGallery();
+    }
+    d.materials = [
+      { dataUrl:mat1, caption:'Mármol Calacatta · encimera' },
+      { dataUrl:mat2, caption:'Roble natural · carpintería' },
+      { dataUrl:mat3, caption:'Detalle cocina' },
+      { dataUrl:mat4, caption:'Mármol · baño máster' },
+    ];
+    if (typeof renderPhotos === 'function') renderPhotos();
+    if (typeof renderPlans === 'function') renderPlans();
+    if (typeof renderMaterials === 'function') renderMaterials();
+  } catch(e) { console.warn('demo images failed', e); }
+
+  if (typeof update === 'function') update();
+  if (typeof rwUpdateContextStatus === 'function') rwUpdateContextStatus();
+  if (typeof rwCheckCoherenceInline === 'function') rwCheckCoherenceInline();
+  if (typeof rwSyncMonthsToSale === 'function') rwSyncMonthsToSale();
+  if (gate) gate.innerHTML = '<span style="color:var(--green)">✓ Demo cargado</span>';
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// TANDA 8 · Calidades — Unified preset library with €/m² ranges
+// ══════════════════════════════════════════════════════════════════════
+const RW_CALIDADES_KEY = 'rw_calidades_presets_v1';
+
+const RW_CALIDADES_BUILTINS = [
+  { id:'builtin_esencial',  name:'Esencial',  tagline:'Acabados funcionales', description:'Acabados funcionales de calidad correcta: suelo laminado AC4, cocina modular estándar, encimera de silestone, baños con azulejo cerámico, carpintería lacada blanca, iluminación LED básica. Operación orientada a alquiler o venta en segmento medio.', images:[], priceRange:{min:900, max:1400}, builtIn:true, order:1 },
+  { id:'builtin_premium',   name:'Premium',   tagline:'Acabados de nivel',    description:'Acabados de nivel medio-alto: suelo de madera natural o tarima flotante premium, cocina de marca con electrodomésticos integrados, encimera Silestone Dekton, baños con mármol técnico o microcemento, carpintería de roble lacado, iluminación técnica empotrada. Segmento prime Madrid.', images:[], priceRange:{min:1500, max:2200}, builtIn:true, order:2 },
+  { id:'builtin_signature', name:'Signature', tagline:'Acabados de autor',    description:'Acabados de autor y piezas únicas: mármol natural (Calacatta, Statuario o Emperador), maderas nobles (roble natural ahumado, nogal), cocina de diseño con isla en mármol, grifería Dornbracht o Vola, domótica. Proyecto con firma arquitectónica.', images:[], priceRange:{min:2300, max:3500}, builtIn:true, order:3 },
+];
+
+function rwLoadCalidadesPresets() {
+  try {
+    const saved = localStorage.getItem(RW_CALIDADES_KEY);
+    if (saved) { const arr = JSON.parse(saved); if (Array.isArray(arr) && arr.length) return arr; }
+  } catch(e) {}
+  return RW_CALIDADES_BUILTINS.map(p => ({...p, images:[]}));
+}
+function rwSaveCalidadesPresets(list) { try { localStorage.setItem(RW_CALIDADES_KEY, JSON.stringify(list)); } catch(e) {} }
+let rwCalidadesLib = rwLoadCalidadesPresets();
+
+function rwMigrateLegacyPreset(d) {
+  if (!d.calidades) d.calidades = { preset:'', customText:'' };
+  if (d.calidades.presetId) return;
+  const legacy = d.calidades.preset;
+  if (legacy === 'esencial') d.calidades.presetId = 'builtin_esencial';
+  else if (legacy === 'premium') d.calidades.presetId = 'builtin_premium';
+  else if (legacy === 'signature') d.calidades.presetId = 'builtin_signature';
+}
+
+function rwGetSelectedPreset() {
+  const d = (typeof getCurrentDossier === 'function') ? getCurrentDossier() : null;
+  if (!d) return null;
+  rwMigrateLegacyPreset(d);
+  const id = d.calidades && d.calidades.presetId;
+  if (!id) return null;
+  return rwCalidadesLib.find(p => p.id === id) || null;
+}
+
+function rwSelectCalidadesPreset(id) {
+  const d = (typeof getCurrentDossier === 'function') ? getCurrentDossier() : null; if (!d) return;
+  rwMigrateLegacyPreset(d);
+  const preset = rwCalidadesLib.find(p => p.id === id);
+  if (!preset) { d.calidades.presetId = ''; rwRenderCalidadesGallery(); rwValidateCapExPreset(); return; }
+  const prev = d.calidades.presetId;
+  d.calidades.presetId = id;
+  const midpoint = Math.round((preset.priceRange.min + preset.priceRange.max) / 2);
+  const currentObraM2 = (typeof V === 'function') ? V('obraM2') : 0;
+  const inRange = currentObraM2 >= preset.priceRange.min && currentObraM2 <= preset.priceRange.max;
+  if (prev !== id && !inRange && currentObraM2 > 0) {
+    const ok = confirm('Tu CapEx actual es ' + currentObraM2 + ' €/m² y el preset "' + preset.name + '" cubre el rango ' + preset.priceRange.min + '–' + preset.priceRange.max + ' €/m².\n\n¿Actualizar CapEx al punto medio (' + midpoint + ' €/m²)?\n\nCancela si prefieres ajustarlo manualmente.');
+    if (ok) { const el = document.getElementById('obraM2'); if (el) { el.value = midpoint; if (typeof update === 'function') update(); } }
+  } else if (prev !== id && currentObraM2 === 0) {
+    const el = document.getElementById('obraM2'); if (el) { el.value = midpoint; if (typeof update === 'function') update(); }
+  }
+  rwRenderCalidadesGallery();
+  rwValidateCapExPreset();
+}
+
+function rwRenderCalidadesGallery() {
+  const gallery = document.getElementById('rw-calidades-gallery');
+  const detail  = document.getElementById('rw-calidades-detail');
+  if (!gallery) return;
+  const d = (typeof getCurrentDossier === 'function') ? getCurrentDossier() : null;
+  if (d) rwMigrateLegacyPreset(d);
+  const selectedId = d && d.calidades && d.calidades.presetId ? d.calidades.presetId : '';
+  const sorted = [...rwCalidadesLib].sort((a,b) => (a.order||99) - (b.order||99));
+  gallery.innerHTML = sorted.map(p => {
+    const isSel = p.id === selectedId;
+    const thumb = (p.images && p.images[0]) ? p.images[0] : '';
+    const range = p.priceRange ? (p.priceRange.min.toLocaleString('es-ES') + '–' + p.priceRange.max.toLocaleString('es-ES') + ' €/m²') : '';
+    return '<div onclick="rwSelectCalidadesPreset(\'' + p.id + '\')" '
+      + 'style="position:relative;border:1.5px solid ' + (isSel ? 'var(--gold)' : 'var(--d6)') + ';background:' + (thumb ? 'url(' + thumb + ') center/cover' : 'var(--d4)') + ';padding:8px 10px;cursor:pointer;min-height:92px;display:flex;flex-direction:column;justify-content:flex-end;' + (isSel ? 'box-shadow:0 0 0 3px rgba(196,151,90,0.18);' : '') + '">'
+      + (thumb ? '<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,11,16,0.15),rgba(10,11,16,0.82))"></div>' : '')
+      + '<div style="position:relative;z-index:1">'
+        + '<div style="font-size:10.5px;color:' + (isSel ? 'var(--gold-l)' : (thumb ? '#fff' : 'var(--text-b)')) + ';font-weight:600;letter-spacing:0.02em">' + p.name + '</div>'
+        + '<div style="font-size:8.5px;color:' + (thumb ? 'rgba(255,255,255,0.75)' : 'var(--text-d)') + ';margin-top:1px;letter-spacing:0.03em;font-family:\'DM Mono\',monospace">' + range + '</div>'
+      + '</div>'
+      + '<button onclick="event.stopPropagation();rwDeleteCalidadesPreset(\'' + p.id + '\')" title="Eliminar paleta" style="position:absolute;top:4px;right:4px;background:rgba(10,11,16,0.7);border:none;color:rgba(224,85,85,0.55);font-size:10px;width:18px;height:18px;cursor:pointer;z-index:2">×</button>'
+      + (isSel ? '<div style="position:absolute;top:5px;left:5px;background:var(--gold);color:#fff;font-size:8px;padding:2px 6px;letter-spacing:0.08em;z-index:2">✓</div>' : '')
+    + '</div>';
+  }).join('');
+
+  if (detail) {
+    const sel = rwGetSelectedPreset();
+    if (!sel) {
+      detail.innerHTML = '<span style="font-style:italic;color:var(--text-d)">Selecciona una paleta para ver su descripción y el rango €/m² que aplica a esta operación.</span>';
+    } else {
+      detail.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;gap:10px">'
+        + '<div><strong style="color:var(--text-b);font-size:11.5px">' + sel.name + '</strong> <span style="color:var(--text-d);font-size:10px">· ' + (sel.tagline || '') + '</span></div>'
+        + '<button onclick="rwOpenCalidadesEditor(\'' + sel.id + '\')" style="background:rgba(196,151,90,0.08);border:1px solid rgba(196,151,90,0.3);color:var(--gold);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:4px 8px;cursor:pointer">✏ Editar</button>'
+        + '</div>'
+        + '<div style="color:var(--text-d);font-size:10px;line-height:1.7">' + (sel.description || '') + '</div>';
+    }
+  }
+}
+
+function rwValidateCapExPreset() {
+  const badge = document.getElementById('rw-obra-m2-badge');
+  const validationBox = document.getElementById('rw-calidades-validation');
+  const sel = rwGetSelectedPreset();
+  const obraM2 = (typeof V === 'function') ? V('obraM2') : 0;
+  if (!sel || !obraM2) { if (badge) badge.innerHTML = ''; if (validationBox) validationBox.innerHTML = ''; return; }
+  const { min, max } = sel.priceRange;
+  const inRange = obraM2 >= min && obraM2 <= max;
+  if (inRange) {
+    if (badge) badge.innerHTML = '<span style="color:var(--green)">✓ coherente con ' + sel.name + '</span>';
+    if (validationBox) validationBox.innerHTML = '<span style="color:var(--green)">✓ CapEx ' + obraM2.toLocaleString('es-ES') + ' €/m² cuadra con "' + sel.name + '" (' + min.toLocaleString('es-ES') + '–' + max.toLocaleString('es-ES') + ' €/m²)</span>';
+  } else {
+    const delta = obraM2 < min ? ('por debajo · mínimo ' + min.toLocaleString('es-ES')) : ('por encima · máximo ' + max.toLocaleString('es-ES'));
+    if (badge) badge.innerHTML = '<span style="color:var(--amber)">⚠ fuera de rango</span>';
+    if (validationBox) validationBox.innerHTML = '<span style="color:var(--amber)">⚠ CapEx ' + obraM2.toLocaleString('es-ES') + ' €/m² está ' + delta + ' €/m² para "' + sel.name + '". Ajusta el CapEx o elige otra paleta.</span>';
+  }
+}
+
+function rwOpenCalidadesEditor(id) {
+  const existing = document.getElementById('rw-cal-editor-modal');
+  if (existing) existing.remove();
+  const preset = id ? rwCalidadesLib.find(p => p.id === id) : null;
+  const isNew = !preset;
+  const p = preset || { id:'preset_' + Date.now(), name:'', tagline:'', description:'', images:[], priceRange:{min:1000, max:1500}, builtIn:false, order:50 };
+  const modal = document.createElement('div');
+  modal.id = 'rw-cal-editor-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;font-family:Raleway,sans-serif';
+  modal.innerHTML = '<div style="background:var(--d2);border:1px solid var(--gold-d);max-width:720px;width:100%;max-height:90vh;overflow-y:auto;padding:26px 30px">'
+    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--line)">'
+      + '<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:var(--text-b)">' + (isNew ? 'Nueva paleta de calidades' : 'Editar paleta') + '</div>'
+      + '<div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);margin-top:2px">' + (p.builtIn ? 'Paleta de fábrica · puedes editar' : 'Paleta personalizada') + '</div></div>'
+      + '<button onclick="document.getElementById(\'rw-cal-editor-modal\').remove()" style="background:transparent;border:1px solid var(--d6);color:var(--text-d);width:30px;height:30px;cursor:pointer">×</button>'
+    + '</div>'
+    + '<div class="field" style="margin-bottom:10px"><label>Nombre</label><input type="text" id="rwce-name" value="' + (p.name||'').replace(/"/g,'&quot;') + '" placeholder="Ej: Mi paleta Mármol" style="font-size:13px;padding:10px"></div>'
+    + '<div class="field" style="margin-bottom:10px"><label>Tagline (subtítulo corto)</label><input type="text" id="rwce-tagline" value="' + (p.tagline||'').replace(/"/g,'&quot;') + '" placeholder="Ej: Acabados mediterráneos de lujo" style="font-size:12px;padding:9px"></div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">'
+      + '<div class="field" style="margin:0"><label>Rango €/m² mín</label><input type="number" id="rwce-min" value="' + p.priceRange.min + '" style="font-family:\'DM Mono\',monospace;font-size:12px;padding:9px"></div>'
+      + '<div class="field" style="margin:0"><label>Rango €/m² máx</label><input type="number" id="rwce-max" value="' + p.priceRange.max + '" style="font-family:\'DM Mono\',monospace;font-size:12px;padding:9px"></div>'
+    + '</div>'
+    + '<div class="field" style="margin-bottom:12px"><label>Descripción</label><textarea id="rwce-desc" rows="5" placeholder="Describe los acabados: suelos, cocina, baños, carpintería, iluminación…" style="width:100%;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:\'Raleway\',sans-serif;font-size:12px;padding:10px;resize:vertical;line-height:1.7">' + (p.description||'') + '</textarea></div>'
+    + '<div class="field" style="margin-bottom:12px"><label>Imágenes de la paleta</label>'
+      + '<div id="rwce-images-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px;margin-bottom:8px"></div>'
+      + '<label style="display:block;width:100%;background:var(--d4);border:1px dashed var(--d6);color:var(--text-d);font-family:\'Raleway\',sans-serif;font-size:9.5px;letter-spacing:0.14em;text-transform:uppercase;padding:9px;cursor:pointer;text-align:center">+ Añadir imagen<input type="file" accept="image/*" multiple style="display:none" onchange="rwceHandleImageUpload(this.files)"></label>'
+    + '</div>'
+    + '<div style="display:flex;gap:10px;padding-top:14px;border-top:1px solid var(--line)">'
+      + (preset && !preset.builtIn ? '<button onclick="rwDeleteCalidadesPreset(\'' + p.id + '\');document.getElementById(\'rw-cal-editor-modal\').remove()" style="flex:0 0 auto;background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.35);color:#E05555;font-size:10.5px;letter-spacing:0.12em;text-transform:uppercase;padding:11px 16px;cursor:pointer">Eliminar</button>' : '')
+      + '<button onclick="document.getElementById(\'rw-cal-editor-modal\').remove()" style="flex:1;background:transparent;border:1px solid var(--d6);color:var(--text-d);font-size:11px;letter-spacing:0.12em;text-transform:uppercase;padding:11px;cursor:pointer">Cancelar</button>'
+      + '<button onclick="rwSaveCalidadesFromEditor(\'' + p.id + '\',' + (isNew ? 'true' : 'false') + ')" style="flex:2;background:var(--gold);border:none;color:#fff;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;padding:11px;cursor:pointer">Guardar</button>'
+    + '</div>'
+  + '</div>';
+  document.body.appendChild(modal);
+  window._rwceImages = [...(p.images || [])];
+  rwceRenderImagesGrid();
+}
+
+function rwceRenderImagesGrid() {
+  const grid = document.getElementById('rwce-images-grid');
+  if (!grid) return;
+  const imgs = window._rwceImages || [];
+  if (!imgs.length) { grid.innerHTML = '<div style="grid-column:1/-1;font-size:10px;color:var(--text-d);font-style:italic;padding:10px;background:var(--d4);border:1px dashed var(--d6);text-align:center">Sin imágenes aún.</div>'; return; }
+  grid.innerHTML = imgs.map((src, i) =>
+    '<div style="position:relative;aspect-ratio:1;background:url(' + src + ') center/cover;border:1px solid var(--d6)">'
+    + '<button onclick="window._rwceImages.splice(' + i + ',1);rwceRenderImagesGrid()" style="position:absolute;top:3px;right:3px;background:rgba(10,11,16,0.82);border:none;color:#E05555;width:18px;height:18px;cursor:pointer;font-size:11px">×</button>'
+    + '</div>'
+  ).join('');
+}
+
+function rwceHandleImageUpload(files) {
+  if (!files || !files.length) return;
+  if (!window._rwceImages) window._rwceImages = [];
+  const remaining = Math.max(0, 12 - window._rwceImages.length);
+  [...files].slice(0, remaining).forEach(f => {
+    const reader = new FileReader();
+    reader.onload = (e) => { window._rwceImages.push(e.target.result); rwceRenderImagesGrid(); };
+    reader.readAsDataURL(f);
+  });
+}
+
+function rwSaveCalidadesFromEditor(id, isNew) {
+  const name = document.getElementById('rwce-name')?.value?.trim() || '';
+  if (!name) { alert('Dale un nombre a la paleta.'); return; }
+  const tagline = document.getElementById('rwce-tagline')?.value?.trim() || '';
+  const description = document.getElementById('rwce-desc')?.value?.trim() || '';
+  const min = parseFloat(document.getElementById('rwce-min')?.value) || 0;
+  const max = parseFloat(document.getElementById('rwce-max')?.value) || 0;
+  if (min <= 0 || max <= 0 || min >= max) { alert('El rango €/m² no es válido. Debe ser min < max y ambos positivos.'); return; }
+  const images = [...(window._rwceImages || [])];
+  const idx = rwCalidadesLib.findIndex(p => p.id === id);
+  if (idx >= 0) { rwCalidadesLib[idx] = { ...rwCalidadesLib[idx], name, tagline, description, priceRange:{min, max}, images }; }
+  else { rwCalidadesLib.push({ id, name, tagline, description, priceRange:{min, max}, images, builtIn:false, order:50 + rwCalidadesLib.length }); }
+  rwSaveCalidadesPresets(rwCalidadesLib);
+  if (isNew) { const d = (typeof getCurrentDossier === 'function') ? getCurrentDossier() : null; if (d) { d.calidades = d.calidades || {}; d.calidades.presetId = id; } }
+  document.getElementById('rw-cal-editor-modal')?.remove();
+  rwRenderCalidadesGallery();
+  rwValidateCapExPreset();
+}
+
+function rwDeleteCalidadesPreset(id) {
+  const p = rwCalidadesLib.find(x => x.id === id);
+  if (!p) return;
+  if (!confirm('¿Eliminar la paleta "' + p.name + '"?' + (p.builtIn ? '\n\n(Es una paleta de fábrica — se eliminará solo en este navegador.)' : ''))) return;
+  rwCalidadesLib = rwCalidadesLib.filter(x => x.id !== id);
+  rwSaveCalidadesPresets(rwCalidadesLib);
+  const d = (typeof getCurrentDossier === 'function') ? getCurrentDossier() : null;
+  if (d && d.calidades && d.calidades.presetId === id) d.calidades.presetId = '';
+  rwRenderCalidadesGallery();
+  rwValidateCapExPreset();
+}
+
+function applyCalidadesPreset() { /* noop — legacy shim */ }
+function toggleCalidadesEditor() { rwOpenCalidadesEditor(rwGetSelectedPreset() ? rwGetSelectedPreset().id : null); }
+function saveCalidadesCustom() { /* noop — legacy shim */ }
+
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    try { rwCalidadesLib = rwLoadCalidadesPresets(); rwRenderCalidadesGallery(); rwValidateCapExPreset(); } catch(e) {}
+  }, 400);
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// TANDA 7 · Extended sensitivity matrices
+// ══════════════════════════════════════════════════════════════════════
+function rwSlideExtMatrix(matrixId, m) {
+  if (typeof RW_SENS_MATRICES === 'undefined') return '';
+  const md = RW_SENS_MATRICES[matrixId]; if (!md) return '';
+  const rows = md.rowsFn(m); const cols = md.colsFn(m);
+  let html = '<div style="width:794px;height:1123px;background:#F7F4EE;padding:64px 52px;box-sizing:border-box;font-family:\'Raleway\',sans-serif;color:#0A0B0D;position:relative">'
+    + '<div style="font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:600;margin-bottom:6px">Matriz de sensibilidad</div>'
+    + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:34px;font-weight:400;color:#0A0B0D;letter-spacing:0.005em;margin-bottom:4px;line-height:1.1">' + md.label + '</div>'
+    + '<div style="font-size:11px;color:#5A5D6E;margin-bottom:32px;line-height:1.6;max-width:640px">' + md.sub + '</div>'
+    + '<table style="width:100%;border-collapse:collapse;font-family:\'DM Mono\',monospace;font-size:10.5px"><thead><tr>'
+    + '<th style="text-align:left;padding:9px 12px;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:#5A5D6E;font-weight:600;border-bottom:1px solid #C4975A"></th>';
+  cols.forEach(c => { html += '<th style="padding:9px 10px;text-align:center;font-size:9.5px;letter-spacing:0.08em;color:' + (c.isBase?'#C4975A':'#5A5D6E') + ';font-weight:' + (c.isBase?'700':'500') + ';border-bottom:1px solid #C4975A">' + c.label + '</th>'; });
+  html += '</tr></thead><tbody>';
+  rows.forEach(row => {
+    html += '<tr' + (row.isBase?' style="background:rgba(196,151,90,0.08)"':'') + '>';
+    html += '<td style="padding:9px 12px;font-family:\'Raleway\',sans-serif;font-size:10.5px;color:' + (row.isBase?'#C4975A':'#0A0B0D') + ';font-weight:' + (row.isBase?'600':'400') + ';border-bottom:1px solid rgba(196,151,90,0.1)">' + row.label + '</td>';
+    cols.forEach(col => {
+      const cell = md.cellFn(m, row, col); const v = cell.value;
+      let bg = 'transparent', fg = '#0A0B0D';
+      const cls = md.colorFn(v);
+      if (cls==='c1'){bg='rgba(192,57,43,0.1)';fg='#A32D2D';}
+      else if(cls==='c2'){bg='rgba(250,199,117,0.18)';fg='#854F0B';}
+      else if(cls==='c3'){bg='rgba(196,151,90,0.15)';fg='#9A7340';}
+      else if(cls==='c4'){bg='rgba(82,192,122,0.15)';fg='#27500A';}
+      html += '<td style="padding:9px 10px;text-align:center;background:' + (col.isBase?'rgba(196,151,90,0.08)':bg) + ';border-bottom:1px solid rgba(196,151,90,0.1)"><div style="font-size:12.5px;font-weight:400;color:' + fg + '">' + cell.display + '</div>' + (cell.extra?'<div style="font-size:8px;color:#8A8A8A;margin-top:2px">'+cell.extra+'</div>':'') + '</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>'
+    + '<div style="position:absolute;bottom:40px;left:52px;right:52px;display:flex;justify-content:space-between;font-size:9px;color:#9A9A9A;letter-spacing:0.1em;text-transform:uppercase"><span>' + (typeof t === 'function' ? t('confidential_doc') : 'Riverwalk Real Estate · documento confidencial') + '</span><span>' + md.metric + '</span></div>'
+  + '</div>';
+  return html;
+}
+
+const RW_SENS_MATRICES = {
+  tir_ltv_price: {
+    id:'tir_ltv_price', label:'TIR × Apalancamiento (LTV)', sub:'Cómo la deuda magnifica el retorno anualizado a precios distintos de salida', metric:'TIR anualizada (leveraged)',
+    colorFn: (v) => (!isFinite(v)||v<0.05)?'c1':v<0.15?'c2':v<0.25?'c3':'c4',
+    axes: { rows:{ label:'Valores LTV', unit:'%', hint:'Ej: 0, 30, 40, 50, 60, 70 — en porcentaje', defaults:[0,30,40,50,60,70] }, cols:null },
+    rowsFn: function(m) {
+      const vals = rwGetAxisValues(this.id,'rows')||this.axes.rows.defaults;
+      return vals.map(l => ({ label:l===0?'Sin deuda':'LTV '+l+'%', ltv:l/100, isBase:Math.abs(l/100 - (m.ltvPct||0))<0.01 }));
+    },
+    colsFn: (m) => (typeof sensPrices !== 'undefined' ? sensPrices : []).map(p => ({ label:p.toLocaleString('es-ES')+' €/m²', price:p, isBase:p===(typeof V==='function'?V('exitB'):0) })),
+    cellFn: function(m, row, col) {
+      const ep=col.price; const ltv=row.ltv;
+      const saleG=ep*m.surfCapex;
+      const brkr=saleG*(typeof V==='function'?V('brokerExit'):3)/100;
+      const totNoLev=m.totalInvest||m.totalCost||0;
+      const loan=ltv>0?(typeof levMode!=='undefined'&&levMode==='ltc'?totNoLev:m.buyPrice)*ltv:0;
+      const equity=Math.max(1,totNoLev-loan);
+      const rate=((typeof V==='function'?V('costeDeuda'):8)||8)/100;
+      const intCost=loan*rate*(m.totalMonths/12);
+      const gP=saleG-brkr-((typeof V==='function'?V('exitFixed')+V('exitFixedAjuste'):0)||0)-totNoLev-intCost;
+      const tx=Math.max(0,gP)*(typeof V==='function'?V('taxRate'):25)/100;
+      const netP=gP-tx;
+      const exitM=m.totalMonths; const cf=new Array(exitM+1).fill(0);
+      cf[0]-=equity*0.1; cf[Math.min(m.arasMonths||0,exitM)]-=equity*0.9; cf[exitM]+=equity+netP;
+      const irr=(typeof annIRR==='function'&&typeof calcIRR==='function')?annIRR(calcIRR(cf,0.025)):0;
+      return { value:irr, display:isFinite(irr)?(irr*100).toFixed(1)+'%':'—', extra:'€'+Math.round(netP/1000)+'k neto' };
+    }
+  },
+  margin_entry_exit: {
+    id:'margin_entry_exit', label:'Margen neto · Entrada × Salida', sub:'Zona de negociación: hasta qué precio puedo subir de entrada y qué precio mínimo de salida aguanta', metric:'Margen neto (€)',
+    colorFn: (v) => v<0?'c1':v<100000?'c2':v<400000?'c3':'c4',
+    axes: { rows:{ label:'Precio entrada (% sobre base)', unit:'%', hint:'Ej: 90, 95, 100, 105, 110 — % sobre tu precio de compra actual', defaults:[90,95,100,105,110] }, cols:null },
+    rowsFn: function(m) {
+      const vals=rwGetAxisValues(this.id,'rows')||this.axes.rows.defaults; const base=m.buyPrice;
+      return vals.map(pct => ({ label:'Entrada '+pct+'% · '+(typeof fmtK==='function'?fmtK(base*pct/100):(base*pct/100).toLocaleString('es-ES')), buyPrice:base*pct/100, isBase:Math.abs(pct/100-1)<0.001 }));
+    },
+    colsFn: (m) => (typeof sensPrices!=='undefined'?sensPrices:[]).map(p => ({ label:p.toLocaleString('es-ES')+' €/m²', price:p, isBase:p===(typeof V==='function'?V('exitB'):0) })),
+    cellFn: function(m, row, col) {
+      const bp=row.buyPrice; const ep=col.price;
+      const itpR=(typeof V==='function'?V('itpRate'):6)/100;
+      const itp=bp*itpR;
+      const nc=(typeof calcArancel==='function')?calcArancel(bp):{total:3000};
+      const notaria=nc.total||3000;
+      const saleG=ep*m.surfCapex;
+      const brkr=saleG*(typeof V==='function'?V('brokerExit'):3)/100;
+      const totInv=bp+itp+notaria+(m.capexNet||0)+(m.ivaCapex||0)+(m.mgmtFee||0)+(m.ivaFees||0)+(m.intermediaryFee||0)+(m.brokerBuyFee||0)+(m.comunidadTotal||0)+(m.ibiTotal||0);
+      const gP=saleG-brkr-((typeof V==='function'?V('exitFixed')+V('exitFixedAjuste'):0)||0)-totInv;
+      const tx=Math.max(0,gP)*(typeof V==='function'?V('taxRate'):25)/100;
+      const netP=gP-tx;
+      return { value:netP, display:typeof fmtK==='function'?fmtK(netP):Math.round(netP).toLocaleString('es-ES')+'€', extra:'ROI '+((netP/Math.max(1,totInv))*100).toFixed(0)+'%' };
+    }
+  },
+  roi_overrun: {
+    id:'roi_overrun', label:'ROI · Overrun CapEx × Overrun plazo', sub:'Stress test combinado: obra más cara Y más larga de lo previsto', metric:'ROI bruto',
+    colorFn: (v) => v<0?'c1':v<0.08?'c2':v<0.20?'c3':'c4',
+    axes: {
+      rows:{ label:'Overrun CapEx', unit:'%', hint:'Ej: 0, 10, 20, 30, 50 — % adicional sobre tu CapEx base', defaults:[0,10,20,30,50] },
+      cols:{ label:'Overrun plazo', unit:'meses', hint:'Ej: 0, 2, 4, 6, 9 — meses extra sobre tu plazo base', defaults:[0,2,4,6,9] },
+    },
+    rowsFn: function(m) {
+      const vals=rwGetAxisValues(this.id,'rows')||this.axes.rows.defaults;
+      return vals.map(pct => ({ label:pct===0?'CapEx base':'CapEx +'+pct+'%', capexOverrun:pct/100, isBase:pct===0 }));
+    },
+    colsFn: function(m) {
+      const vals=rwGetAxisValues(this.id,'cols')||this.axes.cols.defaults;
+      return vals.map(d => ({ label:d===0?'Plazo base':'+'+d+'m plazo', delayMonths:d, isBase:d===0 }));
+    },
+    cellFn: function(m, row, col) {
+      const capexAdj=(m.capexNet||0)*(1+row.capexOverrun);
+      const ivaAdj=capexAdj*((typeof V==='function'?V('ivaObra'):21)/100);
+      const months=m.totalMonths+col.delayMonths;
+      const commAdj=(typeof V==='function'?V('comunidad'):0)*months;
+      const ibiAdj=(typeof V==='function'?V('ibi'):0)*months/12;
+      const totAdj=(m.buyPrice||0)+(m.itp||0)+(m.notaria||0)+commAdj+ibiAdj+(m.intermediaryFee||0)+(m.brokerBuyFee||0)+capexAdj+(m.totalFeesNet||0)+ivaAdj+((m.totalIVA||0)-(m.ivaCapex||0));
+      const ep=typeof V==='function'?V('exitB'):0;
+      const saleG=ep*m.surfCapex;
+      const brkr=saleG*(typeof V==='function'?V('brokerExit'):3)/100;
+      const gP=saleG-brkr-((typeof V==='function'?V('exitFixed')+V('exitFixedAjuste'):0)||0)-totAdj;
+      const roi=gP/Math.max(1,totAdj);
+      return { value:roi, display:(roi*100).toFixed(1)+'%', extra:months+'m' };
+    }
+  },
+  breakeven_holding: {
+    id:'breakeven_holding', label:'Breakeven · Meses de holding adicional', sub:'Si no vendo en plazo, cuánto precio de salida necesito para cubrir costes', metric:'€/m² breakeven',
+    colorFn: (v) => v>(typeof V==='function'?V('exitO'):0)?'c1':v>(typeof V==='function'?V('exitB'):0)?'c2':v>(typeof V==='function'?V('exitP'):0)?'c3':'c4',
+    axes: {
+      rows:{ label:'Holding adicional', unit:'meses', hint:'Ej: 0, 3, 6, 9, 12, 18 — meses extra de holding', defaults:[0,3,6,9,12,18] },
+      cols:{ label:'Overrun CapEx', unit:'%', hint:'Ej: 0, 10, 20, 30', defaults:[0,10,20,30] },
+    },
+    rowsFn: function(m) {
+      const vals=rwGetAxisValues(this.id,'rows')||this.axes.rows.defaults;
+      return vals.map(d => ({ label:d===0?'Plan (base)':'+'+d+'m holding', delayMonths:d, isBase:d===0 }));
+    },
+    colsFn: function(m) {
+      const vals=rwGetAxisValues(this.id,'cols')||this.axes.cols.defaults;
+      return vals.map(pct => ({ label:pct===0?'CapEx base':'CapEx +'+pct+'%', capexOverrun:pct/100, isBase:pct===0 }));
+    },
+    cellFn: function(m, row, col) {
+      const months=m.totalMonths+row.delayMonths;
+      const capexAdj=(m.capexNet||0)*(1+col.capexOverrun);
+      const ivaAdj=capexAdj*((typeof V==='function'?V('ivaObra'):21)/100);
+      const commAdj=(typeof V==='function'?V('comunidad'):0)*months;
+      const ibiAdj=(typeof V==='function'?V('ibi'):0)*months/12;
+      const totAdj=(m.buyPrice||0)+(m.itp||0)+(m.notaria||0)+commAdj+ibiAdj+(m.intermediaryFee||0)+(m.brokerBuyFee||0)+capexAdj+(m.totalFeesNet||0)+ivaAdj+((m.totalIVA||0)-(m.ivaCapex||0))+(typeof V==='function'?V('exitFixed')+V('exitFixedAjuste'):0);
+      const brokerPct=(typeof V==='function'?V('brokerExit'):3)/100;
+      const saleG=totAdj/Math.max(0.01,1-brokerPct);
+      const bePpm=saleG/Math.max(1,m.surfCapex);
+      return { value:bePpm, display:Math.round(bePpm).toLocaleString('es-ES'), extra:'€/m² mín.' };
+    }
+  },
+};
+
+let rwSensSelection = { active:{roi_price_duration:true,roi_capex_price:true}, inPresentation:{roi_price_duration:true,roi_capex_price:true}, inPDF:{roi_price_duration:true,roi_capex_price:true}, overrides:{} };
+
+const RW_SYSTEM_MATRICES = {
+  roi_price_duration: { label:'ROI · Precio × Duración', sub:'Matriz clásica incluida por defecto', isSystem:true },
+  roi_capex_price:    { label:'ROI · CapEx × Precio',    sub:'Matriz clásica incluida por defecto', isSystem:true },
+};
+
+function rwGetAxisValues(matrixId, axis) {
+  const ov = rwSensSelection.overrides && rwSensSelection.overrides[matrixId] && rwSensSelection.overrides[matrixId][axis];
+  if (!ov) return null;
+  const vals = ov.split(',').map(s => parseFloat(String(s).trim())).filter(n => !isNaN(n));
+  return vals.length ? vals : null;
+}
+function rwSetAxisOverride(matrixId, axis, str) {
+  if (!rwSensSelection.overrides) rwSensSelection.overrides = {};
+  if (!rwSensSelection.overrides[matrixId]) rwSensSelection.overrides[matrixId] = {};
+  rwSensSelection.overrides[matrixId][axis] = str || '';
+  try { localStorage.setItem('rw_sens_selection', JSON.stringify(rwSensSelection)); } catch(e) {}
+  rwRenderExtendedMatrices();
+}
+function rwResetAxisOverrides(matrixId) {
+  if (rwSensSelection.overrides && rwSensSelection.overrides[matrixId]) {
+    delete rwSensSelection.overrides[matrixId];
+    try { localStorage.setItem('rw_sens_selection', JSON.stringify(rwSensSelection)); } catch(e) {}
+  }
+  rwRenderMatrixSelector();
+  rwRenderExtendedMatrices();
+}
+function rwToggleMatrixConfig(matrixId) {
+  const el = document.getElementById('rw-cfg-' + matrixId);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+function rwAxisCurrentStr(matrixId, axis, axisDef) {
+  const ov = rwSensSelection.overrides && rwSensSelection.overrides[matrixId] && rwSensSelection.overrides[matrixId][axis];
+  if (ov != null) return ov;
+  return (axisDef.defaults || []).join(', ');
+}
+
+function rwRenderMatrixSelector() {
+  const el = document.getElementById('sens-matrix-selector');
+  if (!el) return;
+  const all = [
+    ...Object.entries(RW_SYSTEM_MATRICES).map(([id, m]) => ({...m, id})),
+    ...Object.values(RW_SENS_MATRICES),
+  ];
+  el.innerHTML = all.map(m => {
+    const active = !!rwSensSelection.active[m.id];
+    const inPres = !!rwSensSelection.inPresentation[m.id];
+    const inPDF  = !!rwSensSelection.inPDF[m.id];
+    const isSys  = !!m.isSystem;
+    const def = (!isSys && RW_SENS_MATRICES[m.id]) ? RW_SENS_MATRICES[m.id] : null;
+    const hasAxes = def && def.axes && (def.axes.rows || def.axes.cols);
+    const cfgPanel = hasAxes ? (
+      '<div id="rw-cfg-' + m.id + '" style="display:none;grid-column:1/-1;margin-top:8px;padding:10px 11px;background:var(--d3);border:1px solid var(--line2);border-left:2px solid var(--gold-d)">'
+        + '<div style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;font-weight:600">⚙ Rangos de la matriz</div>'
+        + (def.axes.rows ? '<div style="margin-bottom:10px"><label style="display:block;font-size:9.5px;color:var(--text-d);margin-bottom:4px">Filas · ' + def.axes.rows.label + (def.axes.rows.unit?' ('+def.axes.rows.unit+')':'') + '</label><input type="text" value="' + rwAxisCurrentStr(m.id,'rows',def.axes.rows).replace(/"/g,'&quot;') + '" onblur="rwSetAxisOverride(\''+m.id+'\',\'rows\',this.value)" placeholder="' + def.axes.rows.hint + '" style="width:100%;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:\'DM Mono\',monospace;font-size:11px;padding:7px 9px"><div style="font-size:9px;color:var(--text-d);margin-top:3px;font-style:italic">' + def.axes.rows.hint + '</div></div>' : '')
+        + (def.axes.cols ? '<div style="margin-bottom:10px"><label style="display:block;font-size:9.5px;color:var(--text-d);margin-bottom:4px">Columnas · ' + def.axes.cols.label + (def.axes.cols.unit?' ('+def.axes.cols.unit+')':'') + '</label><input type="text" value="' + rwAxisCurrentStr(m.id,'cols',def.axes.cols).replace(/"/g,'&quot;') + '" onblur="rwSetAxisOverride(\''+m.id+'\',\'cols\',this.value)" placeholder="' + def.axes.cols.hint + '" style="width:100%;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:\'DM Mono\',monospace;font-size:11px;padding:7px 9px"><div style="font-size:9px;color:var(--text-d);margin-top:3px;font-style:italic">' + def.axes.cols.hint + '</div></div>' : '<div style="font-size:9px;color:var(--text-d);font-style:italic;margin-bottom:8px">Las columnas usan los precios de salida del selector de arriba.</div>')
+        + '<button onclick="rwResetAxisOverrides(\''+m.id+'\')" style="background:transparent;border:1px solid var(--line);color:var(--text-d);font-size:9px;letter-spacing:0.12em;text-transform:uppercase;padding:5px 11px;cursor:pointer;font-family:\'Raleway\',sans-serif">↺ Restaurar defaults</button>'
+      + '</div>'
+    ) : '';
+
+    return '<div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:8px;align-items:center;padding:9px 11px;background:' + (active?'rgba(196,151,90,0.05)':'var(--d4)') + ';border:1px solid ' + (active?'rgba(196,151,90,0.25)':'var(--d6)') + '">'
+      + '<div style="min-width:0">'
+        + '<div style="display:flex;gap:6px;align-items:center">'
+          + '<input type="checkbox" ' + (active?'checked':'') + ' ' + (isSys?'disabled':'') + ' onchange="rwToggleSens(\'active\',\'' + m.id + '\',this.checked);if(typeof update===\'function\')update()" style="accent-color:var(--gold);width:13px;height:13px;cursor:' + (isSys?'default':'pointer') + '">'
+          + '<span style="font-size:11px;color:var(--text-b);font-weight:500">' + m.label + '</span>'
+          + (isSys ? '<span style="font-size:8px;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;padding:1px 5px;background:rgba(196,151,90,0.15);border:1px solid rgba(196,151,90,0.3)">System</span>' : '')
+        + '</div>'
+        + '<div style="font-size:9.5px;color:var(--text-d);margin-top:3px;margin-left:21px;line-height:1.5">' + m.sub + '</div>'
+      + '</div>'
+      + (hasAxes && active ? '<button onclick="rwToggleMatrixConfig(\'' + m.id + '\')" title="Configurar rangos de la matriz" style="background:transparent;border:1px solid var(--line);color:var(--text-d);width:28px;height:28px;cursor:pointer;font-size:13px;padding:0;line-height:1">⚙</button>' : '<span></span>')
+      + '<label style="display:flex;flex-direction:column;align-items:center;gap:2px;font-size:8px;letter-spacing:0.08em;text-transform:uppercase;color:' + (active?'var(--text-d)':'rgba(255,255,255,0.15)') + ';cursor:' + (active?'pointer':'not-allowed') + '" title="Mostrar en panel de resultados"><span>Output</span><input type="checkbox" checked disabled style="accent-color:var(--gold);width:13px;height:13px;opacity:' + (active?'0.55':'0.2') + '"></label>'
+      + '<label style="display:flex;flex-direction:column;align-items:center;gap:2px;font-size:8px;letter-spacing:0.08em;text-transform:uppercase;color:' + (active?'var(--text-d)':'rgba(255,255,255,0.15)') + ';cursor:' + (active?'pointer':'not-allowed') + '" title="Incluir en la Presentación"><span>Presentación</span><input type="checkbox" ' + (inPres?'checked':'') + ' ' + (!active?'disabled':'') + ' onchange="rwToggleSens(\'inPresentation\',\'' + m.id + '\',this.checked)" style="accent-color:var(--gold);width:13px;height:13px"></label>'
+      + '<label style="display:flex;flex-direction:column;align-items:center;gap:2px;font-size:8px;letter-spacing:0.08em;text-transform:uppercase;color:' + (active?'var(--text-d)':'rgba(255,255,255,0.15)') + ';cursor:' + (active?'pointer':'not-allowed') + '" title="Incluir en el PDF dossier"><span>PDF</span><input type="checkbox" ' + (inPDF?'checked':'') + ' ' + (!active?'disabled':'') + ' onchange="rwToggleSens(\'inPDF\',\'' + m.id + '\',this.checked)" style="accent-color:var(--gold);width:13px;height:13px"></label>'
+      + cfgPanel
+    + '</div>';
+  }).join('');
+}
+
+function rwToggleSens(bucket, id, checked) {
+  if (!rwSensSelection[bucket]) rwSensSelection[bucket] = {};
+  rwSensSelection[bucket][id] = checked;
+  if (bucket === 'active' && !checked) {
+    delete rwSensSelection.inPresentation[id];
+    delete rwSensSelection.inPDF[id];
+  }
+  try { localStorage.setItem('rw_sens_selection', JSON.stringify(rwSensSelection)); } catch(e) {}
+  rwRenderMatrixSelector();
+  rwRenderExtendedMatrices();
+}
+
+function rwLoadSensSelection() {
+  try { const saved = localStorage.getItem('rw_sens_selection'); if (saved) rwSensSelection = JSON.parse(saved); } catch(e) {}
+}
+
+function rwRenderSensMatrix(mdef, m, container, compactStyle) {
+  const rows = mdef.rowsFn(m); const cols = mdef.colsFn(m);
+  const fs = compactStyle ? { cellSize:10.5, headerSize:9.5 } : { cellSize:11.5, headerSize:10 };
+  let thead = '<thead><tr><th style="min-width:140px;text-align:left;font-size:' + fs.headerSize + 'px;padding:7px 11px">' + (mdef.label.split('·')[1]?mdef.label.split('·')[1].trim().split('×')[0].trim():'') + '</th>';
+  cols.forEach(c => { thead += '<th style="min-width:90px;text-align:center;padding:6px 8px;font-size:' + fs.headerSize + 'px' + (c.isBase?';color:var(--gold)':'') + '">' + c.label + (c.isBase?' ←':'') + '</th>'; });
+  thead += '</tr></thead>';
+  let tbody = '<tbody>';
+  rows.forEach(row => {
+    tbody += '<tr' + (row.isBase?' style="background:rgba(196,151,90,0.06)"':'') + '>';
+    tbody += '<td style="font-size:' + fs.headerSize + 'px;text-align:left;padding:6px 11px;font-family:\'Raleway\',sans-serif;' + (row.isBase?'color:var(--gold)':'color:var(--text-d)') + '">' + row.label + '</td>';
+    cols.forEach(col => {
+      const cell = mdef.cellFn(m, row, col); const cls = mdef.colorFn(cell.value);
+      tbody += '<td class="' + cls + '" style="text-align:center;padding:6px 8px' + (col.isBase?';background:rgba(196,151,90,0.08)':'') + '"><div style="font-size:' + fs.cellSize + 'px;font-family:\'DM Mono\',monospace;font-weight:400">' + cell.display + '</div>' + (cell.extra ? '<div style="font-size:8px;opacity:0.55;margin-top:1px">' + cell.extra + '</div>' : '') + '</td>';
+    });
+    tbody += '</tr>';
+  });
+  tbody += '</tbody>';
+  container.innerHTML = '<div style="margin-bottom:10px"><div style="font-size:12.5px;color:var(--text-b);font-weight:500;letter-spacing:0.02em">' + mdef.label + '</div><div style="font-size:10px;color:var(--text-d);margin-top:2px;line-height:1.5">' + mdef.sub + '</div></div>'
+    + '<div style="overflow-x:auto"><table class="sens">' + thead + tbody + '</table></div>'
+    + '<div style="font-size:9px;color:var(--text-d);margin-top:6px;text-align:right;font-family:\'DM Mono\',monospace">' + mdef.metric + '</div>';
+}
+
+function rwRenderExtendedMatrices() {
+  const host = document.getElementById('sens-extended-host');
+  if (!host) return;
+  const m = (typeof calc === 'function') ? calc() : null;
+  if (!m) { host.innerHTML = ''; return; }
+  const activeIds = Object.keys(RW_SENS_MATRICES).filter(id => rwSensSelection.active[id]);
+  if (activeIds.length === 0) { host.innerHTML = ''; return; }
+  host.innerHTML = activeIds.map(id => '<div class="osec" id="sens-ext-' + id + '" style="margin-top:20px"></div>').join('');
+  activeIds.forEach(id => {
+    const slot = document.getElementById('sens-ext-' + id);
+    if (slot) rwRenderSensMatrix(RW_SENS_MATRICES[id], m, slot, false);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  rwLoadSensSelection();
+  setTimeout(() => {
+    try { rwRenderMatrixSelector(); rwRenderExtendedMatrices(); } catch(e) {}
+  }, 350);
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// TANDA 6 · Coherence gate
+// ══════════════════════════════════════════════════════════════════════
+function rwCheckCoherenceGate() {
+  const missing = [];
+  const buyPrice = (typeof V === 'function') ? V('buyPrice') : 0;
+  if (!buyPrice || buyPrice <= 0) missing.push({key:'buyPrice', label:'Precio de compra', fix:'Pestaña Modelado → Adquisición'});
+  const surfCapex = (typeof V === 'function') ? V('surfCapex') : 0;
+  if (!surfCapex || surfCapex <= 0) missing.push({key:'surfCapex', label:'Superficie (m²)', fix:'Pestaña Modelado → Datos del deal'});
+  const dealName = (document.getElementById('dealName')?.value || '').trim();
+  if (!dealName) missing.push({key:'dealName', label:'Nombre del activo', fix:'Pestaña Modelado → Datos del deal'});
+  const dealAddr = (document.getElementById('dealAddress')?.value || '').trim();
+  if (!dealAddr) missing.push({key:'dealAddress', label:'Dirección', fix:'Pestaña Modelado → Datos del deal'});
+  const exitB = (typeof V === 'function') ? V('exitB') : 0;
+  if (!exitB || exitB <= 0) missing.push({key:'exitB', label:'Precio objetivo de venta (base)', fix:'Pestaña Modelado → Precios de salida'});
+  const obraM2 = (typeof V === 'function') ? V('obraM2') : 0;
+  if (!obraM2 || obraM2 <= 0) missing.push({key:'obraM2', label:'CapEx obra (€/m²)', fix:'Pestaña Modelado → CapEx'});
+  const cps = (typeof comps !== 'undefined' && Array.isArray(comps)) ? comps : [];
+  const verified = cps.filter(c => c && c.precio > 0 && c.m2 > 0 && c.planta != null && c.tipo && c.url);
+  if (verified.length < 1) missing.push({key:'witnesses', label:'Al menos 1 testigo verificado (precio, m², planta, estado, link)', fix:'Pestaña Mercado → Testigos'});
+  const d = (typeof getCurrentDossier === 'function') ? getCurrentDossier() : {};
+  const ng = d.negotiation;
+  const askingOk = ng && !Array.isArray(ng) && ng.asking && ng.asking.importe > 0 && ng.asking.fecha;
+  const askingFlatOk = Array.isArray(ng) && ng.some(h => h.tipo === 'asking' && h.importe > 0);
+  if (!askingOk && !askingFlatOk) missing.push({key:'asking', label:'Asking del vendedor (precio inicial)', fix:'Pestaña Mercado → Negociación'});
+  const ctxLen = ((document.getElementById('narr-context-general')?.value || '').trim()).length;
+  if (ctxLen < 40) missing.push({key:'context', label:'Contexto para la IA (mínimo 40 caracteres)', fix:'Pestaña Dossier → Contexto para la IA'});
+  const narr = d.narrative || {};
+  const anyNarr = ['activo','zona','mercado','proyecto','tesis'].some(k => ((narr[k] || '').trim().length > 40));
+  if (!anyNarr) missing.push({key:'narratives', label:'Al menos una sección de narrativa rellena (genera con la IA)', fix:'Pestaña Dossier → Textos narrativos'});
+  return { ok: missing.length === 0, missing, warnings: [] };
+}
+
+function rwShowCoherenceGate(result, intent) {
+  const existing = document.getElementById('rw-gate-modal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'rw-gate-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;font-family:Raleway,sans-serif';
+  const intentLbl = intent === 'pdf' ? 'generar el PDF' : 'abrir la presentación';
+  modal.innerHTML = '<div style="background:var(--d2);border:1px solid var(--gold-d);max-width:640px;width:100%;max-height:90vh;overflow-y:auto;padding:28px 32px">'
+    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'
+      + '<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:var(--text-b);margin-bottom:2px">No se puede ' + intentLbl + ' todavía</div>'
+      + '<div style="font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--amber)">Faltan campos para garantizar coherencia</div></div>'
+      + '<button onclick="document.getElementById(\'rw-gate-modal\').remove()" style="background:transparent;border:1px solid var(--d6);color:var(--text-d);width:32px;height:32px;cursor:pointer">×</button>'
+    + '</div>'
+    + '<div style="font-size:11px;color:var(--text-d);line-height:1.75;margin:14px 0 16px;padding:12px 14px;background:rgba(224,150,58,0.08);border-left:2px solid var(--amber)">La herramienta impide generar PDF o presentación si los datos están incompletos. Completa los puntos de abajo y vuelve a intentarlo.</div>'
+    + '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px">'
+    + result.missing.map(function(m){ return '<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:var(--d3);border-left:2px solid var(--amber)"><span style="color:var(--amber);font-size:13px;line-height:1">⚠</span><div style="flex:1"><div style="font-size:11.5px;color:var(--text-b);font-weight:500">' + m.label + '</div><div style="font-size:9.5px;color:var(--text-d);letter-spacing:0.05em;margin-top:2px">→ ' + m.fix + '</div></div></div>'; }).join('')
+    + '</div>'
+    + '<button onclick="document.getElementById(\'rw-gate-modal\').remove()" style="width:100%;background:var(--gold);border:none;color:#fff;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;padding:12px;cursor:pointer">Entendido</button>'
+  + '</div>';
+  document.body.appendChild(modal);
+}
+
+function rwCheckCoherenceInline() {
+  const r = rwCheckCoherenceGate();
+  const pill = document.getElementById('rw-gate-pill');
+  if (!pill) return;
+  if (r.ok) {
+    pill.innerHTML = '<span style="color:var(--green)">✓ Coherencia OK · listo para presentar</span>';
+    pill.style.background = 'rgba(82,192,122,0.08)';
+    pill.style.borderColor = 'rgba(82,192,122,0.3)';
+  } else {
+    pill.innerHTML = '<span style="color:var(--amber)">⚠ ' + r.missing.length + ' campo' + (r.missing.length===1?'':'s') + ' pendiente' + (r.missing.length===1?'':'s') + ' para presentar/exportar</span>';
+    pill.style.background = 'rgba(224,150,58,0.08)';
+    pill.style.borderColor = 'rgba(224,150,58,0.3)';
+  }
+}
+
+document.addEventListener('input', function() { if (typeof rwCheckCoherenceInline === 'function') rwCheckCoherenceInline(); });
+document.addEventListener('change', function() {
+  if (typeof rwCheckCoherenceInline === 'function') rwCheckCoherenceInline();
+  if (typeof rwRenderExtendedMatrices === 'function') { try { rwRenderExtendedMatrices(); } catch(e) {} }
+});
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function() {
+    try { rwUpdateContextStatus(); rwCheckCoherenceInline(); } catch(e) {}
+  }, 300);
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// TANDA 9 · International portals registry
+// ══════════════════════════════════════════════════════════════════════
+const RW_PORTALS = [
+  { name:'JamesEdition',                      match:['jamesedition'] },
+  { name:"Sotheby's International Realty",    match:['sothebysrealty','sothebysinternational'] },
+  { name:"Christie's International Real Estate", match:['christiesrealestate'] },
+  { name:'Knight Frank',                      match:['knightfrank'] },
+  { name:'Savills',                           match:['savills.'] },
+  { name:'Barnes International',              match:['barnes-international','barnes-realty'] },
+  { name:'John Taylor',                       match:['john-taylor'] },
+  { name:'Mayfair International Realty',      match:['mayfairinternational'] },
+  { name:'LuxuryEstate',                      match:['luxuryestate'] },
+  { name:'Mansion Global',                    match:['mansionglobal'] },
+  { name:'Belles Demeures',                   match:['bellesdemeures'] },
+  { name:'Private Properties Collection',     match:['privatepropertiescollection'] },
+  { name:'Coldwell Banker',                   match:['coldwellbanker'] },
+  { name:'Century 21',                        match:['century21'] },
+  { name:'RE/MAX',                            match:['remax.'] },
+  { name:'Rightmove',                         match:['rightmove'] },
+  { name:'Engel & Völkers',                   match:['engelvoelkers','engel-voelkers','engelvolkers'] },
+  { name:'Lucas Fox',                         match:['lucasfox'] },
+  { name:'Galeante Realtors',                 match:['galeante'] },
+  { name:'Gilmar',                            match:['gilmar.'] },
+  { name:'Barnes Madrid',                     match:['barnesmadrid','barnes.madrid'] },
+  { name:'Ansa',                              match:['ansa.es','ansa.com'] },
+  { name:'Idealista',                         match:['idealista'] },
+  { name:'Fotocasa',                          match:['fotocasa'] },
+  { name:'pisos.com',                         match:['pisos.com'] },
+  { name:'habitaclia',                        match:['habitaclia'] },
+  { name:'Kyero',                             match:['kyero'] },
+  { name:'yaencontre',                        match:['yaencontre'] },
+  { name:'Fincas Blanco',                     match:['fincasblanco','fincas-blanco'] },
+  { name:'Tecnocasa',                         match:['tecnocasa'] },
+];
+
+function rwDetectPortalFromUrl(url) {
+  if (!url) return null;
+  const u = url.toLowerCase();
+  for (const p of RW_PORTALS) {
+    for (const frag of p.match) {
+      if (u.includes(frag)) return p.name;
+    }
+  }
+  return null;
+}
+
+function detectSourceFromUrl(url) { return rwDetectPortalFromUrl(url); }

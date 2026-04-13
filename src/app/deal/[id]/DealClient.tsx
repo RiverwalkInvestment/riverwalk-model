@@ -518,7 +518,7 @@ const DEAL_HTML = `
     </div>
     <div class="ibody">
       <div class="irow">
-        <div class="field"><label>Obra (€/m²)</label><input type="number" id="obraM2" value="1800" oninput="update()"></div>
+        <div class="field"><label>Obra (€/m²) <span id="rw-obra-m2-badge" style="margin-left:6px;font-size:8.5px;letter-spacing:0.08em"></span></label><input type="number" id="obraM2" value="1800" oninput="update();if(typeof rwValidateCapExPreset==='function')rwValidateCapExPreset()" onblur="if(typeof rwValidateCapExPreset==='function')rwValidateCapExPreset()"></div>
         <div class="field"><label>Decoración FF&E (€/m²)</label><input type="number" id="decoM2" value="400" oninput="update()"></div>
       </div>
       <div class="irow full">
@@ -1036,22 +1036,15 @@ const DEAL_HTML = `
         </div>
       </div>
 
-      <!-- CALIDADES PRESET -->
+      <!-- CALIDADES · Unified preset library (Tanda 8) -->
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line2)">
-        <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-d);margin-bottom:8px;font-weight:500">Memoria de calidades — Preset</div>
-        <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
-          <select id="calidadesPreset" onchange="applyCalidadesPreset()" style="flex:1;font-family:'DM Mono',monospace;font-size:11px">
-            <option value="">— Sin preset —</option>
-            <option value="esencial">Esencial · Acabados funcionales</option>
-            <option value="premium">Premium · Acabados de nivel</option>
-            <option value="signature">Signature · Acabados de autor</option>
-          </select>
-          <button onclick="toggleCalidadesEditor()" style="background:rgba(196,151,90,0.1);border:1px solid rgba(196,151,90,0.3);color:rgba(196,151,90,0.8);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:6px 10px;cursor:pointer;font-family:'Raleway',sans-serif;flex-shrink:0">✏ Editar</button>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-d);font-weight:500">Calidades · Paleta de acabados</div>
+          <button onclick="rwOpenCalidadesEditor()" style="background:rgba(196,151,90,0.08);border:1px solid rgba(196,151,90,0.25);color:rgba(196,151,90,0.75);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;cursor:pointer;font-family:'Raleway',sans-serif">+ Nueva paleta</button>
         </div>
-        <div id="calidades-preview" style="font-size:10px;color:var(--text-d);line-height:1.7;padding:8px 10px;background:var(--d4);border:1px solid var(--d6);min-height:36px"></div>
-        <div id="calidades-editor" style="display:none;margin-top:8px">
-          <textarea id="calidadesCustomText" rows="4" placeholder="Describe los acabados: suelos, cocina, baños, carpintería, iluminación…" oninput="saveCalidadesCustom()" style="width:100%;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:'Raleway',sans-serif;font-size:11px;padding:8px 10px;resize:vertical;line-height:1.6"></textarea>
-        </div>
+        <div id="rw-calidades-gallery" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px"></div>
+        <div id="rw-calidades-detail" style="font-size:10px;color:var(--text-d);line-height:1.7;padding:8px 10px;background:var(--d4);border:1px solid var(--d6);min-height:36px"></div>
+        <div id="rw-calidades-validation" style="font-size:9.5px;margin-top:6px;line-height:1.6"></div>
       </div>
 
       <!-- CATALIZADORES -->
@@ -1370,6 +1363,9 @@ const DEAL_HTML = `
     <div class="export-card" id="export-brief"></div>
   </div>
 
+  <!-- EXTENDED MATRICES HOST (Tanda 7) — rendered by rwRenderExtendedMatrices() -->
+  <div id="sens-extended-host"></div>
+
 </div><!-- END OUTPUT PANEL -->
 </div><!-- END APP BODY -->
 
@@ -1465,7 +1461,7 @@ const OVERLAY_HTML = `
 
 // Cache-buster for deal-script.js — bump this string whenever deal-script.js changes
 // so the browser fetches the latest version instead of the cached one.
-const DEAL_SCRIPT_VER = '20260413-02'
+const DEAL_SCRIPT_VER = '20260413-03'
 
 // Module-level flag: prevents createAndGo from firing more than once at a time,
 // guarding against double-clicks or remount-induced duplicate deal creation.
@@ -1915,6 +1911,35 @@ export default function DealClient({
         </div>
 
         <div className="topbar-right">
+          {/* Lang selector (Tanda 10) */}
+          <select
+            id="rw-lang-selector"
+            onChange={(e) => { if (typeof window !== 'undefined' && (window as any).rwSetLang) (window as any).rwSetLang(e.target.value) }}
+            title="Idioma de presentación, PDF y narrativa IA"
+            style={{ background: 'var(--d4)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)', fontFamily: "'Raleway',sans-serif", fontSize: 10, letterSpacing: '0.1em', padding: '5px 7px', cursor: 'pointer', textTransform: 'uppercase' }}
+          >
+            <option value="es">🌐 ES</option>
+            <option value="en">🌐 EN</option>
+            <option value="fr">🌐 FR</option>
+            <option value="de">🌐 DE</option>
+            <option value="pt">🌐 PT</option>
+          </select>
+          {/* Demo button (Tanda 11) */}
+          <button
+            onClick={() => { if (typeof window !== 'undefined' && (window as any).rwLoadDemoDeal) (window as any).rwLoadDemoDeal() }}
+            title="Cargar operación de demostración con datos realistas"
+            style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.35)', fontFamily: "'Raleway',sans-serif", fontSize: '9.5px', letterSpacing: '0.12em', textTransform: 'uppercase', padding: '5px 10px', cursor: 'pointer' }}
+          >
+            ⚡ Demo
+          </button>
+          {/* Gate pill (Tanda 6) */}
+          <div
+            id="rw-gate-pill"
+            style={{ display: 'inline-flex', alignItems: 'center', padding: '5px 10px', fontSize: 10, letterSpacing: '0.08em', background: 'rgba(224,150,58,0.08)', border: '1px solid rgba(224,150,58,0.3)', fontFamily: "'Raleway',sans-serif", fontWeight: 500 }}
+          >
+            <span style={{ color: 'var(--amber)' }}>⚠ Cargando…</span>
+          </div>
+          <div className="topbar-sep" />
           <button
             id="dark-toggle"
             className="btn"
@@ -1958,7 +1983,15 @@ export default function DealClient({
 
           <button
             className="btn primary"
-            onClick={() => { if (typeof window !== 'undefined' && (window as any).openPresentation) (window as any).openPresentation() }}
+            onClick={() => {
+              if (typeof window === 'undefined') return
+              const w = window as any
+              if (w.rwCheckCoherenceGate && w.rwShowCoherenceGate) {
+                const r = w.rwCheckCoherenceGate()
+                if (!r.ok) { w.rwShowCoherenceGate(r, 'presentation'); return }
+              }
+              if (w.openPresentation) w.openPresentation()
+            }}
             style={{ background: 'rgba(139,105,20,0.25)', border: '1px solid var(--gold)' }}
           >
             ▶ Presentar
@@ -1966,7 +1999,15 @@ export default function DealClient({
 
           <button
             className="btn primary"
-            onClick={() => { if (typeof window !== 'undefined' && (window as any).exportDossierPDF) (window as any).exportDossierPDF() }}
+            onClick={() => {
+              if (typeof window === 'undefined') return
+              const w = window as any
+              if (w.rwCheckCoherenceGate && w.rwShowCoherenceGate) {
+                const r = w.rwCheckCoherenceGate()
+                if (!r.ok) { w.rwShowCoherenceGate(r, 'pdf'); return }
+              }
+              if (w.exportDossierPDF) w.exportDossierPDF()
+            }}
             style={{ background: 'rgba(139,105,20,0.35)', border: '1px solid var(--gold)' }}
             title="Generar PDF dossier — página por página A4"
           >
