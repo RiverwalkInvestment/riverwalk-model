@@ -1461,7 +1461,7 @@ const OVERLAY_HTML = `
 
 // Cache-buster for deal-script.js — bump this string whenever deal-script.js changes
 // so the browser fetches the latest version instead of the cached one.
-const DEAL_SCRIPT_VER = '20260413-15'
+const DEAL_SCRIPT_VER = '20260414-01'
 
 // Module-level flag: prevents createAndGo from firing more than once at a time,
 // guarding against double-clicks or remount-induced duplicate deal creation.
@@ -1873,6 +1873,15 @@ export default function DealClient({
         w.update?.()
         // Re-render tabs after data restore so active tab shows saved name
         renderDbTabs()
+        // Dashboard flow: open wizard on new blank deal so user fills it via guided mode
+        const wizardApplyHere = sessionStorage.getItem('rw_wizard_apply_here')
+        if (wizardApplyHere && Object.keys(initialData).length === 0) {
+          sessionStorage.removeItem('rw_wizard_apply_here')
+          ;(w as any).__rwWizardApplyHere = true
+          setTimeout(() => {
+            if (typeof (w as any).rwOpenNewDealModal === 'function') (w as any).rwOpenNewDealModal()
+          }, 150)
+        }
       }, 400)
     }
 

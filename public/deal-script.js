@@ -6404,30 +6404,37 @@ const RW_WIZARD_STEPS = [
   { id: 'mercado',     label: 'Mercado',              sub: 'Testigos verificados y asking del vendedor' },
 ];
 
+function rwwIsMob() { return window.innerWidth <= 768; }
+
 function rwOpenNewDealModal() {
   const existing = document.getElementById('rw-newdeal-modal');
   if (existing) existing.remove();
+  const mob = rwwIsMob();
   const m = document.createElement('div');
   m.id = 'rw-newdeal-modal';
-  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:99999;display:flex;align-items:center;justify-content:center;padding:32px;font-family:Raleway,sans-serif';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:99999;display:flex;align-items:' + (mob?'flex-end':'center') + ';justify-content:center;padding:' + (mob?'0':'32px') + ';font-family:Raleway,sans-serif;overflow-y:auto';
   m.innerHTML =
-    '<div style="background:var(--d2);border:1px solid var(--gold-d);max-width:780px;width:100%;padding:48px 56px;position:relative">' +
+    '<div style="background:var(--d2);border:1px solid var(--gold-d);max-width:780px;width:100%;padding:' + (mob?'28px 20px 32px':'48px 56px') + ';position:relative;' + (mob?'border-bottom:none;':'') + '">' +
       '<button onclick="document.getElementById(\'rw-newdeal-modal\').remove()" style="position:absolute;top:16px;right:16px;background:transparent;border:1px solid var(--d6);color:var(--text-d);width:32px;height:32px;cursor:pointer">×</button>' +
       '<div style="font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:6px">Nueva operación</div>' +
-      '<div style="font-family:\'Cormorant Garamond\',serif;font-size:32px;color:var(--text-b);margin-bottom:6px;line-height:1.1">¿Cómo quieres modelarla?</div>' +
-      '<div style="font-size:11.5px;color:var(--text-d);line-height:1.7;margin-bottom:32px;max-width:520px">Elige cómo introducir los datos. Ambos modos son igualmente válidos — el cuestionario te ayuda a no olvidar nada y a aprovechar sugerencias automáticas.</div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
-        '<button onclick="rwStartWizard()" style="text-align:left;padding:24px 22px;background:linear-gradient(135deg,rgba(196,151,90,0.15),rgba(196,151,90,0.04));border:1px solid var(--gold-d);cursor:pointer;color:var(--text-b);font-family:Raleway,sans-serif;display:flex;flex-direction:column;gap:8px;transition:all 0.15s" onmouseover="this.style.background=\'linear-gradient(135deg,rgba(196,151,90,0.22),rgba(196,151,90,0.08))\'" onmouseout="this.style.background=\'linear-gradient(135deg,rgba(196,151,90,0.15),rgba(196,151,90,0.04))\'">' +
-          '<div style="font-size:24px;color:var(--gold);font-weight:300">✦</div>' +
-          '<div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:var(--text-b);font-weight:400">Modo guiado</div>' +
-          '<div style="font-size:9.5px;letter-spacing:0.16em;text-transform:uppercase;color:var(--gold);font-weight:600">Cuestionario fase por fase</div>' +
-          '<div style="font-size:11px;color:var(--text-d);line-height:1.65;margin-top:4px">Te llevo paso a paso por las 8 fases de la operación con contexto, validaciones y sugerencias contextuales basadas en lo que vas introduciendo. Recomendado para operaciones nuevas o si quieres asegurar disciplina. ~10 minutos.</div>' +
+      '<div style="font-family:\'Cormorant Garamond\',serif;font-size:' + (mob?'26px':'32px') + ';color:var(--text-b);margin-bottom:6px;line-height:1.1">¿Cómo quieres modelarla?</div>' +
+      '<div style="font-size:11.5px;color:var(--text-d);line-height:1.7;margin-bottom:' + (mob?'20px':'32px') + ';max-width:520px">Elige cómo introducir los datos. Ambos modos son igualmente válidos — el cuestionario te ayuda a no olvidar nada y a aprovechar sugerencias automáticas.</div>' +
+      '<div style="display:grid;grid-template-columns:' + (mob?'1fr':'1fr 1fr') + ';gap:12px">' +
+        '<button onclick="rwStartWizard()" style="text-align:left;padding:' + (mob?'18px 16px':'24px 22px') + ';background:linear-gradient(135deg,rgba(196,151,90,0.15),rgba(196,151,90,0.04));border:1px solid var(--gold-d);cursor:pointer;color:var(--text-b);font-family:Raleway,sans-serif;display:flex;flex-direction:' + (mob?'row':'column') + ';gap:' + (mob?'14px':'8px') + ';align-items:' + (mob?'center':'flex-start') + '">' +
+          '<div style="font-size:' + (mob?'20px':'24px') + ';color:var(--gold);font-weight:300;flex-shrink:0">✦</div>' +
+          '<div>' +
+            '<div style="font-family:\'Cormorant Garamond\',serif;font-size:' + (mob?'18px':'22px') + ';color:var(--text-b);font-weight:400">Modo guiado</div>' +
+            '<div style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-top:2px">Cuestionario fase por fase</div>' +
+            (mob?'':'<div style="font-size:11px;color:var(--text-d);line-height:1.65;margin-top:6px">Te llevo paso a paso por las 8 fases de la operación con contexto, validaciones y sugerencias. ~10 minutos.</div>') +
+          '</div>' +
         '</button>' +
-        '<button onclick="document.getElementById(\'rw-newdeal-modal\').remove();addDeal()" style="text-align:left;padding:24px 22px;background:var(--d4);border:1px solid var(--d6);cursor:pointer;color:var(--text-b);font-family:Raleway,sans-serif;display:flex;flex-direction:column;gap:8px;transition:all 0.15s" onmouseover="this.style.background=\'var(--d3)\';this.style.borderColor=\'var(--line)\'" onmouseout="this.style.background=\'var(--d4)\';this.style.borderColor=\'var(--d6)\'">' +
-          '<div style="font-size:24px;color:var(--text-d);font-weight:300">⚡</div>' +
-          '<div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:var(--text-b);font-weight:400">Modo directo</div>' +
-          '<div style="font-size:9.5px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text-d);font-weight:600">Panel completo de inputs</div>' +
-          '<div style="font-size:11px;color:var(--text-d);line-height:1.65;margin-top:4px">Acceso libre a todos los campos del modelo como hasta ahora. Recomendado para usuarios expertos o cuando ya tienes los datos consolidados y quieres meterlos rápido sin asistente.</div>' +
+        '<button onclick="document.getElementById(\'rw-newdeal-modal\').remove();addDeal()" style="text-align:left;padding:' + (mob?'18px 16px':'24px 22px') + ';background:var(--d4);border:1px solid var(--d6);cursor:pointer;color:var(--text-b);font-family:Raleway,sans-serif;display:flex;flex-direction:' + (mob?'row':'column') + ';gap:' + (mob?'14px':'8px') + ';align-items:' + (mob?'center':'flex-start') + '">' +
+          '<div style="font-size:' + (mob?'20px':'24px') + ';color:var(--text-d);font-weight:300;flex-shrink:0">⚡</div>' +
+          '<div>' +
+            '<div style="font-family:\'Cormorant Garamond\',serif;font-size:' + (mob?'18px':'22px') + ';color:var(--text-b);font-weight:400">Modo directo</div>' +
+            '<div style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-d);font-weight:600;margin-top:2px">Panel completo de inputs</div>' +
+            (mob?'':'<div style="font-size:11px;color:var(--text-d);line-height:1.65;margin-top:6px">Acceso libre a todos los campos. Recomendado para usuarios expertos o con datos consolidados.</div>') +
+          '</div>' +
         '</button>' +
       '</div>' +
     '</div>';
@@ -6459,18 +6466,19 @@ function rwRenderWizard() {
 }
 
 function rwWizardLayout() {
+  const mob = rwwIsMob();
   return (
-    '<div style="max-width:980px;margin:0 auto;padding:32px 40px 80px">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">' +
+    '<div style="max-width:980px;margin:0 auto;padding:' + (mob?'12px 12px 80px':'32px 40px 80px') + '">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:' + (mob?'8px':'14px') + '">' +
         '<div>' +
           '<div style="font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:2px">Modo guiado · Nueva operación</div>' +
-          '<div style="font-family:\'Cormorant Garamond\',serif;font-size:28px;color:var(--text-b)">Cuestionario fase a fase</div>' +
+          '<div style="font-family:\'Cormorant Garamond\',serif;font-size:' + (mob?'20px':'28px') + ';color:var(--text-b)">Cuestionario fase a fase</div>' +
         '</div>' +
-        '<button onclick="rwCancelWizard()" style="background:transparent;border:1px solid var(--d6);color:var(--text-d);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;padding:8px 14px;cursor:pointer">Salir del wizard</button>' +
+        '<button onclick="rwCancelWizard()" style="background:transparent;border:1px solid var(--d6);color:var(--text-d);font-size:' + (mob?'9px':'10px') + ';letter-spacing:0.12em;text-transform:uppercase;padding:' + (mob?'6px 10px':'8px 14px') + ';cursor:pointer;white-space:nowrap">Salir</button>' +
       '</div>' +
-      '<div id="rw-wizard-progress" style="display:flex;gap:4px;margin-bottom:32px"></div>' +
+      '<div id="rw-wizard-progress" style="display:flex;gap:' + (mob?'3px':'4px') + ';margin-bottom:' + (mob?'16px':'32px') + ';overflow-x:auto"></div>' +
       '<div id="rw-wizard-step-content"></div>' +
-      '<div id="rw-wizard-nav" style="display:flex;justify-content:space-between;align-items:center;margin-top:28px;padding-top:20px;border-top:1px solid var(--line2)"></div>' +
+      '<div id="rw-wizard-nav" style="display:flex;justify-content:space-between;align-items:center;margin-top:' + (mob?'16px':'28px') + ';padding-top:' + (mob?'12px':'20px') + ';border-top:1px solid var(--line2)"></div>' +
     '</div>'
   );
 }
@@ -6478,19 +6486,22 @@ function rwWizardLayout() {
 function rwRenderProgress() {
   const el = document.getElementById('rw-wizard-progress');
   if (!el) return;
+  const mob = rwwIsMob();
   el.innerHTML = RW_WIZARD_STEPS.map((s, i) => {
     const active = i === rwWizardState.step;
     const done = i < rwWizardState.step;
     const bg = done ? 'var(--gold)' : (active ? 'rgba(196,151,90,0.45)' : 'var(--d4)');
     const labelColor = (active || done) ? 'var(--gold-l)' : 'var(--text-d)';
-    return (
-      '<div onclick="rwGoToStep(' + i + ')" style="flex:1;cursor:pointer">' +
-        '<div style="height:4px;background:' + bg + ';margin-bottom:6px;transition:background 0.2s"></div>' +
-        '<div style="font-size:8.5px;letter-spacing:0.1em;text-transform:uppercase;color:' + labelColor + ';font-weight:' + (active?'600':'400') + ';line-height:1.4">' +
-          '<span style="opacity:0.6">' + (i+1).toString().padStart(2,'0') + '</span> ' + s.label +
-        '</div>' +
-      '</div>'
-    );
+    return mob
+      ? '<div onclick="rwGoToStep(' + i + ')" style="flex:0 0 ' + (active?'32px':'22px') + ';cursor:pointer;transition:flex 0.2s">' +
+          '<div style="height:4px;background:' + bg + ';transition:background 0.2s"></div>' +
+        '</div>'
+      : '<div onclick="rwGoToStep(' + i + ')" style="flex:1;cursor:pointer">' +
+          '<div style="height:4px;background:' + bg + ';margin-bottom:6px;transition:background 0.2s"></div>' +
+          '<div style="font-size:8.5px;letter-spacing:0.1em;text-transform:uppercase;color:' + labelColor + ';font-weight:' + (active?'600':'400') + ';line-height:1.4">' +
+            '<span style="opacity:0.6">' + (i+1).toString().padStart(2,'0') + '</span> ' + s.label +
+          '</div>' +
+        '</div>';
   }).join('');
 }
 
@@ -6511,12 +6522,13 @@ function rwRenderWizardStep() {
     financiacion:rwStepFinanciacion,
     mercado:     rwStepMercado,
   })[step.id];
+  const mob = rwwIsMob();
   content.innerHTML = (
-    '<div style="margin-bottom:22px">' +
-      '<div style="font-family:\'Cormorant Garamond\',serif;font-size:32px;color:var(--text-b);margin-bottom:4px;line-height:1.1">' + step.label + '</div>' +
-      '<div style="font-size:12px;color:var(--text-d);line-height:1.6">' + step.sub + '</div>' +
+    '<div style="margin-bottom:' + (mob?'12px':'22px') + '">' +
+      '<div style="font-family:\'Cormorant Garamond\',serif;font-size:' + (mob?'22px':'32px') + ';color:var(--text-b);margin-bottom:4px;line-height:1.1">' + step.label + '</div>' +
+      '<div style="font-size:' + (mob?'11px':'12px') + ';color:var(--text-d);line-height:1.6">' + step.sub + '</div>' +
     '</div>' +
-    '<div style="background:var(--d2);border:1px solid var(--line2);padding:32px 36px;min-height:360px">' +
+    '<div style="background:var(--d2);border:1px solid var(--line2);padding:' + (mob?'14px 12px':'32px 36px') + ';min-height:' + (mob?'auto':'360px') + '">' +
       (renderer ? renderer() : '<div>...</div>') +
     '</div>'
   );
@@ -6528,15 +6540,16 @@ function rwRenderNav() {
   if (!nav) return;
   const isLast = rwWizardState.step === RW_WIZARD_STEPS.length - 1;
   const isFirst = rwWizardState.step === 0;
+  const mob = rwwIsMob();
   nav.innerHTML = (
     '<div>' +
-      (!isFirst ? '<button onclick="rwWizardPrev()" style="background:transparent;border:1px solid var(--d6);color:var(--text-d);font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;padding:11px 22px;cursor:pointer;font-family:Raleway,sans-serif">← Anterior</button>' : '') +
+      (!isFirst ? '<button onclick="rwWizardPrev()" style="background:transparent;border:1px solid var(--d6);color:var(--text-d);font-size:' + (mob?'9px':'10.5px') + ';letter-spacing:0.14em;text-transform:uppercase;padding:' + (mob?'9px 14px':'11px 22px') + ';cursor:pointer;font-family:Raleway,sans-serif">← Atrás</button>' : '') +
     '</div>' +
-    '<div style="font-size:10px;color:var(--text-d);letter-spacing:0.06em">Paso ' + (rwWizardState.step+1) + ' de ' + RW_WIZARD_STEPS.length + '</div>' +
+    '<div style="font-size:' + (mob?'9px':'10px') + ';color:var(--text-d);letter-spacing:0.06em">' + (rwWizardState.step+1) + '/' + RW_WIZARD_STEPS.length + '</div>' +
     '<div>' +
       (isLast
-        ? '<button onclick="rwWizardFinish()" style="background:var(--gold);border:none;color:#fff;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;padding:13px 28px;cursor:pointer;font-family:Raleway,sans-serif">✓ Finalizar y crear operación</button>'
-        : '<button onclick="rwWizardNext()" style="background:var(--gold);border:none;color:#fff;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;padding:11px 26px;cursor:pointer;font-family:Raleway,sans-serif">Siguiente →</button>') +
+        ? '<button onclick="rwWizardFinish()" style="background:var(--gold);border:none;color:#fff;font-size:' + (mob?'9px':'11px') + ';letter-spacing:0.14em;text-transform:uppercase;font-weight:700;padding:' + (mob?'10px 14px':'13px 28px') + ';cursor:pointer;font-family:Raleway,sans-serif">✓ Finalizar</button>'
+        : '<button onclick="rwWizardNext()" style="background:var(--gold);border:none;color:#fff;font-size:' + (mob?'9px':'11px') + ';letter-spacing:0.14em;text-transform:uppercase;font-weight:700;padding:' + (mob?'9px 14px':'11px 26px') + ';cursor:pointer;font-family:Raleway,sans-serif">Siguiente →</button>') +
     '</div>'
   );
 }
@@ -6636,20 +6649,21 @@ function rwSkipBox(title, sub) {
 // Step renderers
 function rwStepIdentif() {
   const d = rwWizardState.data;
+  const mob = rwwIsMob();
   return (
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px">' +
+    '<div style="display:grid;grid-template-columns:' + (mob?'1fr':'1fr 1fr') + ';gap:' + (mob?'12px':'18px') + ';margin-bottom:' + (mob?'14px':'20px') + '">' +
       rwwField('dealName', 'Nombre del activo *', 'text', d.dealName || '', 'Ej: Hortaleza 28 · Chueca') +
       rwwField('surfCapex', 'Superficie (m²) *', 'number', d.surfCapex || '', 'M² construidos') +
     '</div>' +
-    '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:14px;margin-bottom:20px">' +
-      rwwField('dealAddress', 'Dirección', 'text', d.dealAddress || '', 'Calle, número') +
+    '<div style="display:grid;grid-template-columns:' + (mob?'1fr 1fr':'2fr 1fr 1fr 1fr') + ';gap:' + (mob?'10px':'14px') + ';margin-bottom:' + (mob?'14px':'20px') + '">' +
+      (mob ? '<div style="grid-column:1/-1">' + rwwField('dealAddress', 'Dirección', 'text', d.dealAddress || '', 'Calle, número') + '</div>' : rwwField('dealAddress', 'Dirección', 'text', d.dealAddress || '', 'Calle, número')) +
       rwwField('dealCP', 'CP', 'text', d.dealCP || '', '28004') +
       rwwField('dealFloor', 'Planta', 'text', d.dealFloor || '', '3') +
       rwwField('dealPuerta', 'Puerta', 'text', d.dealPuerta || '', 'Izq') +
     '</div>' +
-    '<div style="margin-bottom:20px">' +
+    '<div style="margin-bottom:' + (mob?'14px':'20px') + '">' +
       '<label style="display:block;font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-d);margin-bottom:8px;font-weight:500">Tipo de operación</label>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">' +
+      '<div style="display:grid;grid-template-columns:' + (mob?'1fr':'1fr 1fr 1fr') + ';gap:8px">' +
         ['reforma', 'pase', 'edificio'].map(mode => {
           const labels = { reforma: 'Reforma · Fix & Flip', pase: 'Pase · Asignación', edificio: 'Edificio completo' };
           const subs   = { reforma: 'Compro, reformo, vendo', pase: 'Compro y revendo sin obra', edificio: 'Building / promoción' };
@@ -6670,12 +6684,13 @@ function rwStepIdentif() {
 
 function rwStepAdquisicion() {
   const d = rwWizardState.data;
+  const mob = rwwIsMob();
   const cp = d.dealCP || '';
   const isMadrid = cp.startsWith('28');
   const itpHint = isMadrid ? '6% (Madrid)' : (cp ? 'Verifica el ITP de tu comunidad' : '');
   return (
-    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px">' +
-      rwwField('buyPrice', 'Precio de compra (€) *', 'number', d.buyPrice || '', 'Ej: 2400000') +
+    '<div style="display:grid;grid-template-columns:' + (mob?'1fr 1fr':'1fr 1fr 1fr') + ';gap:' + (mob?'10px':'14px') + ';margin-bottom:' + (mob?'12px':'18px') + '">' +
+      (mob ? '<div style="grid-column:1/-1">' + rwwField('buyPrice', 'Precio de compra (€) *', 'number', d.buyPrice || '', 'Ej: 2400000') + '</div>' : rwwField('buyPrice', 'Precio de compra (€) *', 'number', d.buyPrice || '', 'Ej: 2400000')) +
       rwwField('itpPct', 'ITP (%)', 'number', d.itpPct || (isMadrid ? '6' : ''), itpHint) +
       rwwField('arasAmt', 'Arras (€)', 'number', d.arasAmt || '', '~10% del precio') +
     '</div>' +
@@ -6696,9 +6711,10 @@ function rwStepAdquisicion() {
 
 function rwStepCalendario() {
   const d = rwWizardState.data;
+  const mob = rwwIsMob();
   const isPase = rwWizardState.dealMode === 'pase';
   return (
-    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px">' +
+    '<div style="display:grid;grid-template-columns:' + (mob?'1fr':'1fr 1fr 1fr') + ';gap:' + (mob?'10px':'14px') + ';margin-bottom:' + (mob?'12px':'18px') + '">' +
       rwwField('arasMonths', 'Meses arras → escritura', 'number', d.arasMonths || '2', 'Típico: 2') +
       (!isPase ? rwwField('obraMonths', 'Meses de obra', 'number', d.obraMonths || '4', 'Típico: 4-6') : '<div></div>') +
       rwwField('comercialMonths', 'Meses de comercialización', 'number', d.comercialMonths || (isPase ? '2' : '3'), isPase ? 'Hasta encontrar comprador' : 'Tras recepción de obra') +
@@ -6712,6 +6728,7 @@ function rwStepCapex() {
     return rwSkipBox('Modo Pase · Esta fase no aplica', 'En operaciones de pase no hay obra. Saltamos directamente al siguiente paso.');
   }
   const d = rwWizardState.data;
+  const mob = rwwIsMob();
   const obra = parseFloat(d.obraM2 || 0);
   let presetHint = '';
   if (obra > 0) {
@@ -6721,12 +6738,12 @@ function rwStepCapex() {
     else presetHint = '⚡ Tu CapEx (' + obra + ' €/m²) está por encima de las paletas built-in.';
   }
   return (
-    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px">' +
-      rwwField('obraM2', 'CapEx obra (€/m²) *', 'number', d.obraM2 || '1800', 'Coste de obra por m²') +
+    '<div style="display:grid;grid-template-columns:' + (mob?'1fr 1fr':'1fr 1fr 1fr') + ';gap:' + (mob?'10px':'14px') + ';margin-bottom:' + (mob?'12px':'18px') + '">' +
+      (mob ? '<div style="grid-column:1/-1">' + rwwField('obraM2', 'CapEx obra (€/m²) *', 'number', d.obraM2 || '1800', 'Coste de obra por m²') + '</div>' : rwwField('obraM2', 'CapEx obra (€/m²) *', 'number', d.obraM2 || '1800', 'Coste de obra por m²')) +
       rwwField('decoM2', 'Decoración (€/m²)', 'number', d.decoM2 || '350', 'Mobiliario, complementos') +
       rwwField('ivaObra', 'IVA obra (%)', 'number', d.ivaObra || '21', 'IVA reformas residenciales') +
     '</div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:' + (mob?'12px':'18px') + '">' +
       rwwField('overPct', 'Margen sobrecoste (%)', 'number', d.overPct || '0', 'Contingencia sobre obra') +
     '</div>' +
     rwTipBox(presetHint || '💡 Si esperas sobrecostes en obra, configura aquí un colchón. La regla habitual en Fix&Flip es 5-10%.')
@@ -6760,18 +6777,19 @@ function rwStepCalidades() {
     );
   }).join('');
   return (
-    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">' + cards + '</div>' +
+    '<div style="display:grid;grid-template-columns:' + (rwwIsMob()?'1fr 1fr':'repeat(3,1fr)') + ';gap:10px;margin-bottom:16px">' + cards + '</div>' +
     rwTipBox(obra > 0 ? '💡 Las paletas se evalúan automáticamente contra tu CapEx (' + obra + ' €/m²). Selecciona la que esté en verde.' : '💡 Selecciona una paleta para que el dossier muestre la memoria de calidades y el moodboard.')
   );
 }
 
 function rwStepSalida() {
   const d = rwWizardState.data;
+  const mob = rwwIsMob();
   const exitB = parseFloat(d.exitB || 0);
   const sugP = exitB > 0 ? Math.round(exitB * 0.85 / 100) * 100 : '';
   const sugO = exitB > 0 ? Math.round(exitB * 1.12 / 100) * 100 : '';
   return (
-    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px">' +
+    '<div style="display:grid;grid-template-columns:' + (mob?'1fr':'1fr 1fr 1fr') + ';gap:' + (mob?'10px':'14px') + ';margin-bottom:' + (mob?'12px':'18px') + '">' +
       rwwField('exitP', 'Pesimista · €/m²', 'number', d.exitP || sugP || '', 'P25 ~ -15% sobre base') +
       rwwField('exitB', 'Base · €/m² *', 'number', d.exitB || '', 'Mediana objetivo') +
       rwwField('exitO', 'Optimista · €/m²', 'number', d.exitO || sugO || '', 'P75 ~ +12% sobre base') +
@@ -6786,26 +6804,27 @@ function rwStepSalida() {
 
 function rwStepFinanciacion() {
   const d = rwWizardState.data;
+  const mob = rwwIsMob();
   return (
-    '<div style="margin-bottom:18px">' +
+    '<div style="margin-bottom:' + (mob?'12px':'18px') + '">' +
       '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;color:var(--text-b);padding:10px 12px;background:var(--d4);border:1px solid var(--d6)">' +
         '<input type="checkbox" id="rww-skipFinanciacion" ' + (rwWizardState.skipFinanciacion?'checked':'') + ' onchange="rwWizardState.skipFinanciacion=this.checked;rwRenderWizardStep()" style="accent-color:var(--gold);width:14px;height:14px">' +
         '<span><strong>Operación 100% equity (sin apalancamiento bancario)</strong> — saltar financiación.</span>' +
       '</label>' +
     '</div>' +
     (!rwWizardState.skipFinanciacion ?
-      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px">' +
-        rwwField('ltv', 'LTV (%)', 'number', d.ltv || '0', 'Loan-to-Value sobre compra') +
+      '<div style="display:grid;grid-template-columns:' + (mob?'1fr 1fr':'1fr 1fr 1fr') + ';gap:' + (mob?'10px':'14px') + ';margin-bottom:' + (mob?'12px':'18px') + '">' +
+        (mob ? '<div style="grid-column:1/-1">' + rwwField('ltv', 'LTV (%)', 'number', d.ltv || '0', 'Loan-to-Value sobre compra') + '</div>' : rwwField('ltv', 'LTV (%)', 'number', d.ltv || '0', 'Loan-to-Value sobre compra')) +
         rwwField('bridgeRate', 'Coste deuda (% anual)', 'number', d.bridgeRate || '5', 'Bridge loan típico 4-7%') +
         rwwField('costeDeuda', 'Coste deuda matrices (%)', 'number', d.costeDeuda || '5', 'Para matriz TIR×LTV') +
       '</div>' : '') +
-    '<div style="margin-top:24px;margin-bottom:8px;font-size:9.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);font-weight:600">Fees Riverwalk</div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">' +
+    '<div style="margin-top:' + (mob?'16px':'24px') + ';margin-bottom:8px;font-size:9.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);font-weight:600">Fees Riverwalk</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:' + (mob?'10px':'14px') + ';margin-bottom:' + (mob?'12px':'18px') + '">' +
       rwwField('mgmtFeePct', 'Management fee (%)', 'number', d.mgmtFeePct || '4', 'Sobre inversión total') +
       rwwField('taxRate', 'Impuesto sociedades (%)', 'number', d.taxRate || '25', 'IS estándar 25%') +
     '</div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">' +
-      rwwField('sf1T', 'Tramo 1 carry (% ROI)', 'number', d.sf1T || '12.5', 'Hasta este ROI: 30% carry') +
+    '<div style="display:grid;grid-template-columns:' + (mob?'1fr 1fr':'1fr 1fr 1fr') + ';gap:' + (mob?'10px':'14px') + '">' +
+      (mob ? '<div style="grid-column:1/-1">' + rwwField('sf1T', 'Tramo 1 carry (% ROI)', 'number', d.sf1T || '12.5', 'Hasta este ROI: 30% carry') + '</div>' : rwwField('sf1T', 'Tramo 1 carry (% ROI)', 'number', d.sf1T || '12.5', 'Hasta este ROI: 30% carry')) +
       rwwField('sf2T', 'Tramo 2 carry (% ROI)', 'number', d.sf2T || '25', 'Hasta este ROI: 50% carry') +
       rwwField('sf2P', 'Carry > T2 (%)', 'number', d.sf2P || '50', 'Sobre exceso de tramo 2') +
     '</div>' +
@@ -6817,7 +6836,7 @@ function rwStepMercado() {
   const d = rwWizardState.data;
   return (
     '<div style="font-size:11.5px;color:var(--text-b);line-height:1.7;margin-bottom:18px">El mercado y los testigos los introducirás en el panel directo. Aquí solo te pido el dato más básico — el <strong>asking del vendedor</strong> — para que la negociación tenga punto de partida.</div>' +
-    '<div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:18px">' +
+    '<div style="display:grid;grid-template-columns:' + (rwwIsMob()?'1fr':'2fr 1fr') + ';gap:' + (rwwIsMob()?'10px':'14px') + ';margin-bottom:' + (rwwIsMob()?'12px':'18px') + '">' +
       rwwField('askingImporte', 'Asking del vendedor (€)', 'number', d.askingImporte || '', 'Precio inicial del vendedor') +
       rwwField('askingFecha', 'Fecha del asking', 'date', d.askingFecha || '', '') +
     '</div>' +
@@ -6833,22 +6852,72 @@ function rwStepMercado() {
 function rwWizardFinish() {
   rwWizardSaveCurrentStep();
   const d = rwWizardState.data;
+  const dealMode = rwWizardState.dealMode;
+  const asumeVendedor = rwWizardState.asumeVendedor;
+  const presetSelected = rwWizardState.presetSelected;
   const dealName = (d.dealName || '').trim() || 'Deal nuevo';
-
-  // Store wizard data in sessionStorage so the new deal page can apply it after navigation
-  try {
-    sessionStorage.setItem('rw_wizard_pending', JSON.stringify({
-      data: d,
-      dealMode: rwWizardState.dealMode,
-      asumeVendedor: rwWizardState.asumeVendedor,
-      presetSelected: rwWizardState.presetSelected,
-    }));
-  } catch(e) {}
 
   document.getElementById('rw-wizard-overlay')?.remove();
   rwWizardState = null;
+
+  // Dashboard flow: apply data directly to the already-created deal page
+  if (window.__rwWizardApplyHere) {
+    window.__rwWizardApplyHere = false;
+    rwWizardApplyToPage(d, dealName, dealMode, asumeVendedor);
+    return;
+  }
+
+  // Tab + flow: store data and navigate to new deal page
+  try {
+    sessionStorage.setItem('rw_wizard_pending', JSON.stringify({
+      data: d, dealMode, asumeVendedor, presetSelected,
+    }));
+  } catch(e) {}
   // addDeal is overridden in the webapp to createAndGo(name) which navigates to the new deal page
   addDeal(dealName);
+}
+
+function rwWizardApplyToPage(d, dealName, dealMode, asumeVendedor) {
+  const fieldMap = ['dealName','surfCapex','dealAddress','dealCP','dealFloor','dealPuerta','buyPrice','itpPct','arasAmt','comunidad','ibi','arasMonths','obraMonths','comercialMonths','obraM2','decoM2','ivaObra','overPct','exitP','exitB','exitO','brokerExit','exitFixed','ltv','bridgeRate','costeDeuda','mgmtFeePct','taxRate','sf1T','sf2T','sf2P'];
+  fieldMap.forEach(id => {
+    const val = d[id];
+    if (val === undefined || val === '' || val === null) return;
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = String(val);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  // Deal mode
+  if (dealMode && dealMode !== 'reforma' && typeof setDealMode === 'function') setDealMode(dealMode);
+  // asumeVendedor checkbox
+  if (asumeVendedor) {
+    const cb = document.getElementById('notariaAsumeVendedor');
+    if (cb && !cb.checked) cb.click();
+  }
+  // Asking + narrative via dossier
+  if (d.askingImporte || d.askingFecha || d.narrContext) {
+    const dossier = typeof getCurrentDossier === 'function' ? getCurrentDossier() : null;
+    if (dossier) {
+      if (d.askingImporte || d.askingFecha) {
+        dossier.negotiation = { asking: { importe: parseFloat(d.askingImporte) || 0, fecha: d.askingFecha || '' }, rounds: [] };
+        if (typeof rwRenderNegotiation === 'function') rwRenderNegotiation();
+      }
+      if (d.narrContext) {
+        dossier.narrative = dossier.narrative || {};
+        dossier.narrative.context = d.narrContext;
+        const nc = document.getElementById('narr-context-general');
+        if (nc) { nc.value = d.narrContext; nc.dispatchEvent(new Event('input', { bubbles: true })); }
+        if (typeof rwUpdateContextStatus === 'function') rwUpdateContextStatus();
+      }
+    }
+  }
+  // Rename current deal tab
+  if (dealName && typeof deals !== 'undefined' && deals && deals[activeDealIdx]) {
+    deals[activeDealIdx].name = dealName;
+    if (typeof renderTabs === 'function') renderTabs();
+  }
+  if (typeof update === 'function') update();
 }
 
 // ══════════════════════════════════════════════════════════════════════

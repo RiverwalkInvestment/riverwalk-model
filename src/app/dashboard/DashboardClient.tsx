@@ -42,6 +42,7 @@ export default function DashboardClient({ user }: Props) {
     })
     if (res.ok) {
       const deal = await res.json()
+      sessionStorage.setItem('rw_wizard_apply_here', '1')
       window.location.href = `/deal/${deal.id}`
     }
   }
