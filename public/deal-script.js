@@ -652,152 +652,256 @@ Devuelve SOLO el JSON sin explicaciones adicionales, con esta estructura:
   }
 }
 
-function rwOpenLibrary() {
-  const existing = document.getElementById('rw-library-modal');
+// ── WitnessStore (localStorage-backed, localStorage-only in this app) ─
+const WitnessStore = {
+  _libKey: 'rw_witness_library',
+  _opKey: (dealId) => 'rw_witnesses_op_' + (dealId || 'default'),
+
+  async list({ scope = 'library', dealId = null } = {}) {
+    const key = scope === 'library' ? this._libKey : this._opKey(dealId);
+    try { return JSON.parse(localStorage.getItem(key) || '[]'); }
+    catch(e) { return []; }
+  },
+
+  async save(witness, { scope = 'library', dealId = null } = {}) {
+    const key = scope === 'library' ? this._libKey : this._opKey(dealId);
+    let list = await this.list({ scope, dealId });
+    if (!witness.id) witness.id = 'w_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+    const idx = list.findIndex(w => w.id === witness.id);
+    if (idx >= 0) list[idx] = witness; else list.push(witness);
+    localStorage.setItem(key, JSON.stringify(list));
+    return witness;
+  },
+
+  async delete(id, { scope = 'library', dealId = null } = {}) {
+    const key = scope === 'library' ? this._libKey : this._opKey(dealId);
+    const list = await this.list({ scope, dealId });
+    const filtered = list.filter(w => w.id !== id);
+    localStorage.setItem(key, JSON.stringify(filtered));
+    return true;
+  },
+
+  async get(id, { scope = 'library', dealId = null } = {}) {
+    const list = await this.list({ scope, dealId });
+    return list.find(w => w.id === id) || null;
+  },
+};
+
+// ── Library view ──────────────────────────────────────────────────────
+async function rwOpenLibrary() {
+  const existing = document.getElementById('rw-lib-modal');
   if (existing) existing.remove();
-
-  const verified = (typeof comps !== 'undefined' ? comps : []).filter(c => c.precio > 0 && c.m2 > 0);
-  const all = (typeof comps !== 'undefined' ? comps : []);
-
-  const rowsHtml = all.length === 0
-    ? '<div style="padding:32px 0;text-align:center;color:rgba(255,255,255,0.25);font-size:13px">No hay testigos importados aún.<br><span style="font-size:11px">Usa "Pegar texto" o "Pegar captura" para importar.</span></div>'
-    : all.map((c, i) => {
-        const isV = rwIsVerified(c);
-        const pm2 = (c.precio > 0 && c.m2 > 0) ? Math.round(c.precio / c.m2) : null;
-        return `<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:3px;margin-bottom:6px">
-          <div style="flex:1;min-width:0">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
-              <span style="font-size:9px;padding:2px 6px;border-radius:2px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;${isV?'background:rgba(82,192,122,0.12);color:#52C07A;border:1px solid rgba(82,192,122,0.3)':'background:rgba(196,151,90,0.1);color:var(--amber);border:1px solid rgba(196,151,90,0.25)'}">${isV?'✓ Verificado':'⚠ Incompleto'}</span>
-              ${pm2?`<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--gold)">${pm2.toLocaleString('es-ES')} €/m²</span>`:''}
-            </div>
-            <div style="font-size:12px;color:var(--text-b);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.desc||'Testigo #'+(i+1)}</div>
-            <div style="font-size:10px;color:var(--text-d);margin-top:2px">${c.precio>0?c.precio.toLocaleString('es-ES')+' €':'—'} · ${c.m2>0?c.m2+' m²':'—'}${c.planta!=null?' · P'+c.planta:''}${c.tipo?' · '+c.tipo:''}</div>
-          </div>
-          <button onclick="rwEditComp(${i})" title="Editar" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);color:var(--text-d);cursor:pointer;font-size:13px;padding:5px 9px;border-radius:2px;flex-shrink:0;line-height:1">✎</button>
-          <a href="${c.url||'#'}" target="_blank" rel="noopener" style="font-size:10px;color:var(--text-d);text-decoration:none;padding:5px 9px;border:1px solid rgba(255,255,255,0.1);border-radius:2px;flex-shrink:0;${!c.url?'opacity:0.3;pointer-events:none':''}">↗</a>
-        </div>`;
-      }).join('');
-
+  const lib = await WitnessStore.list({ scope: 'library' });
   const modal = document.createElement('div');
-  modal.id = 'rw-library-modal';
-  modal.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6)';
-  modal.innerHTML = `<div style="background:var(--d2,#16181E);border:1px solid rgba(255,255,255,0.1);border-radius:4px;width:520px;max-width:95vw;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,0.7)">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.07)">
-      <div>
-        <div style="font-size:14px;font-weight:600;color:var(--text-b)">Biblioteca de testigos</div>
-        <div style="font-size:10px;color:var(--text-d);margin-top:2px">${all.length} testigo${all.length!==1?'s':''} · ${verified.length} verificado${verified.length!==1?'s':''}</div>
+  modal.id = 'rw-lib-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;font-family:\'Raleway\',sans-serif';
+  modal.innerHTML = `
+    <div style="background:var(--d2);border:1px solid var(--gold-d);max-width:1100px;width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden">
+      <div style="padding:20px 28px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--text-b)">Biblioteca de testigos</div>
+          <div style="font-size:10px;color:var(--gold);letter-spacing:0.14em;text-transform:uppercase;margin-top:2px">${lib.length} testigos guardados</div>
+        </div>
+        <button onclick="document.getElementById('rw-lib-modal').remove()" style="background:transparent;border:1px solid var(--d6);color:var(--text-d);width:32px;height:32px;cursor:pointer">×</button>
       </div>
-      <button onclick="document.getElementById('rw-library-modal')?.remove()" style="background:none;border:none;color:var(--text-d);cursor:pointer;font-size:18px;padding:4px 8px">✕</button>
-    </div>
-    <div style="overflow-y:auto;padding:14px 16px;flex:1">${rowsHtml}</div>
-  </div>`;
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+      <div style="padding:16px 28px;border-bottom:1px solid var(--line2);display:grid;grid-template-columns:1fr 150px 150px 150px;gap:10px">
+        <input id="rw-lib-search" placeholder="Buscar por dirección, CP, fuente…" oninput="rwRenderLibraryTable()" style="background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-size:12px;padding:9px 12px">
+        <select id="rw-lib-filter-tipo" onchange="rwRenderLibraryTable()" style="background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-size:11px;padding:9px">
+          <option value="">Todos los estados</option>
+          <option value="reformado">Reformado</option>
+          <option value="estreno">Estreno</option>
+          <option value="reformar">A reformar</option>
+        </select>
+        <select id="rw-lib-filter-verified" onchange="rwRenderLibraryTable()" style="background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-size:11px;padding:9px">
+          <option value="">Todos</option>
+          <option value="yes">Solo verificados</option>
+          <option value="no">Solo incompletos</option>
+        </select>
+        <select id="rw-lib-filter-precision" onchange="rwRenderLibraryTable()" style="background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-size:11px;padding:9px">
+          <option value="">Cualquier precisión</option>
+          <option value="exacta">📍 Exacta</option>
+          <option value="calle">📍 Calle</option>
+          <option value="zona">📍 Zona</option>
+        </select>
+      </div>
+      <div id="rw-lib-body" style="flex:1;overflow-y:auto;padding:0 28px 20px"></div>
+    </div>`;
   document.body.appendChild(modal);
+  window.__rwLibCache = lib;
+  rwRenderLibraryTable();
 }
 
-function rwEditComp(idx) {
-  const c = (typeof comps !== 'undefined') ? comps[idx] : null;
+function rwRenderLibraryTable() {
+  const body = document.getElementById('rw-lib-body'); if (!body) return;
+  const lib = window.__rwLibCache || [];
+  const q = (document.getElementById('rw-lib-search')?.value || '').toLowerCase();
+  const ft = document.getElementById('rw-lib-filter-tipo')?.value || '';
+  const fv = document.getElementById('rw-lib-filter-verified')?.value || '';
+  const fp = document.getElementById('rw-lib-filter-precision')?.value || '';
+  const rows = lib.filter(w => {
+    if (q && !JSON.stringify(w).toLowerCase().includes(q)) return false;
+    if (ft && w.tipo !== ft) return false;
+    if (fv === 'yes' && !rwIsVerified(w)) return false;
+    if (fv === 'no' && rwIsVerified(w)) return false;
+    if (fp && w.precision !== fp) return false;
+    return true;
+  });
+  if (!rows.length) {
+    body.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-d);font-size:12px">Biblioteca vacía o sin resultados para este filtro.</div>`;
+    return;
+  }
+  body.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:11px;color:var(--text)">
+      <thead>
+        <tr style="position:sticky;top:0;background:var(--d2);z-index:2">
+          <th style="text-align:left;padding:10px 8px;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-d);border-bottom:1px solid var(--line)">Estado</th>
+          <th style="text-align:left;padding:10px 8px;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-d);border-bottom:1px solid var(--line)">Dirección</th>
+          <th style="text-align:left;padding:10px 8px;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-d);border-bottom:1px solid var(--line)">CP</th>
+          <th style="text-align:right;padding:10px 8px;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-d);border-bottom:1px solid var(--line)">€/m²</th>
+          <th style="text-align:right;padding:10px 8px;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-d);border-bottom:1px solid var(--line)">m²</th>
+          <th style="text-align:center;padding:10px 8px;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-d);border-bottom:1px solid var(--line)">Tipo</th>
+          <th style="text-align:left;padding:10px 8px;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-d);border-bottom:1px solid var(--line)">Usado en</th>
+          <th style="border-bottom:1px solid var(--line)"></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(w => {
+          const ppm = (w.precio > 0 && w.m2 > 0) ? Math.round(w.precio / w.m2).toLocaleString('es-ES') : '—';
+          const verified = rwIsVerified(w);
+          const usedIn = (w.operacionesVinculadas || []).map(op => `<span style="display:inline-block;background:var(--d4);color:var(--gold);padding:2px 6px;margin-right:4px;font-size:9px;letter-spacing:0.05em">${op}</span>`).join('') || '<span style="color:var(--text-d);font-size:10px">—</span>';
+          return `
+          <tr style="border-bottom:1px solid var(--line2)">
+            <td style="padding:10px 8px"><span style="color:${verified?'var(--green)':'var(--amber)'};font-size:9.5px;font-weight:600">${verified?'✓':'⚠'}</span></td>
+            <td style="padding:10px 8px;color:var(--text-b)">${w.direccion || w.desc || '—'}</td>
+            <td style="padding:10px 8px;font-family:'DM Mono',monospace;color:var(--text-d)">${w.cp || '—'}</td>
+            <td style="padding:10px 8px;text-align:right;font-family:'DM Mono',monospace;color:var(--gold)">${ppm}</td>
+            <td style="padding:10px 8px;text-align:right;font-family:'DM Mono',monospace">${w.m2 || '—'}</td>
+            <td style="padding:10px 8px;text-align:center;font-size:10px;color:var(--text-d)">${w.tipo || '—'}</td>
+            <td style="padding:10px 8px">${usedIn}</td>
+            <td style="padding:10px 8px;text-align:right">
+              <button onclick="rwImportFromLibrary('${w.id}')" style="background:var(--gold);border:none;color:#fff;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;padding:6px 12px;cursor:pointer">Añadir</button>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function rwImportFromLibrary(libId) {
+  const lib = window.__rwLibCache || [];
+  const w = lib.find(x => x.id === libId);
+  if (!w) return;
+  const copy = { ...w, id: compNextId++, fechaAlta: new Date().toISOString() };
+  comps.push(copy);
+  const dealName = (document.getElementById('dealName')?.value || 'Operación').trim();
+  w.operacionesVinculadas = Array.from(new Set([...(w.operacionesVinculadas||[]), dealName]));
+  await WitnessStore.save(w);
+  if (typeof renderCompInputs === 'function') renderCompInputs();
+  if (typeof renderCompOutput === 'function') renderCompOutput();
+  if (typeof update === 'function') update();
+  if (typeof rwPersistComps === 'function') rwPersistComps();
+  const body = document.getElementById('rw-lib-body');
+  if (body) rwRenderLibraryTable();
+}
+
+// ── Witness edit modal ─────────────────────────────────────────────────
+function rwEditWitness(id) {
+  const c = comps.find(x => x.id === id);
   if (!c) return;
-  document.getElementById('rw-library-modal')?.remove();
-  const existing = document.getElementById('rw-edit-comp-modal');
+  const existing = document.getElementById('rw-edit-modal');
   if (existing) existing.remove();
-  const esc = s => (s||'').toString().replace(/"/g,'&quot;').replace(/</g,'&lt;');
-  const tipoOpts = ['','estreno','reformado','reformar','buenestado'].map(t =>
-    `<option value="${t}" ${c.tipo===t?'selected':''}>${t||'—'}</option>`).join('');
-  const boolOpts = val => [
-    `<option value="" ${val===null||val===undefined?'selected':''}>—</option>`,
-    `<option value="true" ${val===true?'selected':''}>Sí</option>`,
-    `<option value="false" ${val===false?'selected':''}>No</option>`,
-  ].join('');
   const modal = document.createElement('div');
-  modal.id = 'rw-edit-comp-modal';
-  modal.style.cssText = 'position:fixed;inset:0;z-index:10001;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.75);padding:16px';
+  modal.id = 'rw-edit-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px';
+  const fld = (label, fid, value, type='text') => `
+    <div class="field"><label>${label}</label>
+      <input type="${type}" id="${fid}" value="${(value??'').toString().replace(/"/g,'&quot;')}" style="font-size:12px;padding:9px 10px"></div>`;
   modal.innerHTML = `
-    <div style="background:var(--d2,#16181E);border:1px solid rgba(196,151,90,0.3);width:540px;max-width:95vw;max-height:90dvh;overflow-y:auto;padding:22px 24px;font-family:'Raleway',sans-serif">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.07)">
-        <div style="font-size:14px;font-weight:600;color:var(--text-b,#fff)">Editar testigo</div>
-        <button onclick="document.getElementById('rw-edit-comp-modal')?.remove();rwOpenLibrary()" style="background:none;border:none;color:var(--text-d);cursor:pointer;font-size:18px;padding:4px 8px">✕</button>
+    <div style="background:var(--d2);border:1px solid var(--gold-d);max-width:620px;width:100%;max-height:90vh;overflow-y:auto;padding:26px 30px;font-family:'Raleway',sans-serif">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--text-b);margin-bottom:4px">Editar testigo</div>
+      <div style="font-size:10px;color:var(--gold);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--line)">${c.source || 'Manual'} · ID ${c.id}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        ${fld('Precio (€)','ew-precio',c.precio,'number')}
+        ${fld('Superficie (m²)','ew-m2',c.m2,'number')}
+        ${fld('Planta','ew-planta',c.planta,'number')}
+        <div class="field"><label>Estado</label>
+          <select id="ew-tipo" style="font-size:12px;padding:9px 10px">
+            <option value="" ${!c.tipo?'selected':''}>— Estado —</option>
+            <option value="reformado" ${c.tipo==='reformado'?'selected':''}>Reformado</option>
+            <option value="estreno" ${c.tipo==='estreno'?'selected':''}>Estreno</option>
+            <option value="reformar" ${c.tipo==='reformar'?'selected':''}>A reformar</option>
+          </select></div>
+        ${fld('Dirección','ew-dir',c.direccion)}
+        ${fld('Código postal','ew-cp',c.cp)}
+        ${fld('Link','ew-url',c.url)}
+        <div class="field"><label>Fuente</label>
+          <select id="ew-src" style="font-size:12px;padding:9px 10px">
+            ${['Idealista','Fotocasa','pisos.com','habitaclia','Engel & Völkers','Lucas Fox','Gilmar','Barnes Madrid','Registro','Manual'].map(s => `<option ${c.source===s?'selected':''}>${s}</option>`).join('')}
+          </select></div>
+        <div class="field"><label>Orientación</label>
+          <select id="ew-ori" style="font-size:12px;padding:9px 10px">
+            <option value="">—</option>
+            ${['N','NE','E','SE','S','SO','O','NO'].map(o => `<option ${c.orientacion===o?'selected':''}>${o}</option>`).join('')}
+          </select></div>
+        <div class="field"><label>Exterior</label>
+          <select id="ew-ext" style="font-size:12px;padding:9px 10px">
+            <option value="" ${c.exterior==null?'selected':''}>—</option>
+            <option value="true" ${c.exterior===true?'selected':''}>Exterior</option>
+            <option value="false" ${c.exterior===false?'selected':''}>Interior</option>
+          </select></div>
+        <div class="field"><label>Ascensor</label>
+          <select id="ew-asc" style="font-size:12px;padding:9px 10px">
+            <option value="" ${c.ascensor==null?'selected':''}>—</option>
+            <option value="true" ${c.ascensor===true?'selected':''}>Sí</option>
+            <option value="false" ${c.ascensor===false?'selected':''}>No</option>
+          </select></div>
+        ${fld('Fecha publicación','ew-fecha',c.fechaPublicacion,'date')}
+        <div class="field" style="grid-column:span 2"><label>Descripción</label>
+          <input type="text" id="ew-desc" value="${(c.desc||'').replace(/"/g,'&quot;')}" style="font-size:12px;padding:9px 10px"></div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <div class="field" style="margin:0"><label style="font-size:10px">Descripción</label>
-          <input type="text" id="rwec-desc" value="${esc(c.desc)}" placeholder="Ej: Calle Mayor 12, 3ª" style="font-size:13px">
-        </div>
-        <div class="field" style="margin:0"><label style="font-size:10px">URL anuncio</label>
-          <input type="url" id="rwec-url" value="${esc(c.url)}" placeholder="https://..." style="font-size:13px">
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div class="field" style="margin:0"><label style="font-size:10px">Portal</label>
-            <input type="text" id="rwec-source" value="${esc(c.source)}" placeholder="Idealista…" style="font-size:13px">
-          </div>
-          <div class="field" style="margin:0"><label style="font-size:10px">Tipo</label>
-            <select id="rwec-tipo" style="font-size:13px;padding:8px 6px;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:'Raleway',sans-serif">${tipoOpts}</select>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div class="field" style="margin:0"><label style="font-size:10px">Precio total (€)</label>
-            <input type="number" id="rwec-precio" value="${c.precio||0}" min="0" step="1000" style="font-size:13px;font-family:'DM Mono',monospace">
-          </div>
-          <div class="field" style="margin:0"><label style="font-size:10px">Superficie (m²)</label>
-            <input type="number" id="rwec-m2" value="${c.m2||0}" min="0" step="1" style="font-size:13px;font-family:'DM Mono',monospace">
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-          <div class="field" style="margin:0"><label style="font-size:10px">Planta</label>
-            <input type="number" id="rwec-planta" value="${c.planta!=null?c.planta:''}" min="0" step="1" placeholder="—" style="font-size:13px">
-          </div>
-          <div class="field" style="margin:0"><label style="font-size:10px">Exterior</label>
-            <select id="rwec-exterior" style="font-size:13px;padding:8px 6px;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:'Raleway',sans-serif">${boolOpts(c.exterior)}</select>
-          </div>
-          <div class="field" style="margin:0"><label style="font-size:10px">Ascensor</label>
-            <select id="rwec-ascensor" style="font-size:13px;padding:8px 6px;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:'Raleway',sans-serif">${boolOpts(c.ascensor)}</select>
-          </div>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.07)">
-        <button onclick="rwDeleteComp(${idx})" style="background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);color:#E05555;font-family:'Raleway',sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;padding:10px 14px;cursor:pointer">Eliminar</button>
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button onclick="rwDeleteWitness(${id})" style="background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);color:#E05555;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;padding:11px 14px;cursor:pointer;font-family:'Raleway',sans-serif">Eliminar</button>
         <div style="flex:1"></div>
-        <button onclick="document.getElementById('rw-edit-comp-modal')?.remove();rwOpenLibrary()" style="background:transparent;border:1px solid var(--d6);color:var(--text-d);font-family:'Raleway',sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;padding:10px 16px;cursor:pointer">Cancelar</button>
-        <button onclick="rwSaveComp(${idx})" style="background:var(--gold,#C4975A);border:none;color:#fff;font-family:'Raleway',sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;padding:10px 20px;cursor:pointer">Guardar</button>
+        <button onclick="document.getElementById('rw-edit-modal').remove()" style="flex:1;background:transparent;border:1px solid var(--d6);color:var(--text-d);font-size:11px;letter-spacing:0.12em;text-transform:uppercase;padding:11px;cursor:pointer;font-family:'Raleway',sans-serif">Cancelar</button>
+        <button onclick="rwSaveEditedWitness(${id})" style="flex:2;background:var(--gold);border:none;color:#fff;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;padding:11px;cursor:pointer;font-family:'Raleway',sans-serif">Guardar</button>
       </div>
     </div>`;
-  modal.addEventListener('click', e => { if (e.target === modal) { modal.remove(); rwOpenLibrary(); } });
   document.body.appendChild(modal);
 }
 
-function rwSaveComp(idx) {
-  if (typeof comps === 'undefined' || !comps[idx]) return;
-  const c = comps[idx];
-  const g = id => document.getElementById(id);
-  const boolVal = v => v === 'true' ? true : v === 'false' ? false : null;
-  c.desc     = (g('rwec-desc')?.value    || '').trim();
-  c.url      = (g('rwec-url')?.value     || '').trim();
-  c.source   = (g('rwec-source')?.value  || '').trim();
-  c.tipo     = g('rwec-tipo')?.value     || '';
-  c.precio   = parseFloat(g('rwec-precio')?.value)  || 0;
-  c.m2       = parseFloat(g('rwec-m2')?.value)       || 0;
-  const pv   = g('rwec-planta')?.value;
-  c.planta   = (pv !== '' && pv != null) ? parseInt(pv) : null;
-  c.exterior = boolVal(g('rwec-exterior')?.value);
-  c.ascensor = boolVal(g('rwec-ascensor')?.value);
-  document.getElementById('rw-edit-comp-modal')?.remove();
+function rwSaveEditedWitness(id) {
+  const c = comps.find(x => x.id === id); if (!c) return;
+  const v = (eid) => document.getElementById(eid)?.value;
+  c.precio = parseFloat(v('ew-precio')) || 0;
+  c.m2 = parseFloat(v('ew-m2')) || 0;
+  c.planta = v('ew-planta') === '' ? null : parseInt(v('ew-planta'));
+  c.tipo = v('ew-tipo') || '';
+  c.direccion = v('ew-dir') || '';
+  c.cp = v('ew-cp') || '';
+  c.url = v('ew-url') || '';
+  c.source = v('ew-src') || 'Manual';
+  c.orientacion = v('ew-ori') || null;
+  c.exterior = v('ew-ext') === '' ? null : v('ew-ext') === 'true';
+  c.ascensor = v('ew-asc') === '' ? null : v('ew-asc') === 'true';
+  c.fechaPublicacion = v('ew-fecha') || '';
+  c.desc = v('ew-desc') || '';
+  c.precision = c.direccion && /\d/.test(c.direccion) ? 'exacta' : c.direccion ? 'calle' : c.cp ? 'zona' : null;
   if (typeof renderCompInputs === 'function') renderCompInputs();
   if (typeof renderCompOutput === 'function') renderCompOutput();
-  if (typeof rwPersistComps  === 'function') rwPersistComps();
-  if (typeof update          === 'function') update();
-  rwOpenLibrary();
+  if (typeof update === 'function') update();
+  if (typeof rwPersistComps === 'function') rwPersistComps();
+  document.getElementById('rw-edit-modal')?.remove();
 }
 
-function rwDeleteComp(idx) {
-  if (typeof comps === 'undefined' || !comps[idx]) return;
-  const c = comps[idx];
-  if (!confirm(`¿Eliminar el testigo "${c.desc || 'Testigo #'+(idx+1)}"?`)) return;
-  comps.splice(idx, 1);
-  document.getElementById('rw-edit-comp-modal')?.remove();
+function rwDeleteWitness(id) {
+  const c = comps.find(x => x.id === id); if (!c) return;
+  if (!confirm(`¿Eliminar el testigo "${c.desc || 'Testigo #'+id}"?`)) return;
+  comps = comps.filter(x => x.id !== id);
+  document.getElementById('rw-edit-modal')?.remove();
   if (typeof renderCompInputs === 'function') renderCompInputs();
   if (typeof renderCompOutput === 'function') renderCompOutput();
-  if (typeof rwPersistComps  === 'function') rwPersistComps();
-  if (typeof update          === 'function') update();
-  rwOpenLibrary();
+  if (typeof rwPersistComps === 'function') rwPersistComps();
+  if (typeof update === 'function') update();
 }
 
 // ══════════════════════════════════════════════════
@@ -5478,6 +5582,7 @@ function renderCompInputs() {
             ${precTag ? `<span style="font-size:9px;color:var(--text-d)">· ${precTag}</span>` : ''}
           </div>
           <div style="display:flex;gap:4px;flex-shrink:0">
+            <button type="button" onclick="rwEditWitness(${c.id})" class="comp-del-btn" title="Editar" style="color:var(--gold)">✎</button>
             <button type="button" class="comp-del-btn" onclick="removeComp(${c.id})" title="Eliminar" style="color:var(--text-d);font-size:14px">×</button>
           </div>
         </div>
@@ -6282,6 +6387,527 @@ function finishRename(idx, inp) {
   renderTabs();
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// WIZARD · Cuestionario guiado para crear una nueva operación
+// ══════════════════════════════════════════════════════════════════════
+
+let rwWizardState = null;
+
+const RW_WIZARD_STEPS = [
+  { id: 'identif',     label: 'Identificación',       sub: 'Datos básicos del activo' },
+  { id: 'adquisicion', label: 'Adquisición',          sub: 'Precio, ITP, arras, fechas' },
+  { id: 'calendario',  label: 'Calendario',           sub: 'Plazos arras + obra + comercialización' },
+  { id: 'capex',       label: 'Obra y CapEx',         sub: 'Coste de obra, decoración, sobrecostes' },
+  { id: 'calidades',   label: 'Calidades',            sub: 'Selección de paleta de acabados' },
+  { id: 'salida',      label: 'Salida',               sub: 'Precio objetivo y escenarios' },
+  { id: 'financiacion',label: 'Financiación y fees',  sub: 'Apalancamiento, mgmt fee, carry' },
+  { id: 'mercado',     label: 'Mercado',              sub: 'Testigos verificados y asking del vendedor' },
+];
+
+function rwOpenNewDealModal() {
+  const existing = document.getElementById('rw-newdeal-modal');
+  if (existing) existing.remove();
+  const m = document.createElement('div');
+  m.id = 'rw-newdeal-modal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:99999;display:flex;align-items:center;justify-content:center;padding:32px;font-family:Raleway,sans-serif';
+  m.innerHTML =
+    '<div style="background:var(--d2);border:1px solid var(--gold-d);max-width:780px;width:100%;padding:48px 56px;position:relative">' +
+      '<button onclick="document.getElementById(\'rw-newdeal-modal\').remove()" style="position:absolute;top:16px;right:16px;background:transparent;border:1px solid var(--d6);color:var(--text-d);width:32px;height:32px;cursor:pointer">×</button>' +
+      '<div style="font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:6px">Nueva operación</div>' +
+      '<div style="font-family:\'Cormorant Garamond\',serif;font-size:32px;color:var(--text-b);margin-bottom:6px;line-height:1.1">¿Cómo quieres modelarla?</div>' +
+      '<div style="font-size:11.5px;color:var(--text-d);line-height:1.7;margin-bottom:32px;max-width:520px">Elige cómo introducir los datos. Ambos modos son igualmente válidos — el cuestionario te ayuda a no olvidar nada y a aprovechar sugerencias automáticas.</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
+        '<button onclick="rwStartWizard()" style="text-align:left;padding:24px 22px;background:linear-gradient(135deg,rgba(196,151,90,0.15),rgba(196,151,90,0.04));border:1px solid var(--gold-d);cursor:pointer;color:var(--text-b);font-family:Raleway,sans-serif;display:flex;flex-direction:column;gap:8px;transition:all 0.15s" onmouseover="this.style.background=\'linear-gradient(135deg,rgba(196,151,90,0.22),rgba(196,151,90,0.08))\'" onmouseout="this.style.background=\'linear-gradient(135deg,rgba(196,151,90,0.15),rgba(196,151,90,0.04))\'">' +
+          '<div style="font-size:24px;color:var(--gold);font-weight:300">✦</div>' +
+          '<div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:var(--text-b);font-weight:400">Modo guiado</div>' +
+          '<div style="font-size:9.5px;letter-spacing:0.16em;text-transform:uppercase;color:var(--gold);font-weight:600">Cuestionario fase por fase</div>' +
+          '<div style="font-size:11px;color:var(--text-d);line-height:1.65;margin-top:4px">Te llevo paso a paso por las 8 fases de la operación con contexto, validaciones y sugerencias contextuales basadas en lo que vas introduciendo. Recomendado para operaciones nuevas o si quieres asegurar disciplina. ~10 minutos.</div>' +
+        '</button>' +
+        '<button onclick="document.getElementById(\'rw-newdeal-modal\').remove();addDeal()" style="text-align:left;padding:24px 22px;background:var(--d4);border:1px solid var(--d6);cursor:pointer;color:var(--text-b);font-family:Raleway,sans-serif;display:flex;flex-direction:column;gap:8px;transition:all 0.15s" onmouseover="this.style.background=\'var(--d3)\';this.style.borderColor=\'var(--line)\'" onmouseout="this.style.background=\'var(--d4)\';this.style.borderColor=\'var(--d6)\'">' +
+          '<div style="font-size:24px;color:var(--text-d);font-weight:300">⚡</div>' +
+          '<div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:var(--text-b);font-weight:400">Modo directo</div>' +
+          '<div style="font-size:9.5px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text-d);font-weight:600">Panel completo de inputs</div>' +
+          '<div style="font-size:11px;color:var(--text-d);line-height:1.65;margin-top:4px">Acceso libre a todos los campos del modelo como hasta ahora. Recomendado para usuarios expertos o cuando ya tienes los datos consolidados y quieres meterlos rápido sin asistente.</div>' +
+        '</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(m);
+}
+
+function rwStartWizard() {
+  document.getElementById('rw-newdeal-modal')?.remove();
+  rwWizardState = {
+    step: 0,
+    data: {},
+    dealMode: 'reforma',
+    skipFinanciacion: false,
+    asumeVendedor: false,
+    presetSelected: null,
+  };
+  rwRenderWizard();
+}
+
+function rwRenderWizard() {
+  const existing = document.getElementById('rw-wizard-overlay');
+  if (existing) existing.remove();
+  const w = document.createElement('div');
+  w.id = 'rw-wizard-overlay';
+  w.style.cssText = 'position:fixed;inset:0;background:#0A0B0D;z-index:99998;overflow-y:auto;font-family:Raleway,sans-serif;color:var(--text-b)';
+  w.innerHTML = rwWizardLayout();
+  document.body.appendChild(w);
+  rwRenderWizardStep();
+}
+
+function rwWizardLayout() {
+  return (
+    '<div style="max-width:980px;margin:0 auto;padding:32px 40px 80px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">' +
+        '<div>' +
+          '<div style="font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:2px">Modo guiado · Nueva operación</div>' +
+          '<div style="font-family:\'Cormorant Garamond\',serif;font-size:28px;color:var(--text-b)">Cuestionario fase a fase</div>' +
+        '</div>' +
+        '<button onclick="rwCancelWizard()" style="background:transparent;border:1px solid var(--d6);color:var(--text-d);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;padding:8px 14px;cursor:pointer">Salir del wizard</button>' +
+      '</div>' +
+      '<div id="rw-wizard-progress" style="display:flex;gap:4px;margin-bottom:32px"></div>' +
+      '<div id="rw-wizard-step-content"></div>' +
+      '<div id="rw-wizard-nav" style="display:flex;justify-content:space-between;align-items:center;margin-top:28px;padding-top:20px;border-top:1px solid var(--line2)"></div>' +
+    '</div>'
+  );
+}
+
+function rwRenderProgress() {
+  const el = document.getElementById('rw-wizard-progress');
+  if (!el) return;
+  el.innerHTML = RW_WIZARD_STEPS.map((s, i) => {
+    const active = i === rwWizardState.step;
+    const done = i < rwWizardState.step;
+    const bg = done ? 'var(--gold)' : (active ? 'rgba(196,151,90,0.45)' : 'var(--d4)');
+    const labelColor = (active || done) ? 'var(--gold-l)' : 'var(--text-d)';
+    return (
+      '<div onclick="rwGoToStep(' + i + ')" style="flex:1;cursor:pointer">' +
+        '<div style="height:4px;background:' + bg + ';margin-bottom:6px;transition:background 0.2s"></div>' +
+        '<div style="font-size:8.5px;letter-spacing:0.1em;text-transform:uppercase;color:' + labelColor + ';font-weight:' + (active?'600':'400') + ';line-height:1.4">' +
+          '<span style="opacity:0.6">' + (i+1).toString().padStart(2,'0') + '</span> ' + s.label +
+        '</div>' +
+      '</div>'
+    );
+  }).join('');
+}
+
+function rwRenderWizardStep() {
+  rwRenderProgress();
+  const step = RW_WIZARD_STEPS[rwWizardState.step];
+  const content = document.getElementById('rw-wizard-step-content');
+  if (!content) return;
+  const nav = document.getElementById('rw-wizard-nav');
+  if (nav) nav.innerHTML = '';
+  const renderer = ({
+    identif:     rwStepIdentif,
+    adquisicion: rwStepAdquisicion,
+    calendario:  rwStepCalendario,
+    capex:       rwStepCapex,
+    calidades:   rwStepCalidades,
+    salida:      rwStepSalida,
+    financiacion:rwStepFinanciacion,
+    mercado:     rwStepMercado,
+  })[step.id];
+  content.innerHTML = (
+    '<div style="margin-bottom:22px">' +
+      '<div style="font-family:\'Cormorant Garamond\',serif;font-size:32px;color:var(--text-b);margin-bottom:4px;line-height:1.1">' + step.label + '</div>' +
+      '<div style="font-size:12px;color:var(--text-d);line-height:1.6">' + step.sub + '</div>' +
+    '</div>' +
+    '<div style="background:var(--d2);border:1px solid var(--line2);padding:32px 36px;min-height:360px">' +
+      (renderer ? renderer() : '<div>...</div>') +
+    '</div>'
+  );
+  rwRenderNav();
+}
+
+function rwRenderNav() {
+  const nav = document.getElementById('rw-wizard-nav');
+  if (!nav) return;
+  const isLast = rwWizardState.step === RW_WIZARD_STEPS.length - 1;
+  const isFirst = rwWizardState.step === 0;
+  nav.innerHTML = (
+    '<div>' +
+      (!isFirst ? '<button onclick="rwWizardPrev()" style="background:transparent;border:1px solid var(--d6);color:var(--text-d);font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;padding:11px 22px;cursor:pointer;font-family:Raleway,sans-serif">← Anterior</button>' : '') +
+    '</div>' +
+    '<div style="font-size:10px;color:var(--text-d);letter-spacing:0.06em">Paso ' + (rwWizardState.step+1) + ' de ' + RW_WIZARD_STEPS.length + '</div>' +
+    '<div>' +
+      (isLast
+        ? '<button onclick="rwWizardFinish()" style="background:var(--gold);border:none;color:#fff;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;padding:13px 28px;cursor:pointer;font-family:Raleway,sans-serif">✓ Finalizar y crear operación</button>'
+        : '<button onclick="rwWizardNext()" style="background:var(--gold);border:none;color:#fff;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;padding:11px 26px;cursor:pointer;font-family:Raleway,sans-serif">Siguiente →</button>') +
+    '</div>'
+  );
+}
+
+function rwGoToStep(idx) {
+  if (idx < 0 || idx >= RW_WIZARD_STEPS.length) return;
+  if (idx > rwWizardState.step) {
+    const ok = rwValidateCurrentStep();
+    if (!ok) return;
+  }
+  rwWizardSaveCurrentStep();
+  rwWizardState.step = idx;
+  rwRenderWizardStep();
+}
+
+function rwWizardNext() {
+  const ok = rwValidateCurrentStep();
+  if (!ok) return;
+  rwWizardSaveCurrentStep();
+  if (rwWizardState.step < RW_WIZARD_STEPS.length - 1) {
+    rwWizardState.step++;
+    rwRenderWizardStep();
+  }
+}
+
+function rwWizardPrev() {
+  rwWizardSaveCurrentStep();
+  if (rwWizardState.step > 0) {
+    rwWizardState.step--;
+    rwRenderWizardStep();
+  }
+}
+
+function rwCancelWizard() {
+  if (!confirm('¿Salir del cuestionario? Los datos introducidos se perderán.')) return;
+  document.getElementById('rw-wizard-overlay')?.remove();
+  rwWizardState = null;
+}
+
+function rwWizardSaveCurrentStep() {
+  document.querySelectorAll('[id^="rww-"]').forEach(el => {
+    const id = el.id.replace(/^rww-/, '');
+    rwWizardState.data[id] = el.type === 'checkbox' ? el.checked : el.value;
+  });
+}
+
+function rwValidateCurrentStep() {
+  rwWizardSaveCurrentStep();
+  const d = rwWizardState.data;
+  const step = RW_WIZARD_STEPS[rwWizardState.step].id;
+  const missing = [];
+  if (step === 'identif') {
+    if (!(d.dealName||'').trim()) missing.push('Nombre del activo');
+    if (!parseFloat(d.surfCapex || 0)) missing.push('Superficie (m²)');
+  }
+  if (step === 'adquisicion') {
+    if (!parseFloat(d.buyPrice || 0)) missing.push('Precio de compra');
+  }
+  if (step === 'capex' && rwWizardState.dealMode !== 'pase') {
+    if (!parseFloat(d.obraM2 || 0)) missing.push('CapEx obra (€/m²)');
+  }
+  if (step === 'salida') {
+    if (!parseFloat(d.exitB || 0)) missing.push('Precio objetivo de venta base');
+  }
+  if (missing.length > 0) {
+    alert('Para avanzar necesitas rellenar:\n\n• ' + missing.join('\n• ') + '\n\n(El resto de campos puedes saltarlos sin problema.)');
+    return false;
+  }
+  return true;
+}
+
+function rwwField(id, label, type, value, hint) {
+  const isReq = label.includes('*');
+  return (
+    '<div>' +
+      '<label style="display:block;font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase;color:' + (isReq?'var(--gold)':'var(--text-d)') + ';margin-bottom:6px;font-weight:500">' + label + '</label>' +
+      '<input id="rww-' + id + '" type="' + type + '" value="' + (value !== undefined && value !== null ? value : '').toString().replace(/"/g, '&quot;') + '" ' +
+        'style="width:100%;background:var(--d4);border:1px solid ' + (isReq?'rgba(196,151,90,0.4)':'var(--d6)') + ';color:var(--text-b);font-family:\'DM Mono\',monospace;font-size:13px;padding:10px 12px">' +
+      (hint ? '<div style="font-size:9.5px;color:var(--text-d);margin-top:4px;font-style:italic">' + hint + '</div>' : '') +
+    '</div>'
+  );
+}
+
+function rwTipBox(text) {
+  return '<div style="margin-top:18px;padding:12px 14px;background:rgba(196,151,90,0.06);border-left:2px solid var(--gold);font-size:10.5px;color:var(--text-d);line-height:1.7">' + text + '</div>';
+}
+
+function rwSkipBox(title, sub) {
+  return (
+    '<div style="text-align:center;padding:60px 40px">' +
+      '<div style="font-family:\'Cormorant Garamond\',serif;font-size:24px;color:var(--text-b);margin-bottom:8px">' + title + '</div>' +
+      '<div style="font-size:11.5px;color:var(--text-d);line-height:1.7;max-width:420px;margin:0 auto">' + sub + '</div>' +
+    '</div>'
+  );
+}
+
+// Step renderers
+function rwStepIdentif() {
+  const d = rwWizardState.data;
+  return (
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px">' +
+      rwwField('dealName', 'Nombre del activo *', 'text', d.dealName || '', 'Ej: Hortaleza 28 · Chueca') +
+      rwwField('surfCapex', 'Superficie (m²) *', 'number', d.surfCapex || '', 'M² construidos') +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:14px;margin-bottom:20px">' +
+      rwwField('dealAddress', 'Dirección', 'text', d.dealAddress || '', 'Calle, número') +
+      rwwField('dealCP', 'CP', 'text', d.dealCP || '', '28004') +
+      rwwField('dealFloor', 'Planta', 'text', d.dealFloor || '', '3') +
+      rwwField('dealPuerta', 'Puerta', 'text', d.dealPuerta || '', 'Izq') +
+    '</div>' +
+    '<div style="margin-bottom:20px">' +
+      '<label style="display:block;font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-d);margin-bottom:8px;font-weight:500">Tipo de operación</label>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">' +
+        ['reforma', 'pase', 'edificio'].map(mode => {
+          const labels = { reforma: 'Reforma · Fix & Flip', pase: 'Pase · Asignación', edificio: 'Edificio completo' };
+          const subs   = { reforma: 'Compro, reformo, vendo', pase: 'Compro y revendo sin obra', edificio: 'Building / promoción' };
+          const sel = (rwWizardState.dealMode === mode);
+          return (
+            '<div onclick="rwWizardState.dealMode=\'' + mode + '\';rwRenderWizardStep()" style="padding:14px 16px;cursor:pointer;background:' + (sel?'rgba(196,151,90,0.12)':'var(--d4)') + ';border:1.5px solid ' + (sel?'var(--gold)':'var(--d6)') + ';transition:all 0.15s">' +
+              '<div style="font-size:11.5px;color:' + (sel?'var(--gold-l)':'var(--text-b)') + ';font-weight:' + (sel?'600':'500') + ';margin-bottom:3px">' + labels[mode] + '</div>' +
+              '<div style="font-size:9.5px;color:var(--text-d)">' + subs[mode] + '</div>' +
+            '</div>'
+          );
+        }).join('') +
+      '</div>' +
+      (rwWizardState.dealMode === 'pase' ? '<div style="font-size:10px;color:var(--gold);margin-top:8px;font-style:italic">⚡ Modo Pase: el wizard saltará las fases de Obra/CapEx y Calidades</div>' : '') +
+    '</div>' +
+    rwTipBox('💡 El nombre y la superficie son lo único obligatorio en este paso. Todo lo demás se puede dejar para luego o editar después en el panel directo.')
+  );
+}
+
+function rwStepAdquisicion() {
+  const d = rwWizardState.data;
+  const cp = d.dealCP || '';
+  const isMadrid = cp.startsWith('28');
+  const itpHint = isMadrid ? '6% (Madrid)' : (cp ? 'Verifica el ITP de tu comunidad' : '');
+  return (
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px">' +
+      rwwField('buyPrice', 'Precio de compra (€) *', 'number', d.buyPrice || '', 'Ej: 2400000') +
+      rwwField('itpPct', 'ITP (%)', 'number', d.itpPct || (isMadrid ? '6' : ''), itpHint) +
+      rwwField('arasAmt', 'Arras (€)', 'number', d.arasAmt || '', '~10% del precio') +
+    '</div>' +
+    '<div style="margin-bottom:18px">' +
+      '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;color:var(--text-b);padding:10px 12px;background:var(--d4);border:1px solid var(--d6)">' +
+        '<input type="checkbox" id="rww-asumeVendedor" ' + (rwWizardState.asumeVendedor?'checked':'') + ' onchange="rwWizardState.asumeVendedor=this.checked;rwRenderWizardStep()" style="accent-color:var(--gold);width:14px;height:14px">' +
+        '<span><strong>El vendedor asume todos los gastos de adquisición</strong> (notaría, registro, gestoría) — habitual cuando se ha negociado en contrato.</span>' +
+      '</label>' +
+    '</div>' +
+    (!rwWizardState.asumeVendedor ?
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">' +
+        rwwField('comunidad', 'Comunidad mensual (€)', 'number', d.comunidad || '', 'Mensual') +
+        rwwField('ibi', 'IBI anual (€)', 'number', d.ibi || '', 'Anual') +
+      '</div>' : '') +
+    rwTipBox(isMadrid ? '💡 He detectado CP madrileño (28xxx) y prerrellenado ITP al 6%. Ajusta si compras vía sociedad u otro régimen.' : '💡 El precio es lo único obligatorio aquí. ITP se aplicará automáticamente al final.')
+  );
+}
+
+function rwStepCalendario() {
+  const d = rwWizardState.data;
+  const isPase = rwWizardState.dealMode === 'pase';
+  return (
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px">' +
+      rwwField('arasMonths', 'Meses arras → escritura', 'number', d.arasMonths || '2', 'Típico: 2') +
+      (!isPase ? rwwField('obraMonths', 'Meses de obra', 'number', d.obraMonths || '4', 'Típico: 4-6') : '<div></div>') +
+      rwwField('comercialMonths', 'Meses de comercialización', 'number', d.comercialMonths || (isPase ? '2' : '3'), isPase ? 'Hasta encontrar comprador' : 'Tras recepción de obra') +
+    '</div>' +
+    rwTipBox(isPase ? '💡 Modo Pase: solo arras + comercialización (no hay tramo de obra).' : '💡 Las tres fases se ejecutan en serie. La regla 50/20/20/10 del CapEx se aplicará dentro del tramo de obra.')
+  );
+}
+
+function rwStepCapex() {
+  if (rwWizardState.dealMode === 'pase') {
+    return rwSkipBox('Modo Pase · Esta fase no aplica', 'En operaciones de pase no hay obra. Saltamos directamente al siguiente paso.');
+  }
+  const d = rwWizardState.data;
+  const obra = parseFloat(d.obraM2 || 0);
+  let presetHint = '';
+  if (obra > 0) {
+    if (obra <= 1400) presetHint = '⚡ Tu CapEx (' + obra + ' €/m²) cuadra con la paleta Esencial.';
+    else if (obra <= 2200) presetHint = '⚡ Tu CapEx (' + obra + ' €/m²) cuadra con la paleta Premium.';
+    else if (obra <= 3500) presetHint = '⚡ Tu CapEx (' + obra + ' €/m²) cuadra con la paleta Signature.';
+    else presetHint = '⚡ Tu CapEx (' + obra + ' €/m²) está por encima de las paletas built-in.';
+  }
+  return (
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px">' +
+      rwwField('obraM2', 'CapEx obra (€/m²) *', 'number', d.obraM2 || '1800', 'Coste de obra por m²') +
+      rwwField('decoM2', 'Decoración (€/m²)', 'number', d.decoM2 || '350', 'Mobiliario, complementos') +
+      rwwField('ivaObra', 'IVA obra (%)', 'number', d.ivaObra || '21', 'IVA reformas residenciales') +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">' +
+      rwwField('overPct', 'Margen sobrecoste (%)', 'number', d.overPct || '0', 'Contingencia sobre obra') +
+    '</div>' +
+    rwTipBox(presetHint || '💡 Si esperas sobrecostes en obra, configura aquí un colchón. La regla habitual en Fix&Flip es 5-10%.')
+  );
+}
+
+function rwStepCalidades() {
+  if (rwWizardState.dealMode === 'pase') {
+    return rwSkipBox('Modo Pase · Esta fase no aplica', 'No hay obra → no hay paleta de calidades.');
+  }
+  const d = rwWizardState.data;
+  const obra = parseFloat(d.obraM2 || 0);
+  const lib = (typeof rwCalidadesLib !== 'undefined') ? rwCalidadesLib : [];
+  if (!lib.length) {
+    return rwTipBox('💡 Selecciona una paleta de calidades desde el panel directo una vez creada la operación.');
+  }
+  const cards = lib.map(p => {
+    const sel = (rwWizardState.presetSelected === p.id);
+    const inRange = obra >= p.priceRange.min && obra <= p.priceRange.max;
+    const thumb = (p.images && p.images[0]) ? p.images[0] : '';
+    const range = p.priceRange.min.toLocaleString('es-ES') + '–' + p.priceRange.max.toLocaleString('es-ES') + ' €/m²';
+    return (
+      '<div onclick="rwWizardState.presetSelected=\'' + p.id + '\';rwRenderWizardStep()" style="position:relative;border:1.5px solid ' + (sel?'var(--gold)':'var(--d6)') + ';background:' + (thumb?'url('+thumb+') center/cover':'var(--d4)') + ';padding:14px;cursor:pointer;min-height:140px;display:flex;flex-direction:column;justify-content:flex-end;' + (sel?'box-shadow:0 0 0 3px rgba(196,151,90,0.2)':'') + '">' +
+        (thumb?'<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,11,16,0.15),rgba(10,11,16,0.85))"></div>':'') +
+        '<div style="position:relative;z-index:1">' +
+          '<div style="font-size:13px;color:' + (sel?'var(--gold-l)':(thumb?'#fff':'var(--text-b)')) + ';font-weight:600">' + p.name + '</div>' +
+          '<div style="font-size:9.5px;color:' + (thumb?'rgba(255,255,255,0.7)':'var(--text-d)') + ';margin-top:2px;font-family:\'DM Mono\',monospace">' + range + '</div>' +
+          (obra > 0 ? '<div style="margin-top:6px;font-size:9px;color:' + (inRange?'var(--green)':'var(--amber)') + ';font-weight:600">' + (inRange?'✓ Cuadra con tu CapEx':'⚠ Fuera de rango') + '</div>' : '') +
+        '</div>' +
+      '</div>'
+    );
+  }).join('');
+  return (
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">' + cards + '</div>' +
+    rwTipBox(obra > 0 ? '💡 Las paletas se evalúan automáticamente contra tu CapEx (' + obra + ' €/m²). Selecciona la que esté en verde.' : '💡 Selecciona una paleta para que el dossier muestre la memoria de calidades y el moodboard.')
+  );
+}
+
+function rwStepSalida() {
+  const d = rwWizardState.data;
+  const exitB = parseFloat(d.exitB || 0);
+  const sugP = exitB > 0 ? Math.round(exitB * 0.85 / 100) * 100 : '';
+  const sugO = exitB > 0 ? Math.round(exitB * 1.12 / 100) * 100 : '';
+  return (
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px">' +
+      rwwField('exitP', 'Pesimista · €/m²', 'number', d.exitP || sugP || '', 'P25 ~ -15% sobre base') +
+      rwwField('exitB', 'Base · €/m² *', 'number', d.exitB || '', 'Mediana objetivo') +
+      rwwField('exitO', 'Optimista · €/m²', 'number', d.exitO || sugO || '', 'P75 ~ +12% sobre base') +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">' +
+      rwwField('brokerExit', 'Broker venta (%)', 'number', d.brokerExit || '3', 'Comisión broker comprador') +
+      rwwField('exitFixed', 'Costes fijos venta (€)', 'number', d.exitFixed || '8000', 'Cancelación hipoteca, plusvalía') +
+    '</div>' +
+    rwTipBox(exitB > 0 && (!d.exitP || !d.exitO) ? '💡 Te he sugerido escenarios pesimista y optimista a ±15% / +12% sobre tu base. Ajústalos según testigos.' : '💡 Establece el rango pesimista–base–optimista para que las matrices de sensibilidad muestren todo el espectro de retornos.')
+  );
+}
+
+function rwStepFinanciacion() {
+  const d = rwWizardState.data;
+  return (
+    '<div style="margin-bottom:18px">' +
+      '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;color:var(--text-b);padding:10px 12px;background:var(--d4);border:1px solid var(--d6)">' +
+        '<input type="checkbox" id="rww-skipFinanciacion" ' + (rwWizardState.skipFinanciacion?'checked':'') + ' onchange="rwWizardState.skipFinanciacion=this.checked;rwRenderWizardStep()" style="accent-color:var(--gold);width:14px;height:14px">' +
+        '<span><strong>Operación 100% equity (sin apalancamiento bancario)</strong> — saltar financiación.</span>' +
+      '</label>' +
+    '</div>' +
+    (!rwWizardState.skipFinanciacion ?
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px">' +
+        rwwField('ltv', 'LTV (%)', 'number', d.ltv || '0', 'Loan-to-Value sobre compra') +
+        rwwField('bridgeRate', 'Coste deuda (% anual)', 'number', d.bridgeRate || '5', 'Bridge loan típico 4-7%') +
+        rwwField('costeDeuda', 'Coste deuda matrices (%)', 'number', d.costeDeuda || '5', 'Para matriz TIR×LTV') +
+      '</div>' : '') +
+    '<div style="margin-top:24px;margin-bottom:8px;font-size:9.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);font-weight:600">Fees Riverwalk</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">' +
+      rwwField('mgmtFeePct', 'Management fee (%)', 'number', d.mgmtFeePct || '4', 'Sobre inversión total') +
+      rwwField('taxRate', 'Impuesto sociedades (%)', 'number', d.taxRate || '25', 'IS estándar 25%') +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">' +
+      rwwField('sf1T', 'Tramo 1 carry (% ROI)', 'number', d.sf1T || '12.5', 'Hasta este ROI: 30% carry') +
+      rwwField('sf2T', 'Tramo 2 carry (% ROI)', 'number', d.sf2T || '25', 'Hasta este ROI: 50% carry') +
+      rwwField('sf2P', 'Carry > T2 (%)', 'number', d.sf2P || '50', 'Sobre exceso de tramo 2') +
+    '</div>' +
+    rwTipBox(rwWizardState.skipFinanciacion ? '💡 Modo equity puro · sin coste de deuda. La estructura de carry sigue aplicando.' : '💡 Si no estás seguro del LTV, déjalo en 0 — siempre puedes activar apalancamiento luego en el panel directo.')
+  );
+}
+
+function rwStepMercado() {
+  const d = rwWizardState.data;
+  return (
+    '<div style="font-size:11.5px;color:var(--text-b);line-height:1.7;margin-bottom:18px">El mercado y los testigos los introducirás en el panel directo. Aquí solo te pido el dato más básico — el <strong>asking del vendedor</strong> — para que la negociación tenga punto de partida.</div>' +
+    '<div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:18px">' +
+      rwwField('askingImporte', 'Asking del vendedor (€)', 'number', d.askingImporte || '', 'Precio inicial del vendedor') +
+      rwwField('askingFecha', 'Fecha del asking', 'date', d.askingFecha || '', '') +
+    '</div>' +
+    '<div style="margin-top:24px">' +
+      '<label style="display:block;font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-d);margin-bottom:8px;font-weight:500">Contexto narrativo (opcional)</label>' +
+      '<textarea id="rww-narrContext" rows="4" placeholder="Cuéntale a la IA lo que los números no dicen: perfil del vendedor, ángulo del deal, particularidades únicas…" style="width:100%;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:Raleway,sans-serif;font-size:12px;padding:10px 12px;resize:vertical;line-height:1.7">' + (d.narrContext || '') + '</textarea>' +
+      '<div style="font-size:10px;color:var(--text-d);margin-top:5px;font-style:italic">Si lo rellenas (mínimo 40 caracteres), podrás generar narrativas de dossier con IA inmediatamente al terminar.</div>' +
+    '</div>' +
+    rwTipBox('💡 Al finalizar el wizard, te llevo al panel directo donde podrás importar los testigos verificados, configurar las matrices y generar la narrativa con IA.')
+  );
+}
+
+function rwWizardFinish() {
+  rwWizardSaveCurrentStep();
+  const d = rwWizardState.data;
+
+  const dealName = (d.dealName || '').trim() || 'Deal nuevo';
+  addDeal(dealName);
+
+  if (rwWizardState.dealMode && rwWizardState.dealMode !== 'reforma') {
+    document.querySelectorAll('.deal-mode-btn').forEach(btn => {
+      if (btn.dataset.mode === rwWizardState.dealMode) btn.click();
+    });
+  }
+
+  const setVal = (id, val) => {
+    if (val === undefined || val === '' || val === null) return;
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = val;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+  const fieldMap = ['dealName','surfCapex','dealAddress','dealCP','dealFloor','dealPuerta','buyPrice','itpPct','arasAmt','comunidad','ibi','arasMonths','obraMonths','comercialMonths','obraM2','decoM2','ivaObra','overPct','exitP','exitB','exitO','brokerExit','exitFixed','ltv','bridgeRate','costeDeuda','mgmtFeePct','taxRate','sf1T','sf2T','sf2P'];
+  fieldMap.forEach(id => setVal(id, d[id]));
+
+  if (rwWizardState.asumeVendedor) {
+    const cb = document.getElementById('notariaAsumeVendedor');
+    if (cb && !cb.checked) cb.click();
+  }
+
+  if (rwWizardState.presetSelected && typeof getCurrentDossier === 'function') {
+    const dossier = getCurrentDossier();
+    dossier.calidades = dossier.calidades || {};
+    dossier.calidades.presetId = rwWizardState.presetSelected;
+    if (typeof rwRenderCalidadesGallery === 'function') rwRenderCalidadesGallery();
+    if (typeof rwValidateCapExPreset === 'function') rwValidateCapExPreset();
+  }
+
+  if (typeof getCurrentDossier === 'function') {
+    const dossier = getCurrentDossier();
+    if (d.askingImporte || d.askingFecha) {
+      dossier.negotiation = dossier.negotiation || { asking: { importe: 0, fecha: '' }, rounds: [] };
+      if (Array.isArray(dossier.negotiation)) {
+        dossier.negotiation = { asking: { importe: 0, fecha: '' }, rounds: [] };
+      }
+      dossier.negotiation.asking = { importe: parseFloat(d.askingImporte) || 0, fecha: d.askingFecha || '' };
+      if (typeof rwRenderNegotiation === 'function') rwRenderNegotiation();
+    }
+    if (d.narrContext) {
+      dossier.narrative = dossier.narrative || {};
+      dossier.narrative.context = d.narrContext;
+      setVal('narr-context-general', d.narrContext);
+      if (typeof rwUpdateContextStatus === 'function') rwUpdateContextStatus();
+    }
+  }
+
+  if (typeof update === 'function') update();
+  if (typeof rwCheckCoherenceInline === 'function') rwCheckCoherenceInline();
+  document.getElementById('rw-wizard-overlay')?.remove();
+  rwWizardState = null;
+
+  // Success toast
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;top:80px;right:24px;background:linear-gradient(135deg,rgba(82,192,122,0.18),rgba(82,192,122,0.06));border:1px solid rgba(82,192,122,0.5);padding:18px 22px;z-index:99997;font-family:Raleway,sans-serif;max-width:380px;box-shadow:0 4px 20px rgba(0,0,0,0.4)';
+  t.innerHTML =
+    '<div style="display:flex;align-items:flex-start;gap:12px">' +
+      '<div style="font-size:22px;color:var(--green);line-height:1">✓</div>' +
+      '<div style="flex:1">' +
+        '<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:var(--text-b);margin-bottom:3px">Operación creada</div>' +
+        '<div style="font-size:11px;color:var(--text-d);line-height:1.6;margin-bottom:8px"><strong>' + dealName + '</strong> está lista en el panel. Ya puedes refinar inputs, importar testigos y presentarla.</div>' +
+        '<button onclick="this.parentElement.parentElement.parentElement.remove()" style="background:transparent;border:1px solid var(--line2);color:var(--text-d);font-size:9px;letter-spacing:0.12em;text-transform:uppercase;padding:5px 10px;cursor:pointer">Cerrar</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(t);
+  setTimeout(() => { if (t.parentNode) t.remove(); }, 12000);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+
 function renderTabs() {
   const bar = $('tabs-bar');
   if (!bar) return;
@@ -6324,7 +6950,7 @@ function renderTabs() {
     html += `</div>`;
   });
 
-  html += `<button class="tab-add" onclick="addDeal()" title="Nueva operación">+</button>`;
+  html += `<button class="tab-add" onclick="rwOpenNewDealModal()" title="Nueva operación">+</button>`;
   html += `<button class="tab-add" onclick="promptNewProject()" title="Nuevo proyecto multi-unidad" style="font-size:14px">🏢</button>`;
   bar.innerHTML = html;
 }

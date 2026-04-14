@@ -640,15 +640,16 @@ body.dark-mode {
   /* ── Output panel: clip horizontal overflow so child overflow-x:auto elements can scroll ── */
   .output-panel { overflow-x: hidden; width: 100%; }
 
-  /* ── Topbar ── */
-  .topbar { padding: 0 12px; gap: 8px; height: auto; min-height: 50px; flex-wrap: wrap; align-items: center; }
+  /* ── Topbar: two rows on mobile ── */
+  .topbar { padding: 6px 10px; gap: 6px; height: auto; min-height: auto; flex-wrap: wrap; align-items: center; }
   .topbar-label { display: none; }
   .topbar-sep { display: none; }
   .topbar-deal { font-size: 11px; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .status-lbl { display: none; }
   .btn-reset { display: none; }
   .btn-brief { display: none; }
-  .btn { padding: 8px 10px; font-size: 8.5px; min-height: 36px; }
+  .btn { padding: 7px 9px; font-size: 8px; min-height: 32px; white-space: nowrap; }
+  .topbar-right { flex-wrap: wrap; gap: 5px; }
 
   /* ── KPI strip: 3-col grid (5 KPIs → 2 rows) ── */
   .kpi-strip {
