@@ -364,8 +364,17 @@ function rwRenderNegotiation() {
     const acepto = r.respuesta.tipo === 'acepto' || (r.respuesta.tipo === 'contraoferta' && r.decision.tipo === 'acepto');
     const rechazoFinal = r.respuesta.tipo === 'rechazo' || (r.respuesta.tipo === 'contraoferta' && r.decision.tipo === 'rechazo');
     const borderColor = acepto ? 'var(--green)' : rechazoFinal ? 'rgba(224,85,85,0.5)' : 'var(--gold-d)';
-
     const showDecision = r.respuesta.tipo === 'contraoferta';
+
+    // Date coherence: each step must be >= previous step
+    const askingFecha   = ng.asking.fecha || '';
+    const ofertaFecha   = r.oferta.fecha   || '';
+    const respFecha     = r.respuesta.fecha || '';
+    const decFecha      = r.decision.fecha  || '';
+    const ofertaBad  = askingFecha && ofertaFecha && ofertaFecha < askingFecha;
+    const respBad    = ofertaFecha && respFecha   && respFecha   < ofertaFecha;
+    const decBad     = respFecha   && decFecha    && decFecha    < respFecha;
+    const dateErr = 'border:1px solid rgba(224,85,85,0.7)!important;';
 
     return `
       <div style="background:var(--d3);border:1px solid var(--d6);border-left:3px solid ${borderColor};padding:12px 14px">
@@ -383,10 +392,10 @@ function rwRenderNegotiation() {
             <input type="text" data-fmt="money" value="${r.oferta.importe ? r.oferta.importe.toLocaleString('es-ES') : ''}" placeholder="0"
               onblur="rwUpdateRound(${i},'oferta','importe',this.value)"
               style="font-family:'DM Mono',monospace;font-size:12px"></div>
-          <div class="field" style="margin:0"><label style="font-size:9px">Fecha</label>
-            <input type="date" value="${r.oferta.fecha||''}"
-              onblur="rwUpdateRound(${i},'oferta','fecha',this.value)"
-              style="font-size:11px"></div>
+          <div class="field" style="margin:0"><label style="font-size:9px">Fecha${ofertaBad?' <span style="color:#E05555">⚠ anterior al asking</span>':''}</label>
+            <input type="date" value="${ofertaFecha}" min="${askingFecha}"
+              onchange="rwUpdateRound(${i},'oferta','fecha',this.value)"
+              style="font-size:11px${ofertaBad?';border-color:rgba(224,85,85,0.7)':''}"></div>
         </div>
         <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-d);margin-bottom:6px">② Respuesta del vendedor</div>
         <div style="display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:8px;margin-bottom:${showDecision?'10px':'0'}">
@@ -402,10 +411,10 @@ function rwRenderNegotiation() {
             <input type="text" data-fmt="money" value="${r.respuesta.importe ? r.respuesta.importe.toLocaleString('es-ES') : ''}" placeholder="0" ${r.respuesta.tipo!=='contraoferta'?'disabled style="opacity:0.3"':''}
               onblur="rwUpdateRound(${i},'respuesta','importe',this.value)"
               style="font-family:'DM Mono',monospace;font-size:12px"></div>
-          <div class="field" style="margin:0"><label style="font-size:9px">Fecha</label>
-            <input type="date" value="${r.respuesta.fecha||''}"
-              onblur="rwUpdateRound(${i},'respuesta','fecha',this.value)"
-              style="font-size:11px"></div>
+          <div class="field" style="margin:0"><label style="font-size:9px">Fecha${respBad?' <span style="color:#E05555">⚠ anterior a oferta</span>':''}</label>
+            <input type="date" value="${respFecha}" min="${ofertaFecha}"
+              onchange="rwUpdateRound(${i},'respuesta','fecha',this.value)"
+              style="font-size:11px${respBad?';border-color:rgba(224,85,85,0.7)':''}"></div>
         </div>
         ${showDecision ? `
         <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-d);margin-bottom:6px">③ Nuestra decisión sobre la contraoferta</div>
@@ -417,10 +426,10 @@ function rwRenderNegotiation() {
               <option value="acepto" ${r.decision.tipo==='acepto'?'selected':''}>Aceptamos</option>
               <option value="rechazo" ${r.decision.tipo==='rechazo'?'selected':''}>Rechazamos</option>
             </select></div>
-          <div class="field" style="margin:0"><label style="font-size:9px">Fecha</label>
-            <input type="date" value="${r.decision.fecha||''}"
-              onblur="rwUpdateRound(${i},'decision','fecha',this.value)"
-              style="font-size:11px"></div>
+          <div class="field" style="margin:0"><label style="font-size:9px">Fecha${decBad?' <span style="color:#E05555">⚠ anterior a respuesta</span>':''}</label>
+            <input type="date" value="${decFecha}" min="${respFecha}"
+              onchange="rwUpdateRound(${i},'decision','fecha',this.value)"
+              style="font-size:11px${decBad?';border-color:rgba(224,85,85,0.7)':''}"></div>
         </div>` : ''}
       </div>`;
   }).join('');
@@ -655,16 +664,17 @@ function rwOpenLibrary() {
     : all.map((c, i) => {
         const isV = rwIsVerified(c);
         const pm2 = (c.precio > 0 && c.m2 > 0) ? Math.round(c.precio / c.m2) : null;
-        return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:3px;margin-bottom:6px">
+        return `<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:3px;margin-bottom:6px">
           <div style="flex:1;min-width:0">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
               <span style="font-size:9px;padding:2px 6px;border-radius:2px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;${isV?'background:rgba(82,192,122,0.12);color:#52C07A;border:1px solid rgba(82,192,122,0.3)':'background:rgba(196,151,90,0.1);color:var(--amber);border:1px solid rgba(196,151,90,0.25)'}">${isV?'✓ Verificado':'⚠ Incompleto'}</span>
               ${pm2?`<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--gold)">${pm2.toLocaleString('es-ES')} €/m²</span>`:''}
             </div>
-            <div style="font-size:12px;color:var(--text-b);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.descripcion||'Testigo #'+(i+1)}</div>
-            <div style="font-size:10px;color:var(--text-d);margin-top:2px">${c.precio>0?c.precio.toLocaleString('es-ES')+' €':'—'} · ${c.m2>0?c.m2+' m²':'—'}${c.planta?' · '+c.planta:''}${c.tipo?' · '+c.tipo:''}</div>
+            <div style="font-size:12px;color:var(--text-b);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.desc||'Testigo #'+(i+1)}</div>
+            <div style="font-size:10px;color:var(--text-d);margin-top:2px">${c.precio>0?c.precio.toLocaleString('es-ES')+' €':'—'} · ${c.m2>0?c.m2+' m²':'—'}${c.planta!=null?' · P'+c.planta:''}${c.tipo?' · '+c.tipo:''}</div>
           </div>
-          <a href="${c.url||'#'}" target="_blank" rel="noopener" style="font-size:10px;color:var(--text-d);text-decoration:none;padding:4px 8px;border:1px solid rgba(255,255,255,0.1);border-radius:2px;flex-shrink:0;${!c.url?'opacity:0.3;pointer-events:none':''}">↗</a>
+          <button onclick="rwEditComp(${i})" title="Editar" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);color:var(--text-d);cursor:pointer;font-size:13px;padding:5px 9px;border-radius:2px;flex-shrink:0;line-height:1">✎</button>
+          <a href="${c.url||'#'}" target="_blank" rel="noopener" style="font-size:10px;color:var(--text-d);text-decoration:none;padding:5px 9px;border:1px solid rgba(255,255,255,0.1);border-radius:2px;flex-shrink:0;${!c.url?'opacity:0.3;pointer-events:none':''}">↗</a>
         </div>`;
       }).join('');
 
@@ -683,6 +693,111 @@ function rwOpenLibrary() {
   </div>`;
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   document.body.appendChild(modal);
+}
+
+function rwEditComp(idx) {
+  const c = (typeof comps !== 'undefined') ? comps[idx] : null;
+  if (!c) return;
+  document.getElementById('rw-library-modal')?.remove();
+  const existing = document.getElementById('rw-edit-comp-modal');
+  if (existing) existing.remove();
+  const esc = s => (s||'').toString().replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  const tipoOpts = ['','estreno','reformado','reformar','buenestado'].map(t =>
+    `<option value="${t}" ${c.tipo===t?'selected':''}>${t||'—'}</option>`).join('');
+  const boolOpts = val => [
+    `<option value="" ${val===null||val===undefined?'selected':''}>—</option>`,
+    `<option value="true" ${val===true?'selected':''}>Sí</option>`,
+    `<option value="false" ${val===false?'selected':''}>No</option>`,
+  ].join('');
+  const modal = document.createElement('div');
+  modal.id = 'rw-edit-comp-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:10001;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.75);padding:16px';
+  modal.innerHTML = `
+    <div style="background:var(--d2,#16181E);border:1px solid rgba(196,151,90,0.3);width:540px;max-width:95vw;max-height:90dvh;overflow-y:auto;padding:22px 24px;font-family:'Raleway',sans-serif">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.07)">
+        <div style="font-size:14px;font-weight:600;color:var(--text-b,#fff)">Editar testigo</div>
+        <button onclick="document.getElementById('rw-edit-comp-modal')?.remove();rwOpenLibrary()" style="background:none;border:none;color:var(--text-d);cursor:pointer;font-size:18px;padding:4px 8px">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="field" style="margin:0"><label style="font-size:10px">Descripción</label>
+          <input type="text" id="rwec-desc" value="${esc(c.desc)}" placeholder="Ej: Calle Mayor 12, 3ª" style="font-size:13px">
+        </div>
+        <div class="field" style="margin:0"><label style="font-size:10px">URL anuncio</label>
+          <input type="url" id="rwec-url" value="${esc(c.url)}" placeholder="https://..." style="font-size:13px">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="field" style="margin:0"><label style="font-size:10px">Portal</label>
+            <input type="text" id="rwec-source" value="${esc(c.source)}" placeholder="Idealista…" style="font-size:13px">
+          </div>
+          <div class="field" style="margin:0"><label style="font-size:10px">Tipo</label>
+            <select id="rwec-tipo" style="font-size:13px;padding:8px 6px;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:'Raleway',sans-serif">${tipoOpts}</select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="field" style="margin:0"><label style="font-size:10px">Precio total (€)</label>
+            <input type="number" id="rwec-precio" value="${c.precio||0}" min="0" step="1000" style="font-size:13px;font-family:'DM Mono',monospace">
+          </div>
+          <div class="field" style="margin:0"><label style="font-size:10px">Superficie (m²)</label>
+            <input type="number" id="rwec-m2" value="${c.m2||0}" min="0" step="1" style="font-size:13px;font-family:'DM Mono',monospace">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div class="field" style="margin:0"><label style="font-size:10px">Planta</label>
+            <input type="number" id="rwec-planta" value="${c.planta!=null?c.planta:''}" min="0" step="1" placeholder="—" style="font-size:13px">
+          </div>
+          <div class="field" style="margin:0"><label style="font-size:10px">Exterior</label>
+            <select id="rwec-exterior" style="font-size:13px;padding:8px 6px;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:'Raleway',sans-serif">${boolOpts(c.exterior)}</select>
+          </div>
+          <div class="field" style="margin:0"><label style="font-size:10px">Ascensor</label>
+            <select id="rwec-ascensor" style="font-size:13px;padding:8px 6px;background:var(--d4);border:1px solid var(--d6);color:var(--text-b);font-family:'Raleway',sans-serif">${boolOpts(c.ascensor)}</select>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.07)">
+        <button onclick="rwDeleteComp(${idx})" style="background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);color:#E05555;font-family:'Raleway',sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;padding:10px 14px;cursor:pointer">Eliminar</button>
+        <div style="flex:1"></div>
+        <button onclick="document.getElementById('rw-edit-comp-modal')?.remove();rwOpenLibrary()" style="background:transparent;border:1px solid var(--d6);color:var(--text-d);font-family:'Raleway',sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;padding:10px 16px;cursor:pointer">Cancelar</button>
+        <button onclick="rwSaveComp(${idx})" style="background:var(--gold,#C4975A);border:none;color:#fff;font-family:'Raleway',sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;padding:10px 20px;cursor:pointer">Guardar</button>
+      </div>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) { modal.remove(); rwOpenLibrary(); } });
+  document.body.appendChild(modal);
+}
+
+function rwSaveComp(idx) {
+  if (typeof comps === 'undefined' || !comps[idx]) return;
+  const c = comps[idx];
+  const g = id => document.getElementById(id);
+  const boolVal = v => v === 'true' ? true : v === 'false' ? false : null;
+  c.desc     = (g('rwec-desc')?.value    || '').trim();
+  c.url      = (g('rwec-url')?.value     || '').trim();
+  c.source   = (g('rwec-source')?.value  || '').trim();
+  c.tipo     = g('rwec-tipo')?.value     || '';
+  c.precio   = parseFloat(g('rwec-precio')?.value)  || 0;
+  c.m2       = parseFloat(g('rwec-m2')?.value)       || 0;
+  const pv   = g('rwec-planta')?.value;
+  c.planta   = (pv !== '' && pv != null) ? parseInt(pv) : null;
+  c.exterior = boolVal(g('rwec-exterior')?.value);
+  c.ascensor = boolVal(g('rwec-ascensor')?.value);
+  document.getElementById('rw-edit-comp-modal')?.remove();
+  if (typeof renderCompInputs === 'function') renderCompInputs();
+  if (typeof renderCompOutput === 'function') renderCompOutput();
+  if (typeof rwPersistComps  === 'function') rwPersistComps();
+  if (typeof update          === 'function') update();
+  rwOpenLibrary();
+}
+
+function rwDeleteComp(idx) {
+  if (typeof comps === 'undefined' || !comps[idx]) return;
+  const c = comps[idx];
+  if (!confirm(`¿Eliminar el testigo "${c.desc || 'Testigo #'+(idx+1)}"?`)) return;
+  comps.splice(idx, 1);
+  document.getElementById('rw-edit-comp-modal')?.remove();
+  if (typeof renderCompInputs === 'function') renderCompInputs();
+  if (typeof renderCompOutput === 'function') renderCompOutput();
+  if (typeof rwPersistComps  === 'function') rwPersistComps();
+  if (typeof update          === 'function') update();
+  rwOpenLibrary();
 }
 
 // ══════════════════════════════════════════════════
@@ -1515,10 +1630,13 @@ function render(m) {
   const levEqDisplay = $('lev-equity-display');
   if (levEqDisplay) {
     if (isLev) {
-      const levActive = ltvFrac === 0.40 ? m.lev40 : ltvFrac === 0.60 ? m.lev60 : m.lev0;
+      // Compute equity dynamically for any LTV%, not just precomputed 40/60%
+      const loanBase2 = levMode === 'ltc' ? m.totalInvest : m.buyPrice;
+      const loanDyn   = loanBase2 * ltvFrac;
+      const equityDyn = Math.max(0, m.totalInvest - loanDyn);
       levEqDisplay.style.display = 'block';
-      $('lev-equity-val').textContent = fmt(levActive.equity);
-      $('lev-equity-sub').textContent = `${levMode.toUpperCase()} ${(ltvFrac*100).toFixed(0)}% · deuda ${fmt(levActive.loan)}`;
+      $('lev-equity-val').textContent = fmt(equityDyn);
+      $('lev-equity-sub').textContent = `${levMode.toUpperCase()} ${(ltvFrac*100).toFixed(0)}% · deuda ${fmt(loanDyn)}`;
     } else {
       levEqDisplay.style.display = 'none';
     }
@@ -8270,6 +8388,13 @@ async function rwLoadDemoDeal() {
   setVal('narr-proyecto', d.narrative.proyecto);
   setVal('narr-tesis', d.narrative.tesis);
 
+  // Demo sensPrices: aligned to demo exit range 18k–25k €/m²
+  if (typeof sensPrices !== 'undefined') {
+    sensPrices.length = 0;
+    [17000,18500,20000,21000,22500,24000].forEach(p => sensPrices.push(p));
+    if (typeof renderSensPriceConfig === 'function') renderSensPriceConfig();
+  }
+
   rwSensSelection = rwSensSelection || { active: {}, inPresentation: {}, inPDF: {}, overrides: {} };
   rwSensSelection.active = { roi_price_duration:true, roi_capex_price:true, tir_ltv_price:true, margin_entry_exit:true, roi_overrun:true, breakeven_holding:false };
   rwSensSelection.inPresentation = { roi_price_duration:true, roi_capex_price:true, tir_ltv_price:true, margin_entry_exit:true };
@@ -8574,14 +8699,15 @@ function rwSlideExtMatrixDark(matrixId, m) {
   if (typeof RW_SENS_MATRICES === 'undefined') return '';
   const md = RW_SENS_MATRICES[matrixId]; if (!md) return '';
   const rows = md.rowsFn(m); const cols = md.colsFn(m);
-  const matrixLegend = `<div style="display:flex;gap:14px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06)">
-    ${[['#E05555','< 0% · Pérdidas'],['rgba(255,165,0,0.9)','0–8%'],['rgba(196,151,90,0.9)','8–15%'],['#52C07A','> 15% · Objetivo']].map(([c,l])=>`
+  const legendItems = md.legendItems || [];
+  const matrixLegend = (rows.length > 0 && legendItems.length > 0) ? `<div style="display:flex;gap:14px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06)">
+    ${legendItems.map(([c,l])=>`
     <div style="display:flex;align-items:center;gap:5px">
       <div style="width:8px;height:8px;background:${c};opacity:0.7;border-radius:1px;flex-shrink:0"></div>
       <span style="font-size:8.5px;color:rgba(255,255,255,0.3)">${l}</span>
     </div>`).join('')}
     <div style="margin-left:auto;font-size:8.5px;color:rgba(255,255,255,0.2)">· = escenario base</div>
-  </div>`;
+  </div>` : '';
   const tableRows = rows.map(row => {
     const rowLabelStyle = `padding:7px 12px;font-family:'DM Mono',monospace;font-size:10.5px;white-space:nowrap;border-right:1px solid rgba(255,255,255,0.06);${row.isBase?'color:rgba(196,151,90,0.95);background:rgba(139,105,20,0.08);':'color:rgba(255,255,255,0.5);'}`;
     const cells = cols.map(col => {
@@ -8619,6 +8745,7 @@ function rwSlideExtMatrixDark(matrixId, m) {
 const RW_SENS_MATRICES = {
   tir_ltv_price: {
     id:'tir_ltv_price', label:'TIR × Apalancamiento (LTV)', sub:'Cómo la deuda magnifica el retorno anualizado a precios distintos de salida', metric:'TIR anualizada (leveraged)',
+    legendItems: [['#E05555','< 5%'],['rgba(255,165,0,0.9)','5–15%'],['rgba(196,151,90,0.95)','15–25%'],['#52C07A','> 25% · Objetivo']],
     colorFn: (v) => (!isFinite(v)||v<0.05)?'c1':v<0.15?'c2':v<0.25?'c3':'c4',
     axes: { rows:{ label:'Valores LTV', unit:'%', hint:'Ej: 0, 30, 40, 50, 60, 70 — en porcentaje', defaults:[0,30,40,50,60,70] }, cols:null },
     rowsFn: function(m) {
@@ -8646,6 +8773,7 @@ const RW_SENS_MATRICES = {
   },
   margin_entry_exit: {
     id:'margin_entry_exit', label:'Margen neto · Entrada × Salida', sub:'Zona de negociación: hasta qué precio puedo subir de entrada y qué precio mínimo de salida aguanta', metric:'Margen neto (€)',
+    legendItems: [['#E05555','Pérdidas'],['rgba(255,165,0,0.9)','0–100k€'],['rgba(196,151,90,0.95)','100–400k€'],['#52C07A','> 400k€ · Objetivo']],
     colorFn: (v) => v<0?'c1':v<100000?'c2':v<400000?'c3':'c4',
     axes: { rows:{ label:'Precio entrada (% sobre base)', unit:'%', hint:'Ej: 90, 95, 100, 105, 110 — % sobre tu precio de compra actual', defaults:[90,95,100,105,110] }, cols:null },
     rowsFn: function(m) {
@@ -8670,6 +8798,7 @@ const RW_SENS_MATRICES = {
   },
   roi_overrun: {
     id:'roi_overrun', label:'ROI · Overrun CapEx × Overrun plazo', sub:'Stress test combinado: obra más cara Y más larga de lo previsto', metric:'ROI bruto',
+    legendItems: [['#E05555','< 0%'],['rgba(255,165,0,0.9)','0–8%'],['rgba(196,151,90,0.95)','8–20%'],['#52C07A','> 20% · Objetivo']],
     colorFn: (v) => v<0?'c1':v<0.08?'c2':v<0.20?'c3':'c4',
     axes: {
       rows:{ label:'Overrun CapEx', unit:'%', hint:'Ej: 0, 10, 20, 30, 50 — % adicional sobre tu CapEx base', defaults:[0,10,20,30,50] },
@@ -8700,6 +8829,7 @@ const RW_SENS_MATRICES = {
   },
   breakeven_holding: {
     id:'breakeven_holding', label:'Breakeven · Meses de holding adicional', sub:'Si no vendo en plazo, cuánto precio de salida necesito para cubrir costes', metric:'€/m² breakeven',
+    legendItems: [['#52C07A','≤ Pesimista'],['rgba(196,151,90,0.95)','Pesimista–Base'],['rgba(255,165,0,0.9)','Base–Optimista'],['#E05555','> Optimista']],
     colorFn: (v) => v>(typeof V==='function'?V('exitO'):0)?'c1':v>(typeof V==='function'?V('exitB'):0)?'c2':v>(typeof V==='function'?V('exitP'):0)?'c3':'c4',
     axes: {
       rows:{ label:'Holding adicional', unit:'meses', hint:'Ej: 0, 3, 6, 9, 12, 18 — meses extra de holding', defaults:[0,3,6,9,12,18] },

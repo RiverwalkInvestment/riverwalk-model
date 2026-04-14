@@ -830,6 +830,26 @@ body.dark-mode {
   .tab-item { min-height: 44px; padding: 0 12px; font-size: 12px; }
   .tab-close { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
   .isec-hd { min-height: 44px; }
+
+  /* ── Negotiation rounds: single-column layout on mobile ── */
+  #neg-rondas-list > div { padding: 10px 10px; }
+  #neg-rondas-list [style*="grid-template-columns:1.4fr 1fr"],
+  #neg-rondas-list [style*="grid-template-columns:1fr 1.4fr 1fr"],
+  #neg-rondas-list [style*="grid-template-columns:1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── Modals: prevent overflow on small screens ── */
+  #rw-library-modal > div,
+  #rw-importer-modal > div,
+  #rw-edit-comp-modal > div { max-height: 90dvh; overflow-y: auto; }
+
+  /* ── Topbar: wrap action buttons to second row ── */
+  .topbar { flex-wrap: wrap; padding: 6px 10px; height: auto; min-height: 48px; }
+  .topbar > * { flex-shrink: 0; }
+
+  /* ── Presentation viewer: full width ── */
+  #rw-presentation-modal > div { width: 100% !important; height: 100dvh !important; border-radius: 0 !important; }
 }
 
 /* ── AUTH PAGES ──────────────────────────────────────────────────────── */
