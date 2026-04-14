@@ -3376,6 +3376,7 @@ function buildSlides(m, d) {
   </div>`;
 
   const slides = [];
+  const fmtDate = v => v.toLocaleDateString(RW_LANG === 'en' ? 'en-GB' : (RW_LANG === 'de' ? 'de-DE' : (RW_LANG === 'fr' ? 'fr-FR' : (RW_LANG === 'pt' ? 'pt-PT' : 'es-ES'))), {day:'2-digit', month:'long', year:'numeric'});
 
   // ── PORTADA ──────────────────────────────────────────────────────────────
   slides.push({ id:'portada', html: baseCSS + `
@@ -3383,7 +3384,7 @@ function buildSlides(m, d) {
       <div class="inner" style="justify-content:space-between">
         <div></div>
         <div>
-          <div class="ps-tag ps-anim" style="animation-delay:0.1s">Oportunidad de inversión</div>
+          <div class="ps-tag ps-anim" style="animation-delay:0.1s">${t('invest_opp')}</div>
           <div class="ps-h1 ps-anim" style="animation-delay:0.2s;font-size:56px">${S('dealName') || 'Activo prime Madrid'}</div>
           <div style="font-size:14px;color:rgba(255,255,255,0.4);margin-top:4px" class="ps-anim">${addr}</div>
           ${mz ? `<div class="ps-anim" style="animation-delay:0.35s;margin-top:12px;display:inline-flex;align-items:center;gap:8px;padding:5px 14px;background:rgba(139,105,20,0.18);border:1px solid rgba(196,151,90,0.4)">
@@ -3395,12 +3396,12 @@ function buildSlides(m, d) {
         <div class="ps-div"></div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:40px" class="ps-anim">
           ${[
-            ['Inversión total', fmt2(m.totalInvest)],
-            ['Precio salida base', fmt2(m.base.saleGross)],
-            ['ROI bruto', fmtP(m.base.roiGross)],
+            [t('total_invest'), fmt2(m.totalInvest)],
+            [t('exit_base_price'), fmt2(m.base.saleGross)],
+            [t('roi_gross_lbl'), fmtP(m.base.roiGross)],
           ].map(([l,v],i) => `<div class="ps-kv"><div class="ps-kv-v" style="${i===2?'color:rgba(196,151,90,0.9)':''}">${v}</div><div class="ps-kv-l">${l}</div></div>`).join('')}
         </div>
-        <div style="font-size:9px;color:rgba(255,255,255,0.2);letter-spacing:0.1em">${new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'})}</div>
+        <div style="font-size:9px;color:rgba(255,255,255,0.2);letter-spacing:0.1em">${fmtDate(new Date())}</div>
       </div>
       <div style="position:relative;overflow:hidden">
         ${photoLabel(d.photos, 0, 'position:absolute;inset:0;width:100%;height:100%', 'Fachada exterior')}
@@ -3421,14 +3422,14 @@ function buildSlides(m, d) {
         <img src="/Riverwalk_Logo_Negro.png" style="height:20px;width:auto;display:block;opacity:0.38">
       </div>
       <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:0">
-        <div class="ps-tag">El activo</div>
+        <div class="ps-tag">${t('asset')}</div>
         <div class="ps-h2">${S('dealName') || '—'}</div>
         <div class="ps-body" style="margin-bottom:20px">${d.narrative?.activo || '<span style="opacity:0.25">Genera la descripción con ✦ Narrativa IA</span>'}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           ${[
-            ['Superficie', m.surfCapex + ' m²'],
-            ['Precio compra', fmt2(m.buyPrice)],
-            ['€/m² compra', buyPm2.toLocaleString('es-ES') + ' €/m²'],
+            [t('surface_lbl'), m.surfCapex + ' m²'],
+            [t('buy_price'), fmt2(m.buyPrice)],
+            [t('buy_pm2_lbl'), buyPm2.toLocaleString('es-ES') + ' €/m²'],
             ['Microzona', mz || '—'],
           ].map(([l,v]) => `<div class="ps-data"><div class="ps-data-l">${l}</div><div class="ps-data-v">${v}</div></div>`).join('')}
         </div>
@@ -3507,26 +3508,26 @@ function buildSlides(m, d) {
   // ── LA ZONA ──────────────────────────────────────────────────────────────
   slides.push({ id:'zona', needsChart:true, html: baseCSS + `
     <div class="inner" style="padding:36px 48px">
-      <div class="ps-tag">La zona · ${mz || 'Madrid prime'}</div>
-      <div class="ps-h2" style="margin-bottom:12px">Contexto de mercado</div>
+      <div class="ps-tag">${t('zone')} · ${mz || 'Madrid prime'}</div>
+      <div class="ps-h2" style="margin-bottom:12px">${t('market_ctx')}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:36px;flex:1;min-height:0">
         <div style="display:flex;flex-direction:column;gap:14px">
           <div class="ps-body">${d.narrative?.zona || '<span style="opacity:0.25">Genera el contexto de zona con ✦ Narrativa IA</span>'}</div>
           ${mzData ? `<div style="background:rgba(139,105,20,0.1);border:1px solid rgba(196,151,90,0.25);padding:16px 20px">
-            <div class="ps-data-l">Prima microzona</div>
+            <div class="ps-data-l">${t('microzone_prem')}</div>
             <div style="font-family:'DM Mono',monospace;font-size:24px;color:rgba(196,151,90,0.9);margin:4px 0">${mzData.base >= 0 ? '+' : ''}${mzData.base}%</div>
             <div style="font-size:10px;color:rgba(255,255,255,0.35)">sobre precio medio del CP · Tier ${mzTier}</div>
           </div>` : ''}
-          ${medRefPm2 > 0 ? `<div class="ps-data"><div class="ps-data-l">Media testigos reformados</div><div class="ps-data-v">${medRefPm2.toLocaleString('es-ES')} €/m²</div></div>` : ''}
+          ${medRefPm2 > 0 ? `<div class="ps-data"><div class="ps-data-l">${t('refurb_median')}</div><div class="ps-data-v">${medRefPm2.toLocaleString('es-ES')} €/m²</div></div>` : ''}
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;min-height:0">
-          <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:4px">Distribución €/m² en CP ${cp} · Registro Q1 2025</div>
+          <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:4px">${t('price_dist_cp')} ${cp} · Registro Q1 2025</div>
           <div style="flex:1;position:relative;min-height:180px">
             <canvas id="pres-registro-chart"></canvas>
           </div>
           <div style="display:flex;gap:12px;font-size:9px;color:rgba(255,255,255,0.4)">
-            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:rgba(196,151,90,0.9);display:inline-block"></span>Precio salida base</span>
-            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:rgba(82,192,122,0.6);display:inline-block"></span>Mediana CP</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:rgba(196,151,90,0.9);display:inline-block"></span>${t('exit_base_price')}</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:rgba(82,192,122,0.6);display:inline-block"></span>${t('median_cp_lbl')}</span>
           </div>
         </div>
       </div>
@@ -3544,11 +3545,11 @@ function buildSlides(m, d) {
   const savingsPct = askingPrice > 0 ? ((savingsAbs / askingPrice) * 100).toFixed(1) : null;
 
   const negTiposConfig = {
-    asking:       { label:'Precio inicial asking',  color:'#E05555',              icon:'⬤' },
-    oferta:       { label:'Oferta presentada',       color:'rgba(196,151,90,0.9)', icon:'→' },
-    rechazada:    { label:'Oferta rechazada',        color:'rgba(224,85,85,0.6)',  icon:'✕' },
-    contraoferta: { label:'Contraoferta vendedor',   color:'var(--amber)',         icon:'↩' },
-    pactado:      { label:'Precio pactado',          color:'#52C07A',              icon:'✓' },
+    asking:       { label: t('initial_asking'),  color:'#E05555',              icon:'⬤' },
+    oferta:       { label: t('offer_submitted'),  color:'rgba(196,151,90,0.9)', icon:'→' },
+    rechazada:    { label: t('offer_rejected'),   color:'rgba(224,85,85,0.6)',  icon:'✕' },
+    contraoferta: { label: t('seller_counter'),   color:'var(--amber)',         icon:'↩' },
+    pactado:      { label: t('price_agreed'),     color:'#52C07A',              icon:'✓' },
   };
 
   const negHTML = negHitos.length > 0 ? `
@@ -3571,42 +3572,42 @@ function buildSlides(m, d) {
           </div>
         </div>`;
       }).join('')}
-    </div>` : `<div style="color:rgba(255,255,255,0.2);font-size:12px;font-style:italic;padding:20px 0">Añade los hitos de negociación en la sección "Negociación — Historial bid/ask" del panel izquierdo.</div>`;
+    </div>` : `<div style="color:rgba(255,255,255,0.2);font-size:12px;font-style:italic;padding:20px 0">${t('add_neg_hint')}</div>`;
 
   slides.push({ id:'mercado', html: baseCSS + `
     <div class="inner" style="padding:36px 48px">
-      <div class="ps-tag">El mercado · La negociación</div>
-      <div class="ps-h2" style="margin-bottom:20px">Del precio inicial al precio pactado</div>
+      <div class="ps-tag">${t('market_neg')}</div>
+      <div class="ps-h2" style="margin-bottom:20px">${t('from_ask_deal')}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;flex:1;min-height:0;align-items:start">
         <div style="overflow-y:auto;max-height:100%">${negHTML}</div>
         <div style="display:flex;flex-direction:column;gap:16px">
           ${savingsPct ? `<div style="padding:20px 24px;background:rgba(30,122,69,0.12);border:1px solid rgba(82,192,122,0.35)">
-            <div class="ps-data-l" style="margin-bottom:8px">Resultado de la negociación</div>
+            <div class="ps-data-l" style="margin-bottom:8px">${t('neg_result_lbl')}</div>
             <div style="font-family:'DM Mono',monospace;font-size:40px;color:#52C07A;line-height:1;font-weight:600">−${savingsPct}%</div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:6px">sobre el precio de salida del vendedor</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:6px">${t('vs_asking_lbl')}</div>
             <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.07);display:flex;justify-content:space-between">
               <div>
-                <div class="ps-data-l">Precio inicial</div>
+                <div class="ps-data-l">${t('initial_price_l')}</div>
                 <div style="font-family:'DM Mono',monospace;color:rgba(255,255,255,0.5);font-size:14px;text-decoration:line-through">${askingPrice.toLocaleString('es-ES')} €</div>
               </div>
               <div style="text-align:right">
-                <div class="ps-data-l">Precio pactado</div>
+                <div class="ps-data-l">${t('price_agreed')}</div>
                 <div style="font-family:'DM Mono',monospace;color:rgba(196,151,90,0.9);font-size:16px">${pactadoPrice.toLocaleString('es-ES')} €</div>
               </div>
             </div>
             <div style="margin-top:10px;padding:10px 14px;background:rgba(82,192,122,0.08);border:1px solid rgba(82,192,122,0.2)">
-              <div class="ps-data-l">Ahorro negociado</div>
+              <div class="ps-data-l">${t('neg_saving_lbl')}</div>
               <div style="font-family:'DM Mono',monospace;font-size:18px;color:#52C07A;margin-top:3px">${savingsAbs.toLocaleString('es-ES')} €</div>
             </div>
           </div>` : `<div style="padding:16px 20px;background:rgba(139,105,20,0.1);border:1px solid rgba(196,151,90,0.25)">
-            <div class="ps-data-l" style="margin-bottom:6px">Precio de compra</div>
+            <div class="ps-data-l" style="margin-bottom:6px">${t('buy_price')}</div>
             <div style="font-family:'DM Mono',monospace;font-size:26px;color:rgba(196,151,90,0.9)">${m.buyPrice.toLocaleString('es-ES')} €</div>
             <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px">${buyPm2.toLocaleString('es-ES')} €/m²</div>
           </div>`}
           ${descuento ? `<div style="padding:14px 18px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">
-            <div class="ps-data-l" style="margin-bottom:4px">Descuento vs mercado a reformar</div>
+            <div class="ps-data-l" style="margin-bottom:4px">${t('discount_unren')}</div>
             <div style="font-family:'DM Mono',monospace;font-size:20px;color:#52C07A">−${descuento}%</div>
-            <div style="font-size:9.5px;color:rgba(255,255,255,0.3);margin-top:3px">respecto a comparables sin reformar</div>
+            <div style="font-size:9.5px;color:rgba(255,255,255,0.3);margin-top:3px">${t('vs_unreno_lbl')}</div>
           </div>` : ''}
         </div>
       </div>
@@ -3615,11 +3616,11 @@ function buildSlides(m, d) {
   // ── TESTIGOS ──────────────────────────────────────────────────────────────
   slides.push({ id:'testigos', html: baseCSS + `
     <div class="inner" style="padding:36px 48px">
-      <div class="ps-tag">Proyección de venta</div>
-      <div class="ps-h2">Escenarios de precio de salida</div>
+      <div class="ps-tag">${t('proj_sale')}</div>
+      <div class="ps-h2">${t('exit_scenarios_l')}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:36px;flex:1;min-height:0">
         <div>
-          ${reforComp.length > 0 ? `<div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:8px">Testigos reformados (${reforComp.length})</div>
+          ${reforComp.length > 0 ? `<div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:8px">${t('renovated_comp_l')} (${reforComp.length})</div>
           <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:16px">
             ${reforComp.slice(0,6).map(c=>`<div style="display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:7px 12px;background:rgba(255,255,255,0.03);font-size:11.5px">
               <div style="color:rgba(255,255,255,0.55);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.desc||'—'}</div>
@@ -3628,19 +3629,19 @@ function buildSlides(m, d) {
             </div>`).join('')}
           </div>` : ''}
           ${medRefPm2 > 0 ? `<div style="padding:14px 18px;background:rgba(139,105,20,0.1);border:1px solid rgba(196,151,90,0.3)">
-            <div class="ps-data-l">Media testigos reformados</div>
+            <div class="ps-data-l">${t('refurb_median')}</div>
             <div style="font-family:'DM Mono',monospace;font-size:22px;color:rgba(196,151,90,0.9);margin-top:4px">${medRefPm2.toLocaleString('es-ES')} €/m²</div>
           </div>` : ''}
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;justify-content:center">
           ${[
-            {lbl:'Pesimista · P25',  ep:V('exitP'), sc:m.pess, col:'#E05555',  bg:'rgba(192,57,43,0.06)'},
-            {lbl:'Base · Mediana',   ep:V('exitB'), sc:m.base, col:'rgba(196,151,90,0.95)', bg:'rgba(139,105,20,0.12)', bold:true},
-            {lbl:'Optimista · P75',  ep:V('exitO'), sc:m.opt,  col:'#52C07A',  bg:'rgba(30,122,69,0.06)'},
+            {lbl:t('pessimistic'),  ep:V('exitP'), sc:m.pess, col:'#E05555',  bg:'rgba(192,57,43,0.06)'},
+            {lbl:t('base_median'),  ep:V('exitB'), sc:m.base, col:'rgba(196,151,90,0.95)', bg:'rgba(139,105,20,0.12)', bold:true},
+            {lbl:t('optimistic'),   ep:V('exitO'), sc:m.opt,  col:'#52C07A',  bg:'rgba(30,122,69,0.06)'},
           ].map(({lbl,ep,sc,col,bg,bold})=>`<div style="padding:18px 20px;background:${bg};border:1px solid ${bold?'rgba(196,151,90,0.4)':'rgba(255,255,255,0.07)'}">
             <div style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:${col};margin-bottom:8px">${lbl}</div>
             <div style="font-family:'DM Mono',monospace;font-size:${bold?28:22}px;color:#fff;font-feature-settings:'tnum' 1;font-weight:${bold?600:400}">${ep.toLocaleString('es-ES')} €/m²</div>
-            <div style="font-family:'DM Mono',monospace;font-size:12px;color:rgba(255,255,255,0.4);margin-top:5px">${fmt2(ep*m.surfCapex)} · ROI bruto <span style="color:${col}">${fmtP(sc.roiGross)}</span></div>
+            <div style="font-family:'DM Mono',monospace;font-size:12px;color:rgba(255,255,255,0.4);margin-top:5px">${fmt2(ep*m.surfCapex)} · ${t('roi_gross_lbl')} <span style="color:${col}">${fmtP(sc.roiGross)}</span></div>
           </div>`).join('')}
         </div>
       </div>
@@ -3661,15 +3662,15 @@ function buildSlides(m, d) {
         <img src="/Riverwalk_Logo_Negro.png" style="height:20px;width:auto;display:block;opacity:0.38">
       </div>
       <div style="flex:1;display:flex;flex-direction:column;gap:0">
-        <div class="ps-tag">El proyecto</div>
-        <div class="ps-h2">Reforma integral · Paleta de calidades</div>
+        <div class="ps-tag">${t('the_project')}</div>
+        <div class="ps-h2">${t('reform_integral')} · ${t('qualities_palette')}</div>
         <div class="ps-body" style="margin-bottom:20px">${d.narrative?.proyecto || '<span style="opacity:0.25">Genera la tesis del proyecto con ✦ Narrativa IA</span>'}</div>
         <div style="display:flex;flex-direction:column;gap:6px">
           ${[
-            ['Obra', V('obraM2').toLocaleString('es-ES') + ' €/m² + IVA'],
-            ['Interiorismo', V('decoM2').toLocaleString('es-ES') + ' €/m² + IVA'],
-            ['CapEx total', fmt2(m.capexNet * (1 + V('ivaObra')/100))],
-            ['Superficie reforma', m.surfCapex + ' m²'],
+            [t('works'), V('obraM2').toLocaleString('es-ES') + ' €/m² + IVA'],
+            [t('interior_design'), V('decoM2').toLocaleString('es-ES') + ' €/m² + IVA'],
+            [t('capex_total'), fmt2(m.capexNet * (1 + V('ivaObra')/100))],
+            [t('reform_surface'), m.surfCapex + ' m²'],
           ].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:9px 14px;background:rgba(0,0,0,0.04);border:1px solid rgba(0,0,0,0.07);font-size:12px">
             <span style="color:rgba(0,0,0,0.45)">${l}</span>
             <span style="font-family:'DM Mono',monospace;color:#1A1D23">${v}</span>
@@ -3699,41 +3700,41 @@ function buildSlides(m, d) {
     <div class="full" style="display:grid;grid-template-columns:280px 1fr 1fr 1fr">
       <!-- Left panel: investment breakdown -->
       <div style="background:rgba(0,0,0,0.5);border-right:1px solid rgba(255,255,255,0.06);padding:36px 28px;display:flex;flex-direction:column;justify-content:center;gap:14px">
-        <div class="ps-tag">Estructura</div>
-        <div style="font-family:'Cormorant Garamond',serif;font-size:26px;color:#fff;margin-bottom:4px">La operación</div>
+        <div class="ps-tag">${t('structure')}</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:26px;color:#fff;margin-bottom:4px">${t('the_operation')}</div>
         <div style="display:flex;flex-direction:column;gap:5px">
           ${[
-            ['Precio compra', fmt2(m.buyPrice), ''],
-            ['ITP + Notaría', fmt2(m.itp + m.notaria), ''],
-            ['CapEx + IVA', fmt2(m.capexNet * (1+V('ivaObra')/100)), ''],
-            ['Management fee', fmt2(m.mgmtFee * (1+V('ivaObra')/100)), ''],
+            [t('buy_price'), fmt2(m.buyPrice), ''],
+            [t('itp_notary'), fmt2(m.itp + m.notaria), ''],
+            [t('capex_iva'), fmt2(m.capexNet * (1+V('ivaObra')/100)), ''],
+            [t('mgmt_fee'), fmt2(m.mgmtFee * (1+V('ivaObra')/100)), ''],
           ].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;background:rgba(255,255,255,0.03);font-size:11px">
             <span style="color:rgba(255,255,255,0.4)">${l}</span>
             <span style="font-family:'DM Mono',monospace;color:rgba(255,255,255,0.75);font-size:10.5px">${v}</span>
           </div>`).join('')}
           <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(139,105,20,0.12);border:1px solid rgba(196,151,90,0.3);margin-top:4px">
-            <span style="font-size:11px;color:rgba(255,255,255,0.7)">Total inversión</span>
+            <span style="font-size:11px;color:rgba(255,255,255,0.7)">${t('total_invest_h')}</span>
             <span style="font-family:'DM Mono',monospace;color:rgba(196,151,90,0.9);font-size:12px">${fmt2(m.totalInvest)}</span>
           </div>
         </div>
       </div>
       <!-- 3 scenario panels -->
       ${[
-        {lbl:'Pesimista',  ep:V('exitP'), sc:m.pess, col:'#E05555',              bg:'rgba(192,57,43,0.04)',  border:'rgba(192,57,43,0.2)'},
-        {lbl:'Base case',  ep:V('exitB'), sc:m.base, col:'rgba(196,151,90,0.95)',bg:'rgba(139,105,20,0.1)', border:'rgba(196,151,90,0.4)'},
-        {lbl:'Optimista',  ep:V('exitO'), sc:m.opt,  col:'#52C07A',              bg:'rgba(30,122,69,0.05)', border:'rgba(30,122,69,0.25)'},
+        {lbl:t('pessimistic').split(' ·')[0], ep:V('exitP'), sc:m.pess, col:'#E05555',              bg:'rgba(192,57,43,0.04)',  border:'rgba(192,57,43,0.2)'},
+        {lbl:'Base case',                     ep:V('exitB'), sc:m.base, col:'rgba(196,151,90,0.95)',bg:'rgba(139,105,20,0.1)', border:'rgba(196,151,90,0.4)'},
+        {lbl:t('optimistic').split(' ·')[0],  ep:V('exitO'), sc:m.opt,  col:'#52C07A',              bg:'rgba(30,122,69,0.05)', border:'rgba(30,122,69,0.25)'},
       ].map(({lbl,ep,sc,col,bg,border})=>`<div style="background:${bg};border-left:1px solid ${border};padding:36px 32px;display:flex;flex-direction:column;justify-content:center">
         <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:${col};margin-bottom:20px;font-weight:600">${lbl}</div>
         <!-- Hero ROI -->
         <div style="font-family:'Cormorant Garamond',serif;font-size:72px;color:${col};line-height:1;margin-bottom:6px;font-weight:300">${fmtP(sc.roiGross)}</div>
-        <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:24px">ROI bruto operación</div>
+        <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:24px">${t('roi_gross_op')}</div>
         <!-- Metrics -->
         <div style="display:flex;flex-direction:column;gap:10px">
           ${[
-            ['Precio salida', ep.toLocaleString('es-ES') + ' €/m²'],
-            ['Venta bruta', fmt2(ep*m.surfCapex)],
-            ['Beneficio bruto', fmt2(sc.grossProfit)],
-            ['TIR anual', isFinite(sc.irr) ? fmtP(sc.irr) : '—'],
+            [t('exit_price_l'), ep.toLocaleString('es-ES') + ' €/m²'],
+            [t('gross_sale_l'), fmt2(ep*m.surfCapex)],
+            [t('gross_profit_l'), fmt2(sc.grossProfit)],
+            [t('annual_irr_l'), isFinite(sc.irr) ? fmtP(sc.irr) : '—'],
           ].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
             <span style="font-size:11px;color:rgba(255,255,255,0.35)">${l}</span>
             <span style="font-family:'DM Mono',monospace;font-size:12px;color:rgba(255,255,255,0.75)">${v}</span>
@@ -3741,10 +3742,10 @@ function buildSlides(m, d) {
         </div>
         <!-- Carry deduction -->
         <div style="margin-top:20px;padding:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07)">
-          <div style="font-size:9px;color:rgba(255,255,255,0.3);margin-bottom:6px;letter-spacing:0.1em;text-transform:uppercase">Carry Riverwalk</div>
+          <div style="font-size:9px;color:rgba(255,255,255,0.3);margin-bottom:6px;letter-spacing:0.1em;text-transform:uppercase">${t('carry_rw')}</div>
           <div style="display:flex;justify-content:space-between">
             <span style="font-family:'DM Mono',monospace;font-size:13px;color:rgba(196,151,90,0.7)">−${fmt2(sc.sf)}</span>
-            <span style="font-family:'DM Mono',monospace;font-size:13px;color:rgba(255,255,255,0.6)">${fmt2(sc.afterSF)} al inversor</span>
+            <span style="font-family:'DM Mono',monospace;font-size:13px;color:rgba(255,255,255,0.6)">${fmt2(sc.afterSF)} ${t('to_investor_l')}</span>
           </div>
         </div>
       </div>`).join('')}
@@ -3754,16 +3755,16 @@ function buildSlides(m, d) {
   const sf1T=V('sf1T'), sf2T=V('sf2T'), sf1P=V('sf1P'), sf2P=V('sf2P');
   slides.push({ id:'carry', html: baseCSS + `
     <div class="inner" style="padding:36px 48px">
-      <div class="ps-tag">Alineación de intereses</div>
-      <div class="ps-h2">Nuestro modelo de carry</div>
+      <div class="ps-tag">${t('alignment')}</div>
+      <div class="ps-h2">${t('our_carry_model')}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;flex:1;align-items:start">
         <div>
-          <div class="ps-body" style="margin-bottom:20px"><strong style="color:rgba(255,255,255,0.85)">El carry solo se activa si la operación supera los umbrales.</strong> Riverwalk cobra exclusivamente cuando el inversor gana. Es nuestro skin in the game.</div>
+          <div class="ps-body" style="margin-bottom:20px">${t('skin_game')}</div>
           <div style="display:flex;flex-direction:column;gap:6px">
             ${[
-              {lbl:`Hasta ROI ${sf1T}%`, carry:'0%', desc:'100% del beneficio para el inversor', col:'rgba(255,255,255,0.6)', bg:'rgba(255,255,255,0.03)'},
-              {lbl:`ROI ${sf1T}% → ${sf2T}%`, carry:`${sf1P}%`, desc:`${100-sf1P}% para el inversor`, col:'rgba(196,151,90,0.85)', bg:'rgba(139,105,20,0.1)'},
-              {lbl:`ROI > ${sf2T}%`, carry:`${sf2P}%`, desc:`${100-sf2P}% para el inversor`, col:'rgba(196,151,90,1)', bg:'rgba(139,105,20,0.15)'},
+              {lbl:t('until_roi')+' '+sf1T+'%', carry:'0%', desc:t('inv_100pct'), col:'rgba(255,255,255,0.6)', bg:'rgba(255,255,255,0.03)'},
+              {lbl:'ROI '+sf1T+'% → '+sf2T+'%', carry:`${sf1P}%`, desc:(100-sf1P)+'% '+t('inv_pct'), col:'rgba(196,151,90,0.85)', bg:'rgba(139,105,20,0.1)'},
+              {lbl:t('roi_above')+' '+sf2T+'%', carry:`${sf2P}%`, desc:(100-sf2P)+'% '+t('inv_pct'), col:'rgba(196,151,90,1)', bg:'rgba(139,105,20,0.15)'},
             ].map(({lbl,carry,desc,col,bg})=>`<div style="padding:14px 18px;background:${bg};border:1px solid rgba(196,151,90,0.15)">
               <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:${col};margin-bottom:6px">${lbl}</div>
               <div style="font-family:'DM Mono',monospace;font-size:20px;color:#fff">${carry} carry Riverwalk</div>
@@ -3772,21 +3773,21 @@ function buildSlides(m, d) {
           </div>
         </div>
         <div>
-          <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:10px">Escenario base — distribución</div>
+          <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:10px">${t('base_distrib_l')}</div>
           ${[
-            {l:'Beneficio bruto', v:fmt2(m.base.grossProfit), col:'rgba(255,255,255,0.75)'},
-            {l:'Carry Riverwalk', v:'−'+fmt2(m.base.sf), col:'rgba(196,151,90,0.7)'},
-            {l:'Al inversor (pre-tax)', v:fmt2(m.base.afterSF), col:'#52C07A'},
+            {l:t('gross_profit_l'), v:fmt2(m.base.grossProfit), col:'rgba(255,255,255,0.75)'},
+            {l:t('carry_rw'), v:'−'+fmt2(m.base.sf), col:'rgba(196,151,90,0.7)'},
+            {l:t('inv_pretax_l'), v:fmt2(m.base.afterSF), col:'#52C07A'},
           ].map(({l,v,col})=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.05)">
             <span style="font-size:12px;color:rgba(255,255,255,0.45)">${l}</span>
             <span style="font-family:'DM Mono',monospace;font-size:14px;color:${col}">${v}</span>
           </div>`).join('')}
           <div style="margin-top:16px;padding:18px;background:rgba(30,122,69,0.08);border:1px solid rgba(82,192,122,0.2)">
-            <div class="ps-data-l">ROI al inversor · escenario base</div>
+            <div class="ps-data-l">${t('inv_roi_base')}</div>
             <div style="font-family:'DM Mono',monospace;font-size:28px;color:#52C07A;margin-top:6px">${fmtP((m.base.afterSF)/m.totalInvest)}</div>
           </div>
           <div style="margin-top:10px;padding:14px 18px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">
-            <div class="ps-data-l">TIR anual base</div>
+            <div class="ps-data-l">${t('annual_irr_base')}</div>
             <div style="font-family:'DM Mono',monospace;font-size:20px;color:rgba(196,151,90,0.8);margin-top:4px">${isFinite(m.base.irr)?fmtP(m.base.irr):'—'}</div>
           </div>
         </div>
@@ -3795,16 +3796,16 @@ function buildSlides(m, d) {
 
   // ── TIMELINE ANIMADO ──────────────────────────────────────────────────────
   const tlSteps = [
-    {lbl:'Arras',    m:0,                  sub:'Firma contrato',     icon:'◆'},
-    {lbl:'Escritura',m:m.arasMonths,       sub:m.arasMonths+'m',     icon:'◆'},
-    {lbl:'Inicio obra',m:m.arasMonths+1,   sub:'CapEx',               icon:'◆'},
-    {lbl:'Fin obra', m:m.arasMonths+Math.round(m.monthsSale*0.8), sub:'Entrega', icon:'◆'},
-    {lbl:'Venta',    m:m.totalMonths,      sub:m.totalMonths+'m total',icon:'◆'},
+    {lbl:t('earnest'),    m:0,                  sub:t('earnest_sign'),     icon:'◆'},
+    {lbl:t('deed'),       m:m.arasMonths,       sub:m.arasMonths+'m',      icon:'◆'},
+    {lbl:t('works_start'),m:m.arasMonths+1,     sub:t('capex_label'),      icon:'◆'},
+    {lbl:t('works_end'),  m:m.arasMonths+Math.round(m.monthsSale*0.8), sub:t('handover_lbl'), icon:'◆'},
+    {lbl:t('sale'),       m:m.totalMonths,      sub:m.totalMonths+'m total',icon:'◆'},
   ];
   slides.push({ id:'timeline', html: baseCSS + `
     <div class="inner" style="justify-content:center;padding:48px 72px">
-      <div class="ps-tag" style="text-align:center">Calendario</div>
-      <div class="ps-h2" style="text-align:center;margin-bottom:48px">Temporalidad de la operación · ${m.totalMonths} meses</div>
+      <div class="ps-tag" style="text-align:center">${t('timeline')}</div>
+      <div class="ps-h2" style="text-align:center;margin-bottom:48px">${t('op_timeline_l')} · ${m.totalMonths} ${t('months')}</div>
 
       <!-- Timeline track -->
       <div style="position:relative;margin:0 40px 60px">
@@ -3823,9 +3824,9 @@ function buildSlides(m, d) {
       <!-- Summary grid -->
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:700px;margin:0 auto">
         ${[
-          ['Período arras', m.arasMonths + ' meses'],
-          ['Reforma + venta', m.monthsSale + ' meses'],
-          ['Total operación', m.totalMonths + ' meses'],
+          [t('earnest_period'), m.arasMonths + ' ' + t('months')],
+          [t('reform_sale_l'), m.monthsSale + ' ' + t('months')],
+          [t('total_op'), m.totalMonths + ' ' + t('months')],
         ].map(([l,v])=>`<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);padding:20px;text-align:center">
           <div class="ps-data-l" style="margin-bottom:8px">${l}</div>
           <div style="font-family:'DM Mono',monospace;font-size:28px;color:#fff">${v}</div>
@@ -3896,7 +3897,7 @@ function buildSlides(m, d) {
 
   const heatRows2 = capexAdjs.map(adj => {
     const isBase = adj === 0;
-    const lbl = isBase ? 'CapEx base ·' : `CapEx ${adj>0?'+':''}${(adj*100).toFixed(0)}%`;
+    const lbl = isBase ? t('capex_label')+' base ·' : `CapEx ${adj>0?'+':''}${(adj*100).toFixed(0)}%`;
     return `<tr>${['<td style="padding:7px 12px;font-family:\'DM Mono\',monospace;font-size:10.5px;color:'+(isBase?'rgba(196,151,90,0.95)':'rgba(255,255,255,0.5)')+';white-space:nowrap;border-right:1px solid rgba(255,255,255,0.06);'+(isBase?'background:rgba(139,105,20,0.08);':'')+'">' + lbl + '</td>',
       ...capexExits.map(ep => {
         const roi = cellROI2(1+adj, ep);
@@ -3906,12 +3907,12 @@ function buildSlides(m, d) {
   }).join('');
 
   const matrixLegend = `<div style="display:flex;gap:14px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06)">
-    ${[['#E05555','< 0% · Pérdidas'],['rgba(255,165,0,0.9)','0–8%'],['rgba(196,151,90,0.9)','8–15%'],['#52C07A','> 15% · Objetivo']].map(([c,l])=>`
+    ${[['#E05555','< 0% · '+t('losses_lbl')],['rgba(255,165,0,0.9)','0–8%'],['rgba(196,151,90,0.9)','8–15%'],['#52C07A','> 15% · '+t('target_lbl')]].map(([c,l])=>`
     <div style="display:flex;align-items:center;gap:5px">
       <div style="width:8px;height:8px;background:${c};opacity:0.7;border-radius:1px;flex-shrink:0"></div>
       <span style="font-size:8.5px;color:rgba(255,255,255,0.3)">${l}</span>
     </div>`).join('')}
-    <div style="margin-left:auto;font-size:8.5px;color:rgba(255,255,255,0.2)">· = escenario base</div>
+    <div style="margin-left:auto;font-size:8.5px;color:rgba(255,255,255,0.2)">· = ${t('base_sc_dot')}</div>
   </div>`;
 
   // ── BIBLIOTECA DE MATRICES — inserted inside Protección de capital ────────
@@ -3930,17 +3931,17 @@ function buildSlides(m, d) {
     <div class="inner" style="padding:28px 44px;gap:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:24px;flex-shrink:0">
         <div>
-          <div class="ps-tag">Protección de capital</div>
-          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:#fff;margin-top:2px">Matrices de sensibilidad</div>
+          <div class="ps-tag">${t('capital_prot')}</div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:#fff;margin-top:2px">${t('sens_matrices')}</div>
         </div>
         <div style="display:flex;gap:10px">
           <div style="padding:12px 18px;background:rgba(139,105,20,0.12);border:1px solid rgba(196,151,90,0.3);text-align:center;min-width:100px">
             <div style="font-family:'DM Mono',monospace;font-size:18px;color:rgba(196,151,90,0.95);line-height:1;margin-bottom:3px">${beM2.toLocaleString('es-ES')}<span style="font-size:10px"> €/m²</span></div>
-            <div style="font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.3)">Breakeven bruto</div>
+            <div style="font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.3)">${t('breakeven_br')}</div>
           </div>
           <div style="padding:12px 18px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);text-align:center;min-width:90px">
             <div style="font-family:'DM Mono',monospace;font-size:18px;color:#52C07A;line-height:1;margin-bottom:3px">${marginPct}<span style="font-size:10px">%</span></div>
-            <div style="font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.3)">Margen s/ base</div>
+            <div style="font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.3)">${t('margin_base')}</div>
           </div>
           <div style="padding:12px 18px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);text-align:center;min-width:90px">
             <div style="font-family:'DM Mono',monospace;font-size:18px;color:${worstRoi < 0 ? '#E05555' : '#52C07A'};line-height:1;margin-bottom:3px">${(worstRoi*100).toFixed(1)}<span style="font-size:10px">%</span></div>
@@ -8829,6 +8830,68 @@ const RW_I18N = {
   page:            { es:'Página', en:'Page', fr:'Page', de:'Seite', pt:'Página' },
 };
 
+// Extended keys for buildSlides presentation + PDF
+Object.assign(RW_I18N, {
+  invest_opp:     { es:'Oportunidad de inversión', en:'Investment opportunity', fr:'Opportunité d\'investissement', de:'Investitionsmöglichkeit', pt:'Oportunidade de investimento' },
+  total_invest:   { es:'Inversión total', en:'Total investment', fr:'Investissement total', de:'Gesamtinvestition', pt:'Investimento total' },
+  exit_base_price:{ es:'Precio salida base', en:'Base exit price', fr:'Prix de sortie de base', de:'Basis-Verkaufspreis', pt:'Preço de saída base' },
+  roi_gross_lbl:  { es:'ROI bruto', en:'Gross ROI', fr:'ROI brut', de:'Brutto-ROI', pt:'ROI bruto' },
+  surface_lbl:    { es:'Superficie', en:'Area', fr:'Surface', de:'Fläche', pt:'Superfície' },
+  buy_pm2_lbl:    { es:'€/m² compra', en:'Purchase €/m²', fr:'€/m² achat', de:'€/m² Kauf', pt:'€/m² compra' },
+  market_ctx:     { es:'Contexto de mercado', en:'Market context', fr:'Contexte de marché', de:'Marktkontext', pt:'Contexto de mercado' },
+  microzone_prem: { es:'Prima microzona', en:'Microzone premium', fr:'Prime microzone', de:'Microzone-Premium', pt:'Prêmio microzona' },
+  price_dist_cp:  { es:'Distribución €/m² en CP', en:'€/m² price distribution in CP', fr:'Distribution €/m² par CP', de:'€/m²-Verteilung PLZ', pt:'Distribuição €/m² no CP' },
+  median_cp_lbl:  { es:'Mediana CP', en:'CP Median', fr:'Médiane CP', de:'PLZ-Median', pt:'Mediana CP' },
+  from_ask_deal:  { es:'Del precio inicial al precio pactado', en:'From asking to agreed price', fr:'Du prix initial au prix convenu', de:'Vom Angebotspreis zum vereinbarten Preis', pt:'Do preço inicial ao preço acordado' },
+  initial_asking: { es:'Precio inicial asking', en:'Initial asking price', fr:'Prix initial demandé', de:'Ursprünglicher Angebotspreis', pt:'Preço inicial pedido' },
+  offer_submitted:{ es:'Oferta presentada', en:'Submitted offer', fr:'Offre présentée', de:'Vorgelegtes Angebot', pt:'Oferta apresentada' },
+  offer_rejected: { es:'Oferta rechazada', en:'Rejected offer', fr:'Offre refusée', de:'Abgelehntes Angebot', pt:'Oferta rejeitada' },
+  seller_counter: { es:'Contraoferta vendedor', en:'Seller counteroffer', fr:'Contre-offre vendeur', de:'Gegenangebot Verkäufer', pt:'Contraoferta do vendedor' },
+  price_agreed:   { es:'Precio pactado', en:'Agreed price', fr:'Prix convenu', de:'Vereinbarter Preis', pt:'Preço acordado' },
+  neg_result_lbl: { es:'Resultado de la negociación', en:'Negotiation outcome', fr:'Résultat de la négociation', de:'Verhandlungsergebnis', pt:'Resultado da negociação' },
+  vs_asking_lbl:  { es:'sobre el precio de salida del vendedor', en:'vs. seller\'s asking price', fr:'par rapport au prix du vendeur', de:'ggü. dem Angebotspreis des Verkäufers', pt:'face ao preço pedido pelo vendedor' },
+  initial_price_l:{ es:'Precio inicial', en:'Initial price', fr:'Prix initial', de:'Anfangspreis', pt:'Preço inicial' },
+  neg_saving_lbl: { es:'Ahorro negociado', en:'Negotiated saving', fr:'Économie négociée', de:'Ausgehandelter Rabatt', pt:'Poupança negociada' },
+  discount_unren: { es:'Descuento vs mercado a reformar', en:'Discount vs. unrenovated market', fr:'Décote vs marché à rénover', de:'Rabatt ggü. unsaniertem Markt', pt:'Desconto vs mercado a reformar' },
+  vs_unreno_lbl:  { es:'respecto a comparables sin reformar', en:'vs. unrenovated comparables', fr:'par rapport aux biens à rénover', de:'ggü. unsanierten Vergleichswerten', pt:'face a comparáveis sem reformar' },
+  exit_scenarios_l:{ es:'Escenarios de precio de salida', en:'Exit price scenarios', fr:'Scénarios de prix de sortie', de:'Verkaufspreis-Szenarien', pt:'Cenários de preço de saída' },
+  renovated_comp_l:{ es:'Testigos reformados', en:'Renovated comparables', fr:'Comparables rénovés', de:'Sanierte Vergleichswerte', pt:'Comparáveis renovados' },
+  our_carry_model:{ es:'Nuestro modelo de carry', en:'Our carry model', fr:'Notre modèle de carry', de:'Unser Carry-Modell', pt:'Nosso modelo de carry' },
+  carry_rw:       { es:'Carry Riverwalk', en:'Riverwalk Carry', fr:'Carry Riverwalk', de:'Riverwalk-Carry', pt:'Carry Riverwalk' },
+  inv_roi_base:   { es:'ROI al inversor · escenario base', en:'Investor ROI · base scenario', fr:'ROI investisseur · scénario de base', de:'Investor-ROI · Basisszenario', pt:'ROI ao investidor · cenário base' },
+  annual_irr_base:{ es:'TIR anual base', en:'Base annual IRR', fr:'TRI annuel de base', de:'Basis-Jahres-IRR', pt:'TIR anual base' },
+  reform_sale_l:  { es:'Reforma + venta', en:'Renovation + sale', fr:'Rénovation + vente', de:'Sanierung + Verkauf', pt:'Reforma + venda' },
+  breakeven_br:   { es:'Breakeven bruto', en:'Gross breakeven', fr:'Seuil de rentabilité brut', de:'Brutto-Break-even', pt:'Breakeven bruto' },
+  margin_base:    { es:'Margen s/ base', en:'Margin vs. base', fr:'Marge sur base', de:'Marge ggü. Basis', pt:'Margem s/ base' },
+  the_numbers_l:  { es:'Los números', en:'The numbers', fr:'Les chiffres', de:'Die Zahlen', pt:'Os números' },
+  total_invest_h: { es:'Total inversión', en:'Total investment', fr:'Investissement total', de:'Gesamtinvestition', pt:'Investimento total' },
+  roi_gross_op:   { es:'ROI bruto operación', en:'Gross ROI', fr:'ROI brut', de:'Brutto-ROI', pt:'ROI bruto' },
+  exit_price_l:   { es:'Precio salida', en:'Exit price', fr:'Prix de sortie', de:'Verkaufspreis', pt:'Preço de saída' },
+  gross_sale_l:   { es:'Venta bruta', en:'Gross sale', fr:'Vente brute', de:'Bruttoerlös', pt:'Venda bruta' },
+  gross_profit_l: { es:'Beneficio bruto', en:'Gross profit', fr:'Bénéfice brut', de:'Bruttogewinn', pt:'Lucro bruto' },
+  annual_irr_l:   { es:'TIR anual', en:'Annual IRR', fr:'TRI annuel', de:'Jahres-IRR', pt:'TIR anual' },
+  to_investor_l:  { es:'al inversor', en:'to investor', fr:'à l\'investisseur', de:'an den Investor', pt:'ao investidor' },
+  inv_pretax_l:   { es:'Al inversor (pre-tax)', en:'To investor (pre-tax)', fr:'À l\'investisseur (avant impôt)', de:'An Investor (vor Steuern)', pt:'Ao investidor (pré-imposto)' },
+  base_distrib_l: { es:'Escenario base — distribución', en:'Base scenario — distribution', fr:'Scénario de base — distribution', de:'Basisszenario — Verteilung', pt:'Cenário base — distribuição' },
+  op_timeline_l:  { es:'Temporalidad de la operación', en:'Operation timeline', fr:'Calendrier de l\'opération', de:'Operationszeitplan', pt:'Cronograma da operação' },
+  losses_lbl:     { es:'Pérdidas', en:'Losses', fr:'Pertes', de:'Verluste', pt:'Perdas' },
+  target_lbl:     { es:'Objetivo', en:'Target', fr:'Objectif', de:'Zielrendite', pt:'Objetivo' },
+  base_sc_dot:    { es:'escenario base', en:'base scenario', fr:'scénario de base', de:'Basisszenario', pt:'cenário base' },
+  skin_game:      { es:'El carry solo se activa si la operación supera los umbrales. Riverwalk cobra exclusivamente cuando el inversor gana. Es nuestro skin in the game.', en:'Carry only activates when the deal exceeds thresholds. Riverwalk earns exclusively when the investor wins. This is our skin in the game.', fr:'Le carry ne s\'active que si l\'opération dépasse les seuils. Riverwalk perçoit exclusivement quand l\'investisseur gagne. C\'est notre skin in the game.', de:'Carry wird nur aktiviert, wenn die Operation die Schwellenwerte überschreitet. Riverwalk verdient ausschließlich, wenn der Investor gewinnt. Das ist unser Skin in the Game.', pt:'O carry só se ativa se a operação superar os limiares. A Riverwalk cobra exclusivamente quando o investidor ganha. É o nosso skin in the game.' },
+  until_roi:      { es:'Hasta ROI', en:'Up to ROI', fr:'Jusqu\'à ROI', de:'Bis ROI', pt:'Até ROI' },
+  roi_above:      { es:'ROI >', en:'ROI >', fr:'ROI >', de:'ROI >', pt:'ROI >' },
+  inv_100pct:     { es:'100% del beneficio para el inversor', en:'100% of profit to investor', fr:'100% du bénéfice à l\'investisseur', de:'100% des Gewinns an den Investor', pt:'100% do lucro para o investidor' },
+  inv_pct:        { es:'para el inversor', en:'for the investor', fr:'pour l\'investisseur', de:'für den Investor', pt:'para o investidor' },
+  add_neg_hint:   { es:'Añade los hitos de negociación en la sección "Negociación — Historial bid/ask" del panel izquierdo.', en:'Add negotiation milestones in the "Negotiation — bid/ask history" section of the left panel.', fr:'Ajoutez les jalons de négociation dans la section "Négociation — Historique bid/ask" du panneau gauche.', de:'Fügen Sie Verhandlungs-Meilensteine im Abschnitt "Verhandlung — Gebotshistorie" des linken Panels hinzu.', pt:'Adicione os marcos de negociação na seção "Negociação — Histórico bid/ask" do painel esquerdo.' },
+  op_invest_opp:  { es:'Oportunidad de inversión', en:'Investment opportunity', fr:'Opportunité d\'investissement', de:'Investitionsmöglichkeit', pt:'Oportunidade de investimento' },
+  earnest_sign:   { es:'Firma contrato', en:'Contract signing', fr:'Signature du contrat', de:'Vertragsunterzeichnung', pt:'Assinatura do contrato' },
+  capex_label:    { es:'CapEx', en:'CapEx', fr:'CapEx', de:'CapEx', pt:'CapEx' },
+  handover_lbl:   { es:'Entrega', en:'Handover', fr:'Livraison', de:'Übergabe', pt:'Entrega' },
+  earnest_period_l:{ es:'Período arras', en:'Earnest period', fr:'Période arrhes', de:'Anzahlungsphase', pt:'Período de sinal' },
+  reform_venta_l: { es:'Reforma + venta', en:'Renovation + sale', fr:'Rénovation + vente', de:'Sanierung + Verkauf', pt:'Reforma + venda' },
+  total_op_mos:   { es:'Total operación', en:'Total operation', fr:'Opération totale', de:'Gesamtoperation', pt:'Operação total' },
+});
+
 function t(key) {
   const entry = RW_I18N[key];
   if (!entry) return key;
@@ -8839,14 +8902,13 @@ function rwSetLang(code) {
   if (!['es','en','fr','de','pt'].includes(code)) code = 'es';
   RW_LANG = code;
   try { localStorage.setItem('rw_lang', code); } catch(e) {}
-  const pm = document.getElementById('presentation-mode');
-  if (pm && pm.style.display === 'block' && typeof buildSlides === 'function' && typeof renderPresSlide === 'function') {
-    try {
-      const m = calc(); const d = getCurrentDossier();
-      window.presSlides = buildSlides(m, d);
-      renderPresSlide();
-    } catch(e) { console.warn('lang rebuild failed', e); }
-  }
+  // Rebuild presentation slides with new language
+  try {
+    const m = calc(); const d = getCurrentDossier();
+    window.presSlides = buildSlides(m, d);
+    const pm = document.getElementById('presentation-mode');
+    if (pm && pm.style.display !== 'none') renderPresSlide();
+  } catch(e) { console.warn('lang rebuild failed', e); }
 }
 
 setTimeout(() => {
@@ -9346,7 +9408,7 @@ function rwSlideExtMatrixDark(matrixId, m) {
       <div style="width:8px;height:8px;background:${c};opacity:0.7;border-radius:1px;flex-shrink:0"></div>
       <span style="font-size:8.5px;color:rgba(255,255,255,0.3)">${l}</span>
     </div>`).join('')}
-    <div style="margin-left:auto;font-size:8.5px;color:rgba(255,255,255,0.2)">· = escenario base</div>
+    <div style="margin-left:auto;font-size:8.5px;color:rgba(255,255,255,0.2)">· = ${t('base_sc_dot')}</div>
   </div>` : '';
   const tableRows = rows.map(row => {
     const rowLabelStyle = `padding:7px 12px;font-family:'DM Mono',monospace;font-size:10.5px;white-space:nowrap;border-right:1px solid rgba(255,255,255,0.06);${row.isBase?'color:rgba(196,151,90,0.95);background:rgba(139,105,20,0.08);':'color:rgba(255,255,255,0.5);'}`;

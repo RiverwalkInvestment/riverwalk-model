@@ -650,8 +650,7 @@ body.dark-mode {
   .status-dot { display: none; }
   .btn-reset { display: none; }
   .btn-brief { display: none; }
-  /* Hide lang selector and API key pill to save space on mobile */
-  #rw-lang-selector { display: none; }
+  /* Hide API key pill to save space on mobile */
   #rw-apikey-pill { display: none; }
   /* Gate pill: compact */
   #rw-gate-pill { font-size: 8px; padding: 3px 7px; }
