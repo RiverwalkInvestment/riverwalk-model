@@ -641,15 +641,32 @@ body.dark-mode {
   .output-panel { overflow-x: hidden; width: 100%; }
 
   /* ── Topbar: two rows on mobile ── */
-  .topbar { padding: 6px 10px; gap: 6px; height: auto; min-height: auto; flex-wrap: wrap; align-items: center; }
+  /* Row 1: logo + deal name. Row 2: action buttons (full width) */
+  .topbar { padding: 0 10px; gap: 6px; height: auto !important; min-height: 44px; flex-wrap: wrap; align-items: center; align-content: flex-start; overflow: visible !important; }
   .topbar-label { display: none; }
   .topbar-sep { display: none; }
-  .topbar-deal { font-size: 11px; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .topbar-deal { font-size: 11px; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .status-lbl { display: none; }
+  .status-dot { display: none; }
   .btn-reset { display: none; }
   .btn-brief { display: none; }
-  .btn { padding: 7px 9px; font-size: 8px; min-height: 32px; white-space: nowrap; }
-  .topbar-right { flex-wrap: wrap; gap: 5px; }
+  /* Hide lang selector and API key pill to save space on mobile */
+  #rw-lang-selector { display: none; }
+  #rw-apikey-pill { display: none; }
+  /* Gate pill: compact */
+  #rw-gate-pill { font-size: 8px; padding: 3px 7px; }
+  /* Action buttons: smaller on mobile */
+  .btn { padding: 6px 9px; font-size: 8px; min-height: 30px; white-space: nowrap; }
+  /* Row 2: topbar-right takes full width, buttons wrap inside */
+  .topbar-right {
+    width: 100%;
+    margin-left: 0 !important;
+    flex-wrap: wrap;
+    gap: 5px;
+    justify-content: flex-end;
+    padding: 5px 0 6px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
 
   /* ── KPI strip: 3-col grid (5 KPIs → 2 rows) ── */
   .kpi-strip {
