@@ -6833,77 +6833,22 @@ function rwStepMercado() {
 function rwWizardFinish() {
   rwWizardSaveCurrentStep();
   const d = rwWizardState.data;
-
   const dealName = (d.dealName || '').trim() || 'Deal nuevo';
-  addDeal(dealName);
 
-  if (rwWizardState.dealMode && rwWizardState.dealMode !== 'reforma') {
-    document.querySelectorAll('.deal-mode-btn').forEach(btn => {
-      if (btn.dataset.mode === rwWizardState.dealMode) btn.click();
-    });
-  }
+  // Store wizard data in sessionStorage so the new deal page can apply it after navigation
+  try {
+    sessionStorage.setItem('rw_wizard_pending', JSON.stringify({
+      data: d,
+      dealMode: rwWizardState.dealMode,
+      asumeVendedor: rwWizardState.asumeVendedor,
+      presetSelected: rwWizardState.presetSelected,
+    }));
+  } catch(e) {}
 
-  const setVal = (id, val) => {
-    if (val === undefined || val === '' || val === null) return;
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.value = val;
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-  };
-  const fieldMap = ['dealName','surfCapex','dealAddress','dealCP','dealFloor','dealPuerta','buyPrice','itpPct','arasAmt','comunidad','ibi','arasMonths','obraMonths','comercialMonths','obraM2','decoM2','ivaObra','overPct','exitP','exitB','exitO','brokerExit','exitFixed','ltv','bridgeRate','costeDeuda','mgmtFeePct','taxRate','sf1T','sf2T','sf2P'];
-  fieldMap.forEach(id => setVal(id, d[id]));
-
-  if (rwWizardState.asumeVendedor) {
-    const cb = document.getElementById('notariaAsumeVendedor');
-    if (cb && !cb.checked) cb.click();
-  }
-
-  if (rwWizardState.presetSelected && typeof getCurrentDossier === 'function') {
-    const dossier = getCurrentDossier();
-    dossier.calidades = dossier.calidades || {};
-    dossier.calidades.presetId = rwWizardState.presetSelected;
-    if (typeof rwRenderCalidadesGallery === 'function') rwRenderCalidadesGallery();
-    if (typeof rwValidateCapExPreset === 'function') rwValidateCapExPreset();
-  }
-
-  if (typeof getCurrentDossier === 'function') {
-    const dossier = getCurrentDossier();
-    if (d.askingImporte || d.askingFecha) {
-      dossier.negotiation = dossier.negotiation || { asking: { importe: 0, fecha: '' }, rounds: [] };
-      if (Array.isArray(dossier.negotiation)) {
-        dossier.negotiation = { asking: { importe: 0, fecha: '' }, rounds: [] };
-      }
-      dossier.negotiation.asking = { importe: parseFloat(d.askingImporte) || 0, fecha: d.askingFecha || '' };
-      if (typeof rwRenderNegotiation === 'function') rwRenderNegotiation();
-    }
-    if (d.narrContext) {
-      dossier.narrative = dossier.narrative || {};
-      dossier.narrative.context = d.narrContext;
-      setVal('narr-context-general', d.narrContext);
-      if (typeof rwUpdateContextStatus === 'function') rwUpdateContextStatus();
-    }
-  }
-
-  if (typeof update === 'function') update();
-  if (typeof rwCheckCoherenceInline === 'function') rwCheckCoherenceInline();
   document.getElementById('rw-wizard-overlay')?.remove();
   rwWizardState = null;
-
-  // Success toast
-  const t = document.createElement('div');
-  t.style.cssText = 'position:fixed;top:80px;right:24px;background:linear-gradient(135deg,rgba(82,192,122,0.18),rgba(82,192,122,0.06));border:1px solid rgba(82,192,122,0.5);padding:18px 22px;z-index:99997;font-family:Raleway,sans-serif;max-width:380px;box-shadow:0 4px 20px rgba(0,0,0,0.4)';
-  t.innerHTML =
-    '<div style="display:flex;align-items:flex-start;gap:12px">' +
-      '<div style="font-size:22px;color:var(--green);line-height:1">✓</div>' +
-      '<div style="flex:1">' +
-        '<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:var(--text-b);margin-bottom:3px">Operación creada</div>' +
-        '<div style="font-size:11px;color:var(--text-d);line-height:1.6;margin-bottom:8px"><strong>' + dealName + '</strong> está lista en el panel. Ya puedes refinar inputs, importar testigos y presentarla.</div>' +
-        '<button onclick="this.parentElement.parentElement.parentElement.remove()" style="background:transparent;border:1px solid var(--line2);color:var(--text-d);font-size:9px;letter-spacing:0.12em;text-transform:uppercase;padding:5px 10px;cursor:pointer">Cerrar</button>' +
-      '</div>' +
-    '</div>';
-  document.body.appendChild(t);
-  setTimeout(() => { if (t.parentNode) t.remove(); }, 12000);
+  // addDeal is overridden in the webapp to createAndGo(name) which navigates to the new deal page
+  addDeal(dealName);
 }
 
 // ══════════════════════════════════════════════════════════════════════

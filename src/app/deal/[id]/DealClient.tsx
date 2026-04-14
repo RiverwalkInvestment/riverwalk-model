@@ -1461,7 +1461,7 @@ const OVERLAY_HTML = `
 
 // Cache-buster for deal-script.js — bump this string whenever deal-script.js changes
 // so the browser fetches the latest version instead of the cached one.
-const DEAL_SCRIPT_VER = '20260413-14'
+const DEAL_SCRIPT_VER = '20260413-15'
 
 // Module-level flag: prevents createAndGo from firing more than once at a time,
 // guarding against double-clicks or remount-induced duplicate deal creation.
@@ -1790,7 +1790,11 @@ export default function DealClient({
               ).join('') +
               `<button class="tab-add" id="rw-tab-add" title="Nueva operación">+</button>`
 
-            document.getElementById('rw-tab-add')?.addEventListener('click', () => createAndGo())
+            document.getElementById('rw-tab-add')?.addEventListener('click', () => {
+              const ww = window as any
+              if (typeof ww.rwOpenNewDealModal === 'function') ww.rwOpenNewDealModal()
+              else createAndGo()
+            })
           })
           .catch(() => {})
       }
@@ -1823,6 +1827,48 @@ export default function DealClient({
         // New deals: already blanked by useLayoutEffect before scripts loaded.
         // Don't re-clear here — user may have started typing by this point.
         w.autoFillDates?.()
+        // Apply wizard data if this page was created via the guided wizard
+        const pendingWizard = sessionStorage.getItem('rw_wizard_pending')
+        if (pendingWizard && Object.keys(initialData).length === 0) {
+          sessionStorage.removeItem('rw_wizard_pending')
+          try {
+            const wz = JSON.parse(pendingWizard)
+            const setVal = (id: string, val: unknown) => {
+              if (val === undefined || val === '' || val === null) return
+              const el = document.getElementById(id) as HTMLInputElement | null
+              if (!el) return
+              el.value = String(val)
+              el.dispatchEvent(new Event('input', { bubbles: true }))
+              el.dispatchEvent(new Event('change', { bubbles: true }))
+            }
+            const fieldMap = ['dealName','surfCapex','dealAddress','dealCP','dealFloor','dealPuerta','buyPrice','itpPct','arasAmt','comunidad','ibi','arasMonths','obraMonths','comercialMonths','obraM2','decoM2','ivaObra','overPct','exitP','exitB','exitO','brokerExit','exitFixed','ltv','bridgeRate','costeDeuda','mgmtFeePct','taxRate','sf1T','sf2T','sf2P']
+            fieldMap.forEach(id => setVal(id, wz.data[id]))
+            if (wz.dealMode && wz.dealMode !== 'reforma') {
+              document.querySelectorAll('.deal-mode-btn').forEach((btn: Element) => {
+                if ((btn as HTMLElement).dataset.mode === wz.dealMode) (btn as HTMLElement).click()
+              })
+            }
+            if (wz.asumeVendedor) {
+              const cb = document.getElementById('notariaAsumeVendedor') as HTMLInputElement | null
+              if (cb && !cb.checked) cb.click()
+            }
+            if (wz.data.askingImporte || wz.data.askingFecha || wz.data.narrContext) {
+              const dossier = (w as any).getCurrentDossier?.()
+              if (dossier) {
+                if (wz.data.askingImporte || wz.data.askingFecha) {
+                  dossier.negotiation = { asking: { importe: parseFloat(wz.data.askingImporte) || 0, fecha: wz.data.askingFecha || '' }, rounds: [] };
+                  (w as any).rwRenderNegotiation?.()
+                }
+                if (wz.data.narrContext) {
+                  dossier.narrative = dossier.narrative || {}
+                  dossier.narrative.context = wz.data.narrContext
+                  setVal('narr-context-general', wz.data.narrContext);
+                  (w as any).rwUpdateContextStatus?.()
+                }
+              }
+            }
+          } catch(e) {}
+        }
         // Ensure output is calculated even if no states triggered update() above
         w.update?.()
         // Re-render tabs after data restore so active tab shows saved name
@@ -1971,19 +2017,21 @@ export default function DealClient({
           <div className="status-lbl">Tiempo real</div>
           <div className="topbar-sep" />
 
-          <button className="btn btn-reset" onClick={async () => {
-            if (_creatingDeal) return
-            _creatingDeal = true
-            const res = await fetch('/api/deals', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name: 'Nueva operación' }),
-            })
-            if (res.ok) {
-              const deal = await res.json()
-              window.location.href = `/deal/${deal.id}`
+          <button className="btn btn-reset" onClick={() => {
+            const ww = window as any
+            if (typeof ww.rwOpenNewDealModal === 'function') {
+              ww.rwOpenNewDealModal()
             } else {
-              _creatingDeal = false
+              if (_creatingDeal) return
+              _creatingDeal = true
+              fetch('/api/deals', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: 'Nueva operación' }),
+              })
+                .then(r => r.json())
+                .then((d: { id: string }) => { window.location.href = `/deal/${d.id}` })
+                .catch(() => { _creatingDeal = false })
             }
           }}>
             + Nuevo deal
