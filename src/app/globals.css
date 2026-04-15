@@ -21,6 +21,7 @@ body { background: var(--dark); color: var(--text); font-family: 'Raleway', sans
 .topbar-label { font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-d); }
 .topbar-deal { font-size: 12px; font-weight: 500; color: var(--text-b); font-family: 'DM Mono', monospace; }
 .topbar-right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+.rw-mobile-only { display: none; }
 .btn { font-family: 'Raleway', sans-serif; font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; border: 1px solid var(--line); background: transparent; color: var(--text-d); padding: 6px 14px; cursor: pointer; transition: all 0.15s; }
 .btn:hover { border-color: var(--gold); color: var(--gold); }
 .btn.primary { background: var(--gold); border-color: var(--gold); color: #fff; font-weight: 600; }
@@ -652,6 +653,8 @@ body.dark-mode {
   .btn-brief { display: none; }
   /* Hide API key pill to save space on mobile */
   #rw-apikey-pill { display: none; }
+  /* Show mobile-only elements on mobile */
+  .rw-mobile-only { display: inline-flex !important; }
   /* Gate pill: compact */
   #rw-gate-pill { font-size: 8px; padding: 3px 7px; }
   /* Action buttons: smaller on mobile */

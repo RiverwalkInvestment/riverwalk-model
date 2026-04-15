@@ -1461,7 +1461,7 @@ const OVERLAY_HTML = `
 
 // Cache-buster for deal-script.js — bump this string whenever deal-script.js changes
 // so the browser fetches the latest version instead of the cached one.
-const DEAL_SCRIPT_VER = '20260414-02'
+const DEAL_SCRIPT_VER = '20260414-03'
 
 // Module-level flag: prevents createAndGo from firing more than once at a time,
 // guarding against double-clicks or remount-induced duplicate deal creation.
@@ -1971,7 +1971,7 @@ export default function DealClient({
             id="rw-lang-selector"
             onChange={(e) => { if (typeof window !== 'undefined' && (window as any).rwSetLang) (window as any).rwSetLang(e.target.value) }}
             title="Idioma de presentación, PDF y narrativa IA"
-            style={{ background: 'var(--d4)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)', fontFamily: "'Raleway',sans-serif", fontSize: 10, letterSpacing: '0.1em', padding: '5px 7px', cursor: 'pointer', textTransform: 'uppercase' }}
+            style={{ background: 'var(--d3,#1E2028)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.85)', fontFamily: "'Raleway',sans-serif", fontSize: 10, letterSpacing: '0.12em', padding: '5px 9px', cursor: 'pointer', textTransform: 'uppercase', fontWeight: 600, borderRadius: 2 }}
           >
             <option value="es">ES</option>
             <option value="en">EN</option>
@@ -2026,7 +2026,7 @@ export default function DealClient({
           <div className="status-lbl">Tiempo real</div>
           <div className="topbar-sep" />
 
-          <button className="btn btn-reset" onClick={() => {
+          <button className="btn btn-reset rw-mobile-only" onClick={() => {
             const ww = window as any
             if (typeof ww.rwOpenNewDealModal === 'function') {
               ww.rwOpenNewDealModal()
