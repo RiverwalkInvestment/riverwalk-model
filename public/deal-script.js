@@ -1727,7 +1727,7 @@ function render(m) {
 
   const kTotalLbl = $('kpi-total-lbl');
   const kTotalN   = $('kpi-total-n');
-  if (kTotalLbl) kTotalLbl.textContent = isLev ? 'Capital invertido (equity)' : 'Inversión total';
+  if (kTotalLbl) kTotalLbl.textContent = isLev ? t('invested_equity') : t('total_invest');
   $('kpi-total').textContent = fmtK(isLev ? m.lev0.equity : m.totalInvest);
 
   // Equity display in leverage inputs
@@ -1753,15 +1753,15 @@ function render(m) {
   }
   if (kTotalN) kTotalN.textContent = isLev
     ? `${levMode.toUpperCase()} ${(ltvFrac*100).toFixed(0)}% · deuda ${fmtK(loanAmt)}`
-    : 'Todo incluido · sin apalancamiento';
+    : t('all_in_no_lev');
   const kProfit = $('kpi-profit');
   kProfit.textContent = fmtK(m.base.netProfit);
   kProfit.className = 'kpi-v ' + (m.base.netProfit>0?'up':'down');
   const beMarg = ((V('exitP')/m.bePriceM2-1)*100).toFixed(0);
   $('kpi-be').textContent = Math.round(m.bePriceM2).toLocaleString('es-ES') + ' €/m²';
   const kpiBeTotal = $('kpi-be-n');
-  if (kpiBeTotal) kpiBeTotal.textContent = 'Bruto s/carry · total mín. ' + fmtK(m.bePriceM2 * m.surfCapex);
-  $('kpi-be-n').textContent = '+'+beMarg+'% sobre escenario pesimista';
+  if (kpiBeTotal) kpiBeTotal.textContent = `${t('breakeven_be')} ${fmtK(m.bePriceM2 * m.surfCapex)}`;
+  $('kpi-be-n').textContent = `+${beMarg}% ${t('above_pess')}`;
 
   // Exit price total display (input panel)
   const surf = m.surfCapex || 0;
@@ -1777,7 +1777,7 @@ function render(m) {
   $('timeline-strip').innerHTML = `
     <div class="tl-node">
       <div class="tl-dot filled"></div>
-      <div class="tl-label">Arras</div>
+      <div class="tl-label">${t('earnest')}</div>
       <div class="tl-amount">${fmt(m.arasAmt)}</div>
     </div>
     <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:40px">
@@ -1786,20 +1786,20 @@ function render(m) {
     </div>
     <div class="tl-node">
       <div class="tl-dot filled"></div>
-      <div class="tl-label">Escritura</div>
+      <div class="tl-label">${t('deed')}</div>
       <div class="tl-amount">${fmtK(restoBuyAmt+m.capexNet+m.totalFeesNet+m.totalIVA)}</div>
     </div>
     <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:40px">
       <div class="tl-line" style="width:100%;margin-top:0"></div>
-      <div class="tl-line-label">${m.monthsSale}m obra+venta</div>
+      <div class="tl-line-label">${m.monthsSale}m ${t('works_sale')}</div>
     </div>
     <div class="tl-node">
       <div class="tl-dot exit"></div>
-      <div class="tl-label">Venta</div>
+      <div class="tl-label">${t('sale')}</div>
       <div class="tl-amount" style="color:var(--green)">${fmtK(m.base.saleGross)}</div>
     </div>
     <div style="margin-left:16px;font-size:9px;color:var(--text-d);white-space:nowrap">
-      Total ${exitMonth} meses · Inversión total ${fmt(m.totalInvest)}
+      ${t('total_months_tl')} ${exitMonth} ${t('months')} · ${t('total_inv_tl')} ${fmt(m.totalInvest)}
     </div>`;
 
   // AMPLIACION IMPACT NOTE
@@ -1856,17 +1856,17 @@ function render(m) {
           </div>
         </div>
         <div class="sc-big" style="font-size:36px">${irrShow}</div>
-        <div class="sc-irr" style="font-size:10px;margin-bottom:4px">${isLev?'TIR equity':'TIR anual'} · ${durationMeses}m</div>
-        <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text-b);margin-bottom:10px">${moic}× MOIC · ROI bruto ${fmtPct(sc.roiGross)}</div>
+        <div class="sc-irr" style="font-size:10px;margin-bottom:4px">${isLev?t('irr_equity'):t('annual_irr_l')} · ${durationMeses}m</div>
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text-b);margin-bottom:10px">${moic}× ${t('moic_roi')} ${fmtPct(sc.roiGross)}</div>
         <div class="sc-div"></div>
-        <div class="sc-r key"><span>${isLev?'Equity':'Capital'}</span><span>${fmt(capital)}</span></div>
+        <div class="sc-r key"><span>${isLev?t('equity_s'):t('capital_s')}</span><span>${fmt(capital)}</span></div>
         ${isLev ? `<div class="sc-r red"><span>Deuda ${levMode.toUpperCase()} ${(m.ltvPct*100).toFixed(0)}%</span><span>${fmt(lev.loan)}</span></div>
-        <div class="sc-r red"><span>Coste financiero</span><span>−${fmt(lev.interest)}</span></div>` : ''}
-        <div class="sc-r"><span>Venta bruta</span><span>${fmt(sc.saleGross)}</span></div>
-        <div class="sc-r red"><span>Costes salida + carry</span><span>−${fmt(sc.exitCosts + sc.sf)}</span></div>
+        <div class="sc-r red"><span>${t('fin_cost')}</span><span>−${fmt(lev.interest)}</span></div>` : ''}
+        <div class="sc-r"><span>${t('gross_sale_bruta')}</span><span>${fmt(sc.saleGross)}</span></div>
+        <div class="sc-r red"><span>${t('exit_costs_carry')}</span><span>−${fmt(sc.exitCosts + sc.sf)}</span></div>
         ${taxOn ? `<div class="sc-r red"><span>${S('taxStructure')==='sl'?'IS':'IRPF'} ${V('taxRate')}%</span><span>−${fmt(isLev?lev.netProfitLev-afterInt:sc.tax)}</span></div>` : ''}
         <div class="sc-div"></div>
-        <div class="sc-r net"><span>Beneficio neto</span><span>${fmt(netShow)}</span></div>
+        <div class="sc-r net"><span>${t('net_profit_s')}</span><span>${fmt(netShow)}</span></div>
       </div>`;
     }
     // Reforma
@@ -1874,7 +1874,7 @@ function render(m) {
     const netShow  = isLev ? lev.netProfitLev : sc.netProfit;
     const roiShow  = isLev ? lev.roe      : sc.roiNet;
     const heroVal  = isLev ? fmtPct(lev.roe) : fmtPct(sc.roiGross);
-    const heroLbl  = isLev ? 'ROE neto (equity)' : 'ROI bruto operación';
+    const heroLbl  = isLev ? t('roe_net_eq') : t('roi_gross_op_s');
     const totalVenta = exitM2 * m.surfCapex;
     return `<div class="sc-card ${cls}">
       <div class="sc-head">
@@ -1888,27 +1888,27 @@ function render(m) {
       <div class="sc-irr">${heroLbl} · TIR: <span>${isFinite(irr)?fmtPct(irr):'—'}</span></div>
       <div class="sc-div"></div>
       ${isLev ? `
-      <div class="sc-r key"><span>Equity desplegado</span><span>${fmt(capital)}</span></div>
-      <div class="sc-r"><span>Deuda bridge · ${levMode.toUpperCase()} ${(m.ltvPct*100).toFixed(0)}%</span><span>${fmt(lev.loan)}</span></div>
-      <div class="sc-r red"><span>Coste financiero</span><span>−${fmt(lev.interest)}</span></div>
-      <div class="sc-r"><span>Beneficio bruto</span><span>${fmt(sc.grossProfit)}</span></div>
+      <div class="sc-r key"><span>${t('equity_deployed')}</span><span>${fmt(capital)}</span></div>
+      <div class="sc-r"><span>${t('bridge_debt')} · ${levMode.toUpperCase()} ${(m.ltvPct*100).toFixed(0)}%</span><span>${fmt(lev.loan)}</span></div>
+      <div class="sc-r red"><span>${t('fin_cost')}</span><span>−${fmt(lev.interest)}</span></div>
+      <div class="sc-r"><span>${t('gross_profit_s')}</span><span>${fmt(sc.grossProfit)}</span></div>
       ` : `
-      <div class="sc-r key"><span>Venta bruta</span><span>${fmt(sc.saleGross)}</span></div>
-      <div class="sc-r red"><span>Costes de salida</span><span>−${fmt(sc.exitCosts)}</span></div>
-      <div class="sc-r"><span>Beneficio bruto</span><span>${fmt(sc.grossProfit)}</span></div>
-      <div class="sc-r"><span>ROI bruto</span><span>${fmtPct(sc.roiGross)}</span></div>
+      <div class="sc-r key"><span>${t('gross_sale_bruta')}</span><span>${fmt(sc.saleGross)}</span></div>
+      <div class="sc-r red"><span>${t('exit_costs_s')}</span><span>−${fmt(sc.exitCosts)}</span></div>
+      <div class="sc-r"><span>${t('gross_profit_s')}</span><span>${fmt(sc.grossProfit)}</span></div>
+      <div class="sc-r"><span>${t('roi_gross_s')}</span><span>${fmtPct(sc.roiGross)}</span></div>
       `}
       <div class="sc-div"></div>
-      <div class="sc-r amb"><span>${isPase?'Carry':'Success fee'}</span><span>−${fmt(sc.sf)}</span></div>
+      <div class="sc-r amb"><span>${isPase?t('carry_s'):t('success_fee_s')}</span><span>−${fmt(sc.sf)}</span></div>
       ${taxOn ? `<div class="sc-r red"><span>${S('taxStructure')==='sl'?'IS':'IRPF'} ${V('taxRate')}%</span><span>−${fmt(isLev?Math.max(0,lev.netProfitLev*(V('taxRate')/100)):sc.tax)}</span></div>` : ''}
       <div class="sc-div"></div>
-      <div class="sc-r net"><span>Beneficio neto</span><span>${fmt(netShow)}</span></div>
+      <div class="sc-r net"><span>${t('net_profit_s')}</span><span>${fmt(netShow)}</span></div>
     </div>`;
   }
   $('sc-cards').innerHTML =
-    scCard(m.pess,'p','Pesimista',V('exitP'),m.irrPess,levPess) +
-    scCard(m.base,'b','Base case',V('exitB'),m.irrBase,levBase) +
-    scCard(m.opt, 'o','Optimista',V('exitO'),m.irrOpt, levOpt);
+    scCard(m.pess,'p',t('pessimistic_s'),V('exitP'),m.irrPess,levPess) +
+    scCard(m.base,'b',t('base_case_s'),V('exitB'),m.irrBase,levBase) +
+    scCard(m.opt, 'o',t('optimistic_s'),V('exitO'),m.irrOpt, levOpt);
 
   // Update ROI KPI to reflect leverage
   const kRoi = $('kpi-roi');
@@ -1917,12 +1917,12 @@ function render(m) {
   kRoi.textContent = fmtPct(roiKpiVal);
   kRoi.className = 'kpi-v ' + (roiKpiVal>0.2?'up':roiKpiVal>0.1?'warn':'down');
   if (kRoiN) kRoiN.textContent = isLev
-    ? `ROE neto · ${levMode.toUpperCase()} ${(m.ltvPct*100).toFixed(0)}%`
-    : 'Sin carry ni impuesto · carry ' + fmt(m.base.sf);
+    ? `${t('kpi_roe_lev')}${levMode.toUpperCase()} ${(m.ltvPct*100).toFixed(0)}%`
+    : t('kpi_roi_no_carry') + fmt(m.base.sf);
 
   // Update IRR KPI label
   const kIrrN = $('kpi-irr-n');
-  if (kIrrN) kIrrN.textContent = isLev ? `TIR equity · ${levMode.toUpperCase()} ${(m.ltvPct*100).toFixed(0)}%` : 'TIR anual · sin apalancamiento';
+  if (kIrrN) kIrrN.textContent = isLev ? `${t('kpi_irr_lev')}${levMode.toUpperCase()} ${(m.ltvPct*100).toFixed(0)}%` : t('kpi_irr_no_lev');
 
   // ALERTS
   let alerts = '';
@@ -3497,7 +3497,7 @@ function buildSlides(m, d) {
     <div class="full">
       <div id="pres-map-container" style="position:absolute;inset:0;z-index:0"></div>
       <div style="position:absolute;top:36px;left:40px;z-index:10;background:rgba(10,11,15,0.88);border:1px solid rgba(196,151,90,0.3);padding:20px 26px;max-width:360px;backdrop-filter:blur(4px)">
-        <div class="ps-tag">Ubicación</div>
+        <div class="ps-tag">${t('location')}</div>
         <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:#fff;margin-bottom:6px">${S('dealAddress') || '—'}</div>
         <div style="font-size:11px;color:rgba(255,255,255,0.45)">${S('dealCP') || ''} ${S('dealMunicipio') || ''}</div>
         ${mz ? `<div style="margin-top:10px;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(196,151,90,0.75)">${mz} · Tier ${mzTier}</div>` : ''}
@@ -3516,7 +3516,7 @@ function buildSlides(m, d) {
           ${mzData ? `<div style="background:rgba(139,105,20,0.1);border:1px solid rgba(196,151,90,0.25);padding:16px 20px">
             <div class="ps-data-l">${t('microzone_prem')}</div>
             <div style="font-family:'DM Mono',monospace;font-size:24px;color:rgba(196,151,90,0.9);margin:4px 0">${mzData.base >= 0 ? '+' : ''}${mzData.base}%</div>
-            <div style="font-size:10px;color:rgba(255,255,255,0.35)">sobre precio medio del CP · Tier ${mzTier}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.35)">${t('above_median_cp')} · Tier ${mzTier}</div>
           </div>` : ''}
           ${medRefPm2 > 0 ? `<div class="ps-data"><div class="ps-data-l">${t('refurb_median')}</div><div class="ps-data-v">${medRefPm2.toLocaleString('es-ES')} €/m²</div></div>` : ''}
         </div>
@@ -4005,7 +4005,7 @@ function buildSlides(m, d) {
       <div style="display:flex;align-items:center;gap:16px;margin-bottom:6px">
         <svg viewBox="0 0 140 20" style="width:90px"><text x="0" y="16" font-family="Cormorant Garamond,serif" font-size="16" fill="rgba(196,151,90,0.6)" font-weight="300" letter-spacing="2">Riverwalk</text></svg>
         <div style="width:1px;height:18px;background:rgba(255,255,255,0.1)"></div>
-        <div class="ps-tag" style="margin:0">Highlights de la inversión</div>
+        <div class="ps-tag" style="margin:0">${t('inv_highlights')}</div>
       </div>
       <div style="width:36px;height:1px;background:rgba(196,151,90,0.4);margin-bottom:20px"></div>
 
@@ -4013,12 +4013,12 @@ function buildSlides(m, d) {
         <div style="display:flex;flex-direction:column;gap:14px">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
             ${[
-              ['Inversión total', fmt2(m.totalInvest), 'rgba(196,151,90,0.9)'],
-              ['Ticket mínimo', ticketMin_h, 'rgba(255,255,255,0.8)'],
-              ['ROI bruto base', fmtP(m.base.roiGross), '#52C07A'],
-              ['TIR anual base', isFinite(m.base.irr)?fmtP(m.base.irr):'—', '#52C07A'],
-              ['Plazo estimado', m.totalMonths + ' meses', 'rgba(255,255,255,0.8)'],
-              ['Breakeven', beM2.toLocaleString('es-ES') + ' €/m²', 'rgba(255,255,255,0.7)'],
+              [t('total_invest'), fmt2(m.totalInvest), 'rgba(196,151,90,0.9)'],
+              [t('min_ticket'), ticketMin_h, 'rgba(255,255,255,0.8)'],
+              [t('roi_gross_base'), fmtP(m.base.roiGross), '#52C07A'],
+              [t('irr_base_s'), isFinite(m.base.irr)?fmtP(m.base.irr):'—', '#52C07A'],
+              [t('est_duration'), m.totalMonths + ' ' + t('months_s'), 'rgba(255,255,255,0.8)'],
+              [t('breakeven_s'), beM2.toLocaleString('es-ES') + ' €/m²', 'rgba(255,255,255,0.7)'],
             ].map(([l,v,c])=>`<div style="padding:12px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07)">
               <div style="font-size:8px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:4px">${l}</div>
               <div style="font-family:'DM Mono',monospace;font-size:14px;color:${c};font-feature-settings:'tnum' 1">${v}</div>
@@ -4026,12 +4026,12 @@ function buildSlides(m, d) {
           </div>
           <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07)">
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px solid rgba(255,255,255,0.06)">
-              ${['Escenario','€/m²','ROI bruto','TIR anual'].map(h=>`<div style="padding:6px 10px;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.3)">${h}</div>`).join('')}
+              ${[t('scenario_s'),'€/m²',t('roi_gross_s'),t('annual_irr_l')].map(h=>`<div style="padding:6px 10px;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.3)">${h}</div>`).join('')}
             </div>
             ${[
-              {lbl:'Pesimista', ep:V('exitP'), sc:m.pess, col:'#E05555'},
-              {lbl:'Base',      ep:V('exitB'), sc:m.base, col:'rgba(196,151,90,0.95)'},
-              {lbl:'Optimista', ep:V('exitO'), sc:m.opt,  col:'#52C07A'},
+              {lbl:t('pessimistic_s'), ep:V('exitP'), sc:m.pess, col:'#E05555'},
+              {lbl:t('base_case_s').split(' ')[0],      ep:V('exitB'), sc:m.base, col:'rgba(196,151,90,0.95)'},
+              {lbl:t('optimistic_s'), ep:V('exitO'), sc:m.opt,  col:'#52C07A'},
             ].map(({lbl,ep,sc,col})=>`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px solid rgba(255,255,255,0.04)">
               <div style="padding:7px 10px;font-size:10px;color:${col}">${lbl}</div>
               <div style="padding:7px 10px;font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,0.7)">${ep.toLocaleString('es-ES')}</div>
@@ -4043,17 +4043,17 @@ function buildSlides(m, d) {
 
         <div style="display:flex;flex-direction:column;gap:14px">
           ${vehiculoLabel_h ? `<div style="padding:14px 18px;background:rgba(139,105,20,0.08);border:1px solid rgba(196,151,90,0.25)">
-            <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(196,151,90,0.6);margin-bottom:6px">Vehículo de inversión</div>
+            <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(196,151,90,0.6);margin-bottom:6px">${t('invest_vehicle')}</div>
             <div style="font-size:13px;color:#fff;font-weight:500;margin-bottom:6px">${vehiculoLabel_h}</div>
             <div style="font-size:10.5px;color:rgba(255,255,255,0.5);line-height:1.7">${vehiculoDesc_h}</div>
           </div>` : ''}
           ${aportLabel_h ? `<div style="padding:14px 18px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1)">
-            <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:6px">Forma de aportación</div>
+            <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:6px">${t('contribution')}</div>
             <div style="font-size:13px;color:#fff;font-weight:500;margin-bottom:6px">${aportLabel_h}</div>
             <div style="font-size:10.5px;color:rgba(255,255,255,0.5);line-height:1.7">${aportDesc_h}</div>
           </div>` : ''}
           <div style="padding:14px 18px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07)">
-            <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:10px">Estructura de fees Riverwalk</div>
+            <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:10px">${t('fee_structure')}</div>
             <div style="display:flex;flex-direction:column;gap:6px">
               <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.05)">
                 <span style="font-size:10.5px;color:rgba(255,255,255,0.45)">Management fee</span>
@@ -4061,19 +4061,19 @@ function buildSlides(m, d) {
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.05)">
                 <span style="font-size:10.5px;color:rgba(255,255,255,0.45)">Carry ROI &lt; ${sf1T}%</span>
-                <span style="font-family:'DM Mono',monospace;font-size:12px;color:rgba(82,192,122,0.8)">0% · íntegro al inversor</span>
+                <span style="font-family:'DM Mono',monospace;font-size:12px;color:rgba(82,192,122,0.8)">0% · ${t('full_to_inv')}</span>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.05)">
                 <span style="font-size:10.5px;color:rgba(255,255,255,0.45)">Carry ROI ${sf1T}–${sf2T}%</span>
-                <span style="font-family:'DM Mono',monospace;font-size:12px;color:rgba(196,151,90,0.8)">${sf1P}% Riverwalk · ${100-sf1P}% inversor</span>
+                <span style="font-family:'DM Mono',monospace;font-size:12px;color:rgba(196,151,90,0.8)">${sf1P}% Riverwalk · ${100-sf1P}% ${t('investor_s')}</span>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center">
                 <span style="font-size:10.5px;color:rgba(255,255,255,0.45)">Carry ROI &gt; ${sf2T}%</span>
-                <span style="font-family:'DM Mono',monospace;font-size:12px;color:rgba(196,151,90,0.9)">${sf2P}% Riverwalk · ${100-sf2P}% inversor</span>
+                <span style="font-family:'DM Mono',monospace;font-size:12px;color:rgba(196,151,90,0.9)">${sf2P}% Riverwalk · ${100-sf2P}% ${t('investor_s')}</span>
               </div>
             </div>
           </div>
-          <div style="font-size:9px;color:rgba(255,255,255,0.2);line-height:1.6;padding-top:4px">Documento de carácter informativo. Las rentabilidades proyectadas no garantizan resultados futuros.</div>
+          <div style="font-size:9px;color:rgba(255,255,255,0.2);line-height:1.6;padding-top:4px">${t('disclaimer_s')}</div>
         </div>
       </div>
     </div>` });
@@ -8892,16 +8892,97 @@ Object.assign(RW_I18N, {
   total_op_mos:   { es:'Total operación', en:'Total operation', fr:'Opération totale', de:'Gesamtoperation', pt:'Operação total' },
 });
 
+// Output panel + remaining slides i18n keys
+Object.assign(RW_I18N, {
+  all_in_no_lev:   { es:'Todo incluido · sin apalancamiento', en:'All-in · no leverage', fr:'Tout inclus · sans effet de levier', de:'All-in · ohne Hebelwirkung', pt:'Tudo incluído · sem alavancagem' },
+  invested_equity: { es:'Capital invertido (equity)', en:'Invested capital (equity)', fr:'Capital investi (fonds propres)', de:'Investiertes Kapital (Eigenkapital)', pt:'Capital investido (equity)' },
+  above_pess:      { es:'sobre escenario pesimista', en:'above pessimistic scenario', fr:'au-dessus du scénario pessimiste', de:'über dem pessimistischen Szenario', pt:'acima do cenário pessimista' },
+  breakeven_be:    { es:'Breakeven bruto · total mín.', en:'Gross breakeven · min. total', fr:'Seuil brut · total min.', de:'Brutto-Breakeven · Mindestbetrag', pt:'Breakeven bruto · total mín.' },
+  total_months_tl: { es:'Total', en:'Total', fr:'Total', de:'Gesamt', pt:'Total' },
+  works_sale:      { es:'obra+venta', en:'works+sale', fr:'travaux+vente', de:'Bau+Verkauf', pt:'obra+venda' },
+  pessimistic_s:   { es:'Pesimista', en:'Pessimistic', fr:'Pessimiste', de:'Pessimistisch', pt:'Pessimista' },
+  base_case_s:     { es:'Base case', en:'Base case', fr:'Cas de base', de:'Basisfall', pt:'Caso base' },
+  optimistic_s:    { es:'Optimista', en:'Optimistic', fr:'Optimiste', de:'Optimistisch', pt:'Otimista' },
+  gross_sale_bruta:{ es:'Venta bruta', en:'Gross sale', fr:'Vente brute', de:'Bruttoerlös', pt:'Venda bruta' },
+  exit_costs_s:    { es:'Costes de salida', en:'Exit costs', fr:'Coûts de sortie', de:'Verkaufskosten', pt:'Custos de saída' },
+  exit_costs_carry:{ es:'Costes salida + carry', en:'Exit costs + carry', fr:'Coûts de sortie + carry', de:'Verkaufskosten + Carry', pt:'Custos saída + carry' },
+  net_profit_s:    { es:'Beneficio neto', en:'Net profit', fr:'Bénéfice net', de:'Nettogewinn', pt:'Lucro líquido' },
+  gross_profit_s:  { es:'Beneficio bruto', en:'Gross profit', fr:'Bénéfice brut', de:'Bruttogewinn', pt:'Lucro bruto' },
+  roi_gross_s:     { es:'ROI bruto', en:'Gross ROI', fr:'ROI brut', de:'Brutto-ROI', pt:'ROI bruto' },
+  roi_gross_op_s:  { es:'ROI bruto operación', en:'Gross ROI', fr:'ROI brut', de:'Brutto-ROI', pt:'ROI bruto' },
+  roe_net_eq:      { es:'ROE neto (equity)', en:'Net ROE (equity)', fr:'ROE net (fonds propres)', de:'Netto-ROE (Eigenkapital)', pt:'ROE líquido (equity)' },
+  equity_deployed: { es:'Equity desplegado', en:'Deployed equity', fr:'Fonds propres déployés', de:'Eingesetztes Eigenkapital', pt:'Equity implantado' },
+  bridge_debt:     { es:'Deuda bridge', en:'Bridge debt', fr:'Dette bridge', de:'Bridge-Darlehen', pt:'Dívida bridge' },
+  fin_cost:        { es:'Coste financiero', en:'Financing cost', fr:'Coût de financement', de:'Finanzierungskosten', pt:'Custo financeiro' },
+  equity_s:        { es:'Equity', en:'Equity', fr:'Fonds propres', de:'Eigenkapital', pt:'Equity' },
+  capital_s:       { es:'Capital', en:'Capital', fr:'Capital', de:'Kapital', pt:'Capital' },
+  irr_equity:      { es:'TIR equity', en:'Equity IRR', fr:'TRI fonds propres', de:'Eigenkapital-IRR', pt:'TIR equity' },
+  moic_roi:        { es:'MOIC · ROI bruto', en:'MOIC · Gross ROI', fr:'MOIC · ROI brut', de:'MOIC · Brutto-ROI', pt:'MOIC · ROI bruto' },
+  total_inv_tl:    { es:'Inversión total', en:'Total investment', fr:'Investissement total', de:'Gesamtinvestition', pt:'Investimento total' },
+  inv_highlights:  { es:'Highlights de la inversión', en:'Investment highlights', fr:'Points forts de l\'investissement', de:'Investment-Highlights', pt:'Destaques do investimento' },
+  min_ticket:      { es:'Ticket mínimo', en:'Min. ticket', fr:'Ticket minimum', de:'Mindestticket', pt:'Ticket mínimo' },
+  roi_gross_base:  { es:'ROI bruto base', en:'Base gross ROI', fr:'ROI brut de base', de:'Basis-Brutto-ROI', pt:'ROI bruto base' },
+  irr_base_s:      { es:'TIR anual base', en:'Base annual IRR', fr:'TRI annuel de base', de:'Basis-Jahres-IRR', pt:'TIR anual base' },
+  est_duration:    { es:'Plazo estimado', en:'Est. duration', fr:'Durée estimée', de:'Geschätzte Laufzeit', pt:'Prazo estimado' },
+  breakeven_s:     { es:'Breakeven', en:'Breakeven', fr:'Point mort', de:'Gewinnschwelle', pt:'Breakeven' },
+  scenario_s:      { es:'Escenario', en:'Scenario', fr:'Scénario', de:'Szenario', pt:'Cenário' },
+  invest_vehicle:  { es:'Vehículo de inversión', en:'Investment vehicle', fr:'Véhicule d\'investissement', de:'Investitionsvehikel', pt:'Veículo de investimento' },
+  contribution:    { es:'Forma de aportación', en:'Contribution method', fr:'Mode d\'apport', de:'Einlageform', pt:'Forma de aportação' },
+  fee_structure:   { es:'Estructura de fees Riverwalk', en:'Riverwalk fee structure', fr:'Structure de frais Riverwalk', de:'Riverwalk-Gebührenstruktur', pt:'Estrutura de fees Riverwalk' },
+  full_to_inv:     { es:'íntegro al inversor', en:'100% to investor', fr:'intégral à l\'investisseur', de:'vollständig an den Investor', pt:'íntegro ao investidor' },
+  investor_s:      { es:'inversor', en:'investor', fr:'investisseur', de:'Investor', pt:'investidor' },
+  disclaimer_s:    { es:'Documento de carácter informativo. Las rentabilidades proyectadas no garantizan resultados futuros.', en:'Informational document. Projected returns do not guarantee future results.', fr:'Document informatif. Les rendements projetés ne garantissent pas les résultats futurs.', de:'Informationsdokument. Prognostizierte Renditen garantieren keine zukünftigen Ergebnisse.', pt:'Documento informativo. As rentabilidades projetadas não garantem resultados futuros.' },
+  above_median_cp: { es:'sobre precio medio del CP', en:'above CP median price', fr:'au-dessus du prix médian du CP', de:'über dem PLZ-Durchschnittspreis', pt:'acima do preço médio do CP' },
+  months_s:        { es:'meses', en:'months', fr:'mois', de:'Monate', pt:'meses' },
+
+  // DOM i18n keys (static DEAL_HTML labels)
+  kpi_roi_lbl:     { es:'ROI bruto operación', en:'Gross ROI operation', fr:'ROI brut opération', de:'Brutto-ROI', pt:'ROI bruto operação' },
+  kpi_irr_lbl:     { es:'TIR anual (base)', en:'Annual IRR (base)', fr:'TRI annuel (base)', de:'Jahres-IRR (Basis)', pt:'TIR anual (base)' },
+  kpi_profit_lbl:  { es:'Beneficio neto (base)', en:'Net profit (base)', fr:'Bénéfice net (base)', de:'Nettogewinn (Basis)', pt:'Lucro líquido (base)' },
+  kpi_be_lbl:      { es:'Breakeven bruto (€/m²)', en:'Gross breakeven (€/m²)', fr:'Point mort brut (€/m²)', de:'Gewinnschwelle brutto (€/m²)', pt:'Breakeven bruto (€/m²)' },
+  to_investor:     { es:'Al inversor', en:'To investor', fr:'À l\'investisseur', de:'An den Investor', pt:'Ao investidor' },
+  inv_breakdown_lbl: { es:'Desglose inversión', en:'Investment breakdown', fr:'Décomposition investissement', de:'Investitionsaufschlüsselung', pt:'Decomposição investimento' },
+  section_scenarios: { es:'Escenarios de retorno', en:'Return scenarios', fr:'Scénarios de rendement', de:'Renditeszenarien', pt:'Cenários de retorno' },
+  section_pnl:     { es:'P&L Completo — Escenario Base', en:'Full P&L — Base scenario', fr:'P&L Complet — Scénario de base', de:'Vollständige P&L — Basisszenario', pt:'P&L Completo — Cenário Base' },
+  section_leverage:{ es:'Apalancamiento — Impacto en ROE', en:'Leverage — ROE impact', fr:'Effet de levier — Impact sur le ROE', de:'Hebelwirkung — ROE-Auswirkung', pt:'Alavancagem — Impacto no ROE' },
+  section_comps:   { es:'Testigos de Mercado', en:'Market comparables', fr:'Comparables marché', de:'Marktvergleiche', pt:'Comparáveis de Mercado' },
+  section_be:      { es:'Protección de Capital — Breakeven bruto', en:'Capital protection — Gross breakeven', fr:'Protection du capital — Point mort brut', de:'Kapitalschutz — Brutto-Gewinnschwelle', pt:'Proteção de Capital — Breakeven bruto' },
+  section_carry:   { es:'Carry Engine — Success Fee', en:'Carry engine — Success fee', fr:'Moteur carry — Frais de succès', de:'Carry-Engine — Erfolgsprovision', pt:'Carry Engine — Success Fee' },
+  section_sens1:   { es:'Sensibilidad — Duración × Precio', en:'Sensitivity — Duration × Price', fr:'Sensibilité — Durée × Prix', de:'Sensitivität — Laufzeit × Preis', pt:'Sensibilidade — Duração × Preço' },
+  section_sens2:   { es:'Sensibilidad — CapEx × Precio', en:'Sensitivity — CapEx × Price', fr:'Sensibilité — CapEx × Prix', de:'Sensitivität — CapEx × Preis', pt:'Sensibilidade — CapEx × Preço' },
+  section_cashflow:{ es:'Cashflow Detallado — Escenario Base', en:'Detailed cashflow — Base scenario', fr:'Flux de trésorerie détaillé — Scénario de base', de:'Detaillierter Cashflow — Basisszenario', pt:'Cashflow Detalhado — Cenário Base' },
+  section_methodology:{ es:'Metodología de cálculo', en:'Calculation methodology', fr:'Méthodologie de calcul', de:'Berechnungsmethodik', pt:'Metodologia de cálculo' },
+  section_brief:   { es:'Brief para Maquetación', en:'Design brief', fr:'Brief de conception', de:'Gestaltungs-Brief', pt:'Brief de design' },
+  kpi_roi_no_carry:{ es:'Sin carry ni impuesto · carry ', en:'Pre-carry, pre-tax · carry ', fr:'Avant carry et impôt · carry ', de:'Vor Carry und Steuer · Carry ', pt:'Sem carry nem imposto · carry ' },
+  kpi_roe_lev:     { es:'ROE neto · ', en:'Net ROE · ', fr:'ROE net · ', de:'Netto-ROE · ', pt:'ROE líquido · ' },
+  kpi_irr_no_lev:  { es:'TIR anual · sin apalancamiento', en:'Annual IRR · unlevered', fr:'TRI annuel · sans levier', de:'Jahres-IRR · ohne Hebelwirkung', pt:'TIR anual · sem alavancagem' },
+  kpi_irr_lev:     { es:'TIR equity · ', en:'Equity IRR · ', fr:'TRI fonds propres · ', de:'Eigenkapital-IRR · ', pt:'TIR equity · ' },
+  carry_s:         { es:'Carry', en:'Carry', fr:'Carry', de:'Carry', pt:'Carry' },
+  success_fee_s:   { es:'Success fee', en:'Success fee', fr:'Frais de succès', de:'Erfolgsprovision', pt:'Success fee' },
+});
+
 function t(key) {
   const entry = RW_I18N[key];
   if (!entry) return key;
   return entry[RW_LANG] || entry.es || key;
 }
 
+// Update all [data-i18n] elements in the DOM with translated text
+function updateI18nDOM() {
+  try {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      el.textContent = t(key);
+    });
+  } catch(e) {}
+}
+
 function rwSetLang(code) {
   if (!['es','en','fr','de','pt'].includes(code)) code = 'es';
   RW_LANG = code;
   try { localStorage.setItem('rw_lang', code); } catch(e) {}
+  // Update static DOM elements with translated text
+  updateI18nDOM();
   // Rebuild presentation slides with new language
   try {
     const m = calc(); const d = getCurrentDossier();
@@ -8909,12 +8990,20 @@ function rwSetLang(code) {
     const pm = document.getElementById('presentation-mode');
     if (pm && pm.style.display !== 'none') renderPresSlide();
   } catch(e) { console.warn('lang rebuild failed', e); }
+  // Re-render output panel with new language
+  try { if (typeof update === 'function') update(); } catch(e) {}
 }
 
 setTimeout(() => {
   try {
     const saved = localStorage.getItem('rw_lang');
-    if (saved) { RW_LANG = saved; const sel = document.getElementById('rw-lang-selector'); if (sel) sel.value = saved; }
+    if (saved) {
+      RW_LANG = saved;
+      const sel = document.getElementById('rw-lang-selector');
+      if (sel) sel.value = saved;
+      // Apply saved language to DOM on page load
+      if (saved !== 'es') { updateI18nDOM(); if (typeof update === 'function') update(); }
+    }
   } catch(e) {}
   try { rwUpdateApiKeyPill(); } catch(e) {}
 }, 200);

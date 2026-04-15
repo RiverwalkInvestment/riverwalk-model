@@ -1167,10 +1167,10 @@ const DEAL_HTML = `
   <!-- KPI STRIP -->
   <div class="kpi-strip">
     <div class="kpi-c"><div class="kpi-lbl" id="kpi-total-lbl">Inversión total</div><div class="kpi-v gold" id="kpi-total">—</div><div class="kpi-n" id="kpi-total-n">Todo incluido</div></div>
-    <div class="kpi-c"><div class="kpi-lbl">ROI bruto operación</div><div class="kpi-v" id="kpi-roi">—</div><div class="kpi-n" id="kpi-roi-n">Post fees</div></div>
-    <div class="kpi-c"><div class="kpi-lbl">TIR anual (base)</div><div class="kpi-v up" id="kpi-irr">—</div><div class="kpi-n" id="kpi-irr-n">Equity sin apalancar</div></div>
-    <div class="kpi-c"><div class="kpi-lbl">Beneficio neto (base)</div><div class="kpi-v" id="kpi-profit">—</div><div class="kpi-n">Al inversor</div></div>
-    <div class="kpi-c"><div class="kpi-lbl">Breakeven bruto (€/m²)</div><div class="kpi-v" id="kpi-be">—</div><div class="kpi-n" id="kpi-be-n">—</div></div>
+    <div class="kpi-c"><div class="kpi-lbl" data-i18n="kpi_roi_lbl">ROI bruto operación</div><div class="kpi-v" id="kpi-roi">—</div><div class="kpi-n" id="kpi-roi-n">Post fees</div></div>
+    <div class="kpi-c"><div class="kpi-lbl" data-i18n="kpi_irr_lbl">TIR anual (base)</div><div class="kpi-v up" id="kpi-irr">—</div><div class="kpi-n" id="kpi-irr-n">Equity sin apalancar</div></div>
+    <div class="kpi-c"><div class="kpi-lbl" data-i18n="kpi_profit_lbl">Beneficio neto (base)</div><div class="kpi-v" id="kpi-profit">—</div><div class="kpi-n" data-i18n="to_investor">Al inversor</div></div>
+    <div class="kpi-c"><div class="kpi-lbl" data-i18n="kpi_be_lbl">Breakeven bruto (€/m²)</div><div class="kpi-v" id="kpi-be">—</div><div class="kpi-n" id="kpi-be-n">—</div></div>
   </div>
 
   <!-- INVESTMENT BREAKDOWN -->
@@ -1178,7 +1178,7 @@ const DEAL_HTML = `
     <div id="inv-breakdown-summary"
       onclick="toggleInvBreakdown()"
       style="display:flex;align-items:center;gap:16px;padding:10px 28px;cursor:pointer;user-select:none">
-      <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-d);flex-shrink:0">Desglose inversión</div>
+      <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-d);flex-shrink:0" data-i18n="inv_breakdown_lbl">Desglose inversión</div>
       <div id="inv-breakdown-bars" style="flex:1;display:flex;gap:2px;height:8px;border-radius:2px;overflow:hidden"></div>
       <div id="inv-breakdown-legend" style="display:flex;gap:12px;flex-shrink:0"></div>
       <div id="inv-breakdown-arr" style="font-size:10px;color:var(--text-d);flex-shrink:0;transition:transform 0.2s">▼</div>
@@ -1193,20 +1193,20 @@ const DEAL_HTML = `
 
   <!-- SCENARIOS -->
   <div class="osec">
-    <div class="osec-title"><span class="osec-tag">01</span>Escenarios de retorno</div>
+    <div class="osec-title"><span class="osec-tag">01</span><span data-i18n="section_scenarios">Escenarios de retorno</span></div>
     <div class="sc-cards" id="sc-cards"></div>
   </div>
 
   <!-- P&L -->
   <div class="osec">
-    <div class="osec-title"><span class="osec-tag">02</span>P&L Completo — Escenario Base</div>
+    <div class="osec-title"><span class="osec-tag">02</span><span data-i18n="section_pnl">P&amp;L Completo — Escenario Base</span></div>
     <div id="pnl-alerts"></div>
     <table class="pnl" id="pnl-table"></table>
   </div>
 
   <!-- LEVERAGE -->
   <div class="osec">
-    <div class="osec-title"><span class="osec-tag">03</span>Apalancamiento — Impacto en ROE</div>
+    <div class="osec-title"><span class="osec-tag">03</span><span data-i18n="section_leverage">Apalancamiento — Impacto en ROE</span></div>
     <div class="lev-strip" id="lev-strip"></div>
     <div class="callout">
       <strong>Nota:</strong> El apalancamiento reduce el beneficio absoluto (pagas intereses) pero mejora el ROE porque despliega menos equity. La decisión depende de si tienes otros proyectos en paralelo. Bridge loan en Madrid Centro actualmente disponible entre 4.5–6%.
@@ -1215,7 +1215,7 @@ const DEAL_HTML = `
 
   <!-- COMPARABLES OUTPUT -->
   <div class="osec">
-    <div class="osec-title"><span class="osec-tag">04</span>Testigos de Mercado</div>
+    <div class="osec-title"><span class="osec-tag">04</span><span data-i18n="section_comps">Testigos de Mercado</span></div>
     <div id="comp-output">
       <div style="font-size:11px;color:var(--text-d);font-style:italic">
         Añade testigos en el panel izquierdo para ver el análisis aquí.
@@ -1225,7 +1225,7 @@ const DEAL_HTML = `
 
   <!-- BREAKEVEN -->
   <div class="osec">
-    <div class="osec-title"><span class="osec-tag">05</span>Protección de Capital — Breakeven bruto</div>
+    <div class="osec-title"><span class="osec-tag">05</span><span data-i18n="section_be">Protección de Capital — Breakeven bruto</span></div>
     <div class="be-wrap">
       <div style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-d)">Espectro de precio/m² — breakeven a techo de mercado</div>
       <div class="be-track"><div class="be-fill" id="be-fill"></div></div>
@@ -1236,14 +1236,14 @@ const DEAL_HTML = `
 
   <!-- CARRY ENGINE -->
   <div class="osec">
-    <div class="osec-title"><span class="osec-tag">06</span>Carry Engine — Success Fee</div>
+    <div class="osec-title"><span class="osec-tag">06</span><span data-i18n="section_carry">Carry Engine — Success Fee</span></div>
     <div id="carry-explanation"></div>
     <div id="carry-impact-strip" style="margin-top:16px"></div>
   </div>
 
   <!-- SENSITIVITY -->
   <div class="osec">
-    <div class="osec-title"><span class="osec-tag">07</span>Sensibilidad — Duración × Precio</div>
+    <div class="osec-title"><span class="osec-tag">07</span><span data-i18n="section_sens1">Sensibilidad — Duración × Precio</span></div>
     <div style="font-size:11px;color:var(--text-d);margin-bottom:14px;line-height:1.7">
       La <strong style="color:var(--text-b)">TIR</strong> es la métrica correcta para el eje de duración:
       el ROI apenas varía con el tiempo (la comunidad es irrelevante frente al volumen invertido),
@@ -1261,7 +1261,7 @@ const DEAL_HTML = `
 
   <!-- SENSITIVITY 2 -->
   <div class="osec" style="background:var(--d2)">
-    <div class="osec-title"><span class="osec-tag">08</span>Sensibilidad — CapEx × Precio</div>
+    <div class="osec-title"><span class="osec-tag">08</span><span data-i18n="section_sens2">Sensibilidad — CapEx × Precio</span></div>
     <div style="font-size:11px;color:var(--text-d);margin-bottom:14px;line-height:1.7">
       El <strong style="color:var(--text-b)">ROI neto</strong> como métrica principal.
       El número pequeño bajo cada porcentaje es la inversión total en esa combinación.
@@ -1279,7 +1279,7 @@ const DEAL_HTML = `
 
   <!-- CASHFLOW DETALLADO -->
   <div class="osec">
-    <div class="osec-title"><span class="osec-tag">09</span>Cashflow Detallado — Escenario Base</div>
+    <div class="osec-title"><span class="osec-tag">09</span><span data-i18n="section_cashflow">Cashflow Detallado — Escenario Base</span></div>
     <div class="cf-summary-strip" id="cf-summary"></div>
     <div style="overflow-x:auto">
       <table class="cf-table" id="cf-table"></table>
@@ -1294,7 +1294,7 @@ const DEAL_HTML = `
 
   <!-- EXPORT -->
   <div class="osec">
-    <div class="osec-title"><span class="osec-tag">10</span>Metodología de cálculo</div>
+    <div class="osec-title"><span class="osec-tag">10</span><span data-i18n="section_methodology">Metodología de cálculo</span></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line2)">
 
       <div style="background:var(--d3);padding:18px 20px">
@@ -1359,7 +1359,7 @@ const DEAL_HTML = `
   </div>
 
   <div class="osec">
-    <div class="osec-title"><span class="osec-tag">11</span>Brief para Maquetación</div>
+    <div class="osec-title"><span class="osec-tag">11</span><span data-i18n="section_brief">Brief para Maquetación</span></div>
     <div class="export-card" id="export-brief"></div>
   </div>
 
@@ -1971,7 +1971,7 @@ export default function DealClient({
             id="rw-lang-selector"
             onChange={(e) => { if (typeof window !== 'undefined' && (window as any).rwSetLang) (window as any).rwSetLang(e.target.value) }}
             title="Idioma de presentación, PDF y narrativa IA"
-            style={{ background: 'var(--d3,#1E2028)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.85)', fontFamily: "'Raleway',sans-serif", fontSize: 10, letterSpacing: '0.12em', padding: '5px 9px', cursor: 'pointer', textTransform: 'uppercase', fontWeight: 600, borderRadius: 2 }}
+            style={{ background: '#16181E', border: '1px solid rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.88)', fontFamily: "'Raleway',sans-serif", fontSize: 10, letterSpacing: '0.12em', padding: '5px 9px', cursor: 'pointer', textTransform: 'uppercase', fontWeight: 600, borderRadius: 2 }}
           >
             <option value="es">ES</option>
             <option value="en">EN</option>
