@@ -3915,18 +3915,6 @@ function buildSlides(m, d) {
     <div style="margin-left:auto;font-size:8.5px;color:rgba(255,255,255,0.2)">· = ${t('base_sc_dot')}</div>
   </div>`;
 
-  // ── BIBLIOTECA DE MATRICES — inserted inside Protección de capital ────────
-  try {
-    const selPres = (typeof rwSensSelection !== 'undefined' && rwSensSelection.inPresentation) ? rwSensSelection.inPresentation : {};
-    const selectedIds = Object.keys(selPres).filter(id => selPres[id]);
-    if (typeof RW_SENS_MATRICES !== 'undefined' && selectedIds.length > 0) {
-      selectedIds.forEach(id => {
-        const matHtml = typeof rwSlideExtMatrixDark === 'function' ? rwSlideExtMatrixDark(id, m) : null;
-        if (matHtml) slides.push({ id: 'matrix-' + id, html: baseCSS + matHtml });
-      });
-    }
-  } catch(e) { console.warn('[buildSlides] matrix slides error', e); }
-
   slides.push({ id:'sensibilidad', html: baseCSS + `
     <div class="inner" style="padding:28px 44px;gap:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:24px;flex-shrink:0">
@@ -3978,6 +3966,18 @@ function buildSlides(m, d) {
         </div>
       </div>
     </div>` });
+
+  // ── EXTENDED SENSITIVITY MATRICES (after sensibilidad, before highlights) ──
+  try {
+    const selPres = (typeof rwSensSelection !== 'undefined' && rwSensSelection.inPresentation) ? rwSensSelection.inPresentation : {};
+    const selectedIds = Object.keys(selPres).filter(id => selPres[id]);
+    if (typeof RW_SENS_MATRICES !== 'undefined' && selectedIds.length > 0) {
+      selectedIds.forEach(id => {
+        const matHtml = typeof rwSlideExtMatrixDark === 'function' ? rwSlideExtMatrixDark(id, m) : null;
+        if (matHtml) slides.push({ id: 'matrix-' + id, html: baseCSS + matHtml });
+      });
+    }
+  } catch(e) { console.warn('[buildSlides] matrix slides error', e); }
 
   // ── HIGHLIGHTS ────────────────────────────────────────────────────────────
   const est = d.estructura || {};
@@ -8527,7 +8527,7 @@ function rwSlideHighlightsPDF(dealName, m, d) {
   ];
 
   return pg(`
-    ${hdr('Highlights de la inversión', dealName, 11)}
+    ${hdr(t('inv_highlights'), dealName, 11)}
     <div style="padding:20px 44px 20px;height:calc(100% - 74px - 40px);box-sizing:border-box;display:flex;flex-direction:column;gap:16px;">
 
       <!-- BANDA 1: Métricas clave — 2 columnas × 3 filas -->
@@ -8684,9 +8684,7 @@ async function exportDossierPDF() {
       rwSlide7(dealName, m),
       rwSlideCalendarioPDF(dealName, m),
       rwSlideProteccionPDF(dealName, m),
-      rwSlideHighlightsPDF(dealName, m, d),
-      rwSlide8(),
-      // Sensitivity matrices selected for PDF
+      // Extended sensitivity matrices — BEFORE highlights
       ...(() => {
         try {
           const selPDF = (typeof rwSensSelection !== 'undefined' && rwSensSelection.inPDF) ? rwSensSelection.inPDF : {};
@@ -8695,6 +8693,8 @@ async function exportDossierPDF() {
           return ids.map(id => rwSlideExtMatrix(id, m)).filter(Boolean);
         } catch(e) { return []; }
       })(),
+      rwSlideHighlightsPDF(dealName, m, d),
+      rwSlide8(),
     ].filter(Boolean);
 
     const jsPDFCtor = window.jspdf?.jsPDF || window.jsPDF;
@@ -8959,6 +8959,27 @@ Object.assign(RW_I18N, {
   kpi_irr_lev:     { es:'TIR equity · ', en:'Equity IRR · ', fr:'TRI fonds propres · ', de:'Eigenkapital-IRR · ', pt:'TIR equity · ' },
   carry_s:         { es:'Carry', en:'Carry', fr:'Carry', de:'Carry', pt:'Carry' },
   success_fee_s:   { es:'Success fee', en:'Success fee', fr:'Frais de succès', de:'Erfolgsprovision', pt:'Success fee' },
+  // Matrix i18n keys
+  mat_tir_ltv_lbl:    { es:'IRR × Apalancamiento (LTV)', en:'IRR × Leverage (LTV)', fr:'TRI × Levier (LTV)', de:'IRR × Hebelwirkung (LTV)', pt:'TIR × Alavancagem (LTV)' },
+  mat_tir_ltv_sub:    { es:'Cómo la deuda magnifica el retorno anualizado a precios distintos de salida', en:'How leverage amplifies annualised return across exit price scenarios', fr:'Comment l\'effet de levier amplifie le rendement annualisé selon le prix de sortie', de:'Wie Fremdkapital die annualisierte Rendite bei verschiedenen Verkaufspreisen steigert', pt:'Como a alavancagem amplifica o retorno anualizado a diferentes preços de saída' },
+  mat_tir_ltv_metric: { es:'TIR anualizada (leveraged)', en:'Annualised IRR (leveraged)', fr:'TRI annualisé (avec levier)', de:'Annualisierter IRR (mit Hebelwirkung)', pt:'TIR anualizada (alavancada)' },
+  mat_margin_lbl:     { es:'Margen neto · Entrada × Salida', en:'Net margin · Entry × Exit', fr:'Marge nette · Entrée × Sortie', de:'Nettomarge · Einstieg × Ausstieg', pt:'Margem líquida · Entrada × Saída' },
+  mat_margin_sub:     { es:'Zona de negociación: hasta qué precio puedo subir de entrada y qué precio mínimo de salida aguanta', en:'Negotiation range: how high can I go on entry price and what is the minimum exit price', fr:'Zone de négociation : jusqu\'où le prix d\'entrée peut monter et quel est le prix de sortie minimum', de:'Verhandlungsspanne: wie hoch kann der Einstiegspreis sein und was ist der Mindestverkaufspreis', pt:'Zona de negociação: até que preço posso subir na entrada e qual é o preço mínimo de saída' },
+  mat_margin_metric:  { es:'Margen neto (€)', en:'Net margin (€)', fr:'Marge nette (€)', de:'Nettomarge (€)', pt:'Margem líquida (€)' },
+  mat_roi_overrun_lbl:{ es:'ROI · Overrun CapEx × Overrun plazo', en:'ROI · CapEx overrun × Duration overrun', fr:'ROI · Dépassement CapEx × Dépassement délai', de:'ROI · CapEx-Überschreitung × Terminüberschreitung', pt:'ROI · Overrun CapEx × Overrun prazo' },
+  mat_roi_overrun_sub:{ es:'Stress test combinado: obra más cara Y más larga de lo previsto', en:'Combined stress test: works more expensive AND longer than planned', fr:'Test de stress combiné : travaux plus chers ET plus longs que prévu', de:'Kombinierter Stresstest: Baukosten höher UND Laufzeit länger als geplant', pt:'Stress test combinado: obra mais cara E mais longa do que o previsto' },
+  mat_roi_overrun_metric:{ es:'ROI bruto', en:'Gross ROI', fr:'ROI brut', de:'Brutto-ROI', pt:'ROI bruto' },
+  mat_be_holding_lbl: { es:'Breakeven · Meses de holding adicional', en:'Breakeven · Additional holding months', fr:'Point mort · Mois de holding supplémentaires', de:'Gewinnschwelle · Zusätzliche Haltedauer', pt:'Breakeven · Meses de holding adicional' },
+  mat_be_holding_sub: { es:'Si no vendo en plazo, cuánto precio de salida necesito para cubrir costes', en:'If I cannot sell on time, what exit price do I need to break even', fr:'Si je ne vends pas à temps, quel prix de sortie dois-je atteindre pour couvrir les coûts', de:'Falls kein pünktlicher Verkauf, welcher Mindestverkaufspreis deckt die Kosten', pt:'Se não vender no prazo, qual preço de saída preciso para cobrir os custos' },
+  mat_be_holding_metric:{ es:'€/m² breakeven', en:'€/m² breakeven', fr:'€/m² point mort', de:'€/m² Gewinnschwelle', pt:'€/m² breakeven' },
+  no_debt:            { es:'Sin deuda', en:'No debt', fr:'Sans dette', de:'Ohne Fremdkapital', pt:'Sem dívida' },
+  entry_pct:          { es:'Entrada', en:'Entry', fr:'Entrée', de:'Einstieg', pt:'Entrada' },
+  capex_base_row:     { es:'CapEx base', en:'Base CapEx', fr:'CapEx base', de:'Basis-CapEx', pt:'CapEx base' },
+  capex_plus:         { es:'CapEx +', en:'CapEx +', fr:'CapEx +', de:'CapEx +', pt:'CapEx +' },
+  schedule_base_row:  { es:'Plazo base', en:'Base schedule', fr:'Délai base', de:'Basisplan', pt:'Prazo base' },
+  m_delay:            { es:'m plazo', en:'m delay', fr:'m délai', de:'M Verzögerung', pt:'m prazo' },
+  plan_base_row:      { es:'Plan (base)', en:'Plan (base)', fr:'Plan (base)', de:'Plan (Basis)', pt:'Plano (base)' },
+  m_holding:          { es:'m holding', en:'m holding', fr:'m holding', de:'M Haltedauer', pt:'m holding' },
 });
 
 function t(key) {
@@ -8986,7 +9007,7 @@ function rwSetLang(code) {
   // Rebuild presentation slides with new language
   try {
     const m = calc(); const d = getCurrentDossier();
-    window.presSlides = buildSlides(m, d);
+    presSlides = buildSlides(m, d);
     const pm = document.getElementById('presentation-mode');
     if (pm && pm.style.display !== 'none') renderPresSlide();
   } catch(e) { console.warn('lang rebuild failed', e); }
@@ -9459,8 +9480,8 @@ function rwSlideExtMatrix(matrixId, m) {
   const rows = md.rowsFn(m); const cols = md.colsFn(m);
   let html = '<div style="width:794px;height:1123px;background:#F7F4EE;padding:64px 52px;box-sizing:border-box;font-family:\'Raleway\',sans-serif;color:#0A0B0D;position:relative">'
     + '<div style="font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:600;margin-bottom:6px">Matriz de sensibilidad</div>'
-    + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:34px;font-weight:400;color:#0A0B0D;letter-spacing:0.005em;margin-bottom:4px;line-height:1.1">' + md.label + '</div>'
-    + '<div style="font-size:11px;color:#5A5D6E;margin-bottom:32px;line-height:1.6;max-width:640px">' + md.sub + '</div>'
+    + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:34px;font-weight:400;color:#0A0B0D;letter-spacing:0.005em;margin-bottom:4px;line-height:1.1">' + (md.label_key ? t(md.label_key) : md.label) + '</div>'
+    + '<div style="font-size:11px;color:#5A5D6E;margin-bottom:32px;line-height:1.6;max-width:640px">' + (md.sub_key ? t(md.sub_key) : md.sub) + '</div>'
     + '<table style="width:100%;border-collapse:collapse;font-family:\'DM Mono\',monospace;font-size:10.5px"><thead><tr>'
     + '<th style="text-align:left;padding:9px 12px;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:#5A5D6E;font-weight:600;border-bottom:1px solid #C4975A"></th>';
   cols.forEach(c => { html += '<th style="padding:9px 10px;text-align:center;font-size:9.5px;letter-spacing:0.08em;color:' + (c.isBase?'#C4975A':'#5A5D6E') + ';font-weight:' + (c.isBase?'700':'500') + ';border-bottom:1px solid #C4975A">' + c.label + '</th>'; });
@@ -9481,7 +9502,7 @@ function rwSlideExtMatrix(matrixId, m) {
     html += '</tr>';
   });
   html += '</tbody></table>'
-    + '<div style="position:absolute;bottom:40px;left:52px;right:52px;display:flex;justify-content:space-between;font-size:9px;color:#9A9A9A;letter-spacing:0.1em;text-transform:uppercase"><span>' + (typeof t === 'function' ? t('confidential_doc') : 'Riverwalk Real Estate · documento confidencial') + '</span><span>' + md.metric + '</span></div>'
+    + '<div style="position:absolute;bottom:40px;left:52px;right:52px;display:flex;justify-content:space-between;font-size:9px;color:#9A9A9A;letter-spacing:0.1em;text-transform:uppercase"><span>' + (typeof t === 'function' ? t('confidential_doc') : 'Riverwalk Real Estate · documento confidencial') + '</span><span>' + (md.metric_key ? t(md.metric_key) : md.metric) + '</span></div>'
   + '</div>';
   return html;
 }
@@ -9515,12 +9536,12 @@ function rwSlideExtMatrixDark(matrixId, m) {
   }).join('');
   return `<div class="inner" style="padding:28px 44px;gap:16px">
     <div style="flex-shrink:0">
-      <div class="ps-tag">Protección de capital</div>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:#fff;margin-top:2px">${md.label}</div>
-      <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:4px;line-height:1.5">${md.sub}</div>
+      <div class="ps-tag">${t('capital_prot')}</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:#fff;margin-top:2px">${md.label_key ? t(md.label_key) : md.label}</div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:4px;line-height:1.5">${md.sub_key ? t(md.sub_key) : md.sub}</div>
     </div>
     <div style="flex:1;min-height:0;overflow:auto">
-      <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:8px">${md.metric}</div>
+      <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:8px">${md.metric_key ? t(md.metric_key) : md.metric}</div>
       <table style="width:100%;border-collapse:separate;border-spacing:2px">
         <thead><tr>
           <th style="padding:5px 12px;text-align:left;font-size:8px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.25);font-weight:400;border-bottom:1px solid rgba(255,255,255,0.08)"></th>
@@ -9535,13 +9556,13 @@ function rwSlideExtMatrixDark(matrixId, m) {
 
 const RW_SENS_MATRICES = {
   tir_ltv_price: {
-    id:'tir_ltv_price', label:'TIR × Apalancamiento (LTV)', sub:'Cómo la deuda magnifica el retorno anualizado a precios distintos de salida', metric:'TIR anualizada (leveraged)',
+    id:'tir_ltv_price', label_key:'mat_tir_ltv_lbl', sub_key:'mat_tir_ltv_sub', metric_key:'mat_tir_ltv_metric', label:'TIR × Apalancamiento (LTV)', sub:'Cómo la deuda magnifica el retorno anualizado a precios distintos de salida', metric:'TIR anualizada (leveraged)',
     legendItems: [['#E05555','< 5%'],['rgba(255,165,0,0.9)','5–15%'],['rgba(196,151,90,0.95)','15–25%'],['#52C07A','> 25% · Objetivo']],
     colorFn: (v) => (!isFinite(v)||v<0.05)?'c1':v<0.15?'c2':v<0.25?'c3':'c4',
     axes: { rows:{ label:'Valores LTV', unit:'%', hint:'Ej: 0, 30, 40, 50, 60, 70 — en porcentaje', defaults:[0,30,40,50,60,70] }, cols:null },
     rowsFn: function(m) {
       const vals = rwGetAxisValues(this.id,'rows')||this.axes.rows.defaults;
-      return vals.map(l => ({ label:l===0?'Sin deuda':'LTV '+l+'%', ltv:l/100, isBase:Math.abs(l/100 - (m.ltvPct||0))<0.01 }));
+      return vals.map(l => ({ label:l===0?t('no_debt'):'LTV '+l+'%', ltv:l/100, isBase:Math.abs(l/100 - (m.ltvPct||0))<0.01 }));
     },
     colsFn: (m) => (typeof sensPrices !== 'undefined' ? sensPrices : []).map(p => ({ label:p.toLocaleString('es-ES')+' €/m²', price:p, isBase:p===(typeof V==='function'?V('exitB'):0) })),
     cellFn: function(m, row, col) {
@@ -9563,13 +9584,13 @@ const RW_SENS_MATRICES = {
     }
   },
   margin_entry_exit: {
-    id:'margin_entry_exit', label:'Margen neto · Entrada × Salida', sub:'Zona de negociación: hasta qué precio puedo subir de entrada y qué precio mínimo de salida aguanta', metric:'Margen neto (€)',
+    id:'margin_entry_exit', label_key:'mat_margin_lbl', sub_key:'mat_margin_sub', metric_key:'mat_margin_metric', label:'Margen neto · Entrada × Salida', sub:'Zona de negociación: hasta qué precio puedo subir de entrada y qué precio mínimo de salida aguanta', metric:'Margen neto (€)',
     legendItems: [['#E05555','Pérdidas'],['rgba(255,165,0,0.9)','0–100k€'],['rgba(196,151,90,0.95)','100–400k€'],['#52C07A','> 400k€ · Objetivo']],
     colorFn: (v) => v<0?'c1':v<100000?'c2':v<400000?'c3':'c4',
     axes: { rows:{ label:'Precio entrada (% sobre base)', unit:'%', hint:'Ej: 90, 95, 100, 105, 110 — % sobre tu precio de compra actual', defaults:[90,95,100,105,110] }, cols:null },
     rowsFn: function(m) {
       const vals=rwGetAxisValues(this.id,'rows')||this.axes.rows.defaults; const base=m.buyPrice;
-      return vals.map(pct => ({ label:'Entrada '+pct+'% · '+(typeof fmtK==='function'?fmtK(base*pct/100):(base*pct/100).toLocaleString('es-ES')), buyPrice:base*pct/100, isBase:Math.abs(pct/100-1)<0.001 }));
+      return vals.map(pct => ({ label:t('entry_pct')+' '+pct+'% · '+(typeof fmtK==='function'?fmtK(base*pct/100):(base*pct/100).toLocaleString('es-ES')), buyPrice:base*pct/100, isBase:Math.abs(pct/100-1)<0.001 }));
     },
     colsFn: (m) => (typeof sensPrices!=='undefined'?sensPrices:[]).map(p => ({ label:p.toLocaleString('es-ES')+' €/m²', price:p, isBase:p===(typeof V==='function'?V('exitB'):0) })),
     cellFn: function(m, row, col) {
@@ -9588,7 +9609,7 @@ const RW_SENS_MATRICES = {
     }
   },
   roi_overrun: {
-    id:'roi_overrun', label:'ROI · Overrun CapEx × Overrun plazo', sub:'Stress test combinado: obra más cara Y más larga de lo previsto', metric:'ROI bruto',
+    id:'roi_overrun', label_key:'mat_roi_overrun_lbl', sub_key:'mat_roi_overrun_sub', metric_key:'mat_roi_overrun_metric', label:'ROI · Overrun CapEx × Overrun plazo', sub:'Stress test combinado: obra más cara Y más larga de lo previsto', metric:'ROI bruto',
     legendItems: [['#E05555','< 0%'],['rgba(255,165,0,0.9)','0–8%'],['rgba(196,151,90,0.95)','8–20%'],['#52C07A','> 20% · Objetivo']],
     colorFn: (v) => v<0?'c1':v<0.08?'c2':v<0.20?'c3':'c4',
     axes: {
@@ -9597,11 +9618,11 @@ const RW_SENS_MATRICES = {
     },
     rowsFn: function(m) {
       const vals=rwGetAxisValues(this.id,'rows')||this.axes.rows.defaults;
-      return vals.map(pct => ({ label:pct===0?'CapEx base':'CapEx +'+pct+'%', capexOverrun:pct/100, isBase:pct===0 }));
+      return vals.map(pct => ({ label:pct===0?t('capex_base_row'):t('capex_plus')+pct+'%', capexOverrun:pct/100, isBase:pct===0 }));
     },
     colsFn: function(m) {
       const vals=rwGetAxisValues(this.id,'cols')||this.axes.cols.defaults;
-      return vals.map(d => ({ label:d===0?'Plazo base':'+'+d+'m plazo', delayMonths:d, isBase:d===0 }));
+      return vals.map(d => ({ label:d===0?t('schedule_base_row'):'+'+d+t('m_delay'), delayMonths:d, isBase:d===0 }));
     },
     cellFn: function(m, row, col) {
       const capexAdj=(m.capexNet||0)*(1+row.capexOverrun);
@@ -9619,7 +9640,7 @@ const RW_SENS_MATRICES = {
     }
   },
   breakeven_holding: {
-    id:'breakeven_holding', label:'Breakeven · Meses de holding adicional', sub:'Si no vendo en plazo, cuánto precio de salida necesito para cubrir costes', metric:'€/m² breakeven',
+    id:'breakeven_holding', label_key:'mat_be_holding_lbl', sub_key:'mat_be_holding_sub', metric_key:'mat_be_holding_metric', label:'Breakeven · Meses de holding adicional', sub:'Si no vendo en plazo, cuánto precio de salida necesito para cubrir costes', metric:'€/m² breakeven',
     legendItems: [['#52C07A','≤ Pesimista'],['rgba(196,151,90,0.95)','Pesimista–Base'],['rgba(255,165,0,0.9)','Base–Optimista'],['#E05555','> Optimista']],
     colorFn: (v) => v>(typeof V==='function'?V('exitO'):0)?'c1':v>(typeof V==='function'?V('exitB'):0)?'c2':v>(typeof V==='function'?V('exitP'):0)?'c3':'c4',
     axes: {
@@ -9628,11 +9649,11 @@ const RW_SENS_MATRICES = {
     },
     rowsFn: function(m) {
       const vals=rwGetAxisValues(this.id,'rows')||this.axes.rows.defaults;
-      return vals.map(d => ({ label:d===0?'Plan (base)':'+'+d+'m holding', delayMonths:d, isBase:d===0 }));
+      return vals.map(d => ({ label:d===0?t('plan_base_row'):'+'+d+t('m_holding'), delayMonths:d, isBase:d===0 }));
     },
     colsFn: function(m) {
       const vals=rwGetAxisValues(this.id,'cols')||this.axes.cols.defaults;
-      return vals.map(pct => ({ label:pct===0?'CapEx base':'CapEx +'+pct+'%', capexOverrun:pct/100, isBase:pct===0 }));
+      return vals.map(pct => ({ label:pct===0?t('capex_base_row'):t('capex_plus')+pct+'%', capexOverrun:pct/100, isBase:pct===0 }));
     },
     cellFn: function(m, row, col) {
       const months=m.totalMonths+row.delayMonths;
