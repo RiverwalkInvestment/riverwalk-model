@@ -1482,6 +1482,10 @@ export default function DealClient({
   const scriptInjected = useRef(false)
   const renderDbTabsRef = useRef<(() => void) | null>(null)
   const saveRef = useRef<(() => Promise<void>) | null>(null)
+  // Guard: only allow autosave after data has been restored from DB.
+  // Prevents overwriting real data with the Cedaceros 8 HTML defaults if
+  // applyDeal hasn't run yet (e.g. scripts still loading on first paint).
+  const dataRestoredRef = useRef(false)
   // Refs hold the latest photo/plan URLs so save() always reads up-to-date values
   // even if React hasn't committed the state update yet (stale-closure prevention).
   const photosRef = useRef<string[]>(initialPhotos)
@@ -1573,6 +1577,7 @@ export default function DealClient({
   }
 
   const save = useCallback(async () => {
+    if (!dataRestoredRef.current) return
     setSaving(true)
     setSaveError(false)
     const data = getDealData()
@@ -1644,6 +1649,7 @@ export default function DealClient({
 
     if (alreadyLoaded) {
       scriptInjected.current = true
+      dataRestoredRef.current = true
       // Re-attach renderDbTabs ref from the previous mount's closure (exposed on window)
       if (w.__rwRenderDbTabs) renderDbTabsRef.current = w.__rwRenderDbTabs
       // Refresh output and tabs on remount so nothing appears blank
@@ -1656,6 +1662,7 @@ export default function DealClient({
     }
 
     if (scriptInjected.current) {
+      dataRestoredRef.current = true
       const interval = setInterval(() => saveRef.current?.(), 60_000)
       return () => {
         clearInterval(interval)
@@ -1820,6 +1827,8 @@ export default function DealClient({
         if (Object.keys(initialData).length > 0) {
           setDealData(initialData)
         }
+        // Mark data as restored so autosave is now safe to run
+        dataRestoredRef.current = true
         // Restore saved images into the named drop zones
         if (initialPhotos.length > 0 || initialPlans.length > 0) {
           w.rwRestoreImages?.(initialPhotos, initialPlans)
