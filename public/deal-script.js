@@ -7616,6 +7616,10 @@ const PDF_ES = {
   carry_no_fee:'0% — íntegro al inversor', rw_fee_structure:'Estructura de fees Riverwalk',
   disclaimer:'Documento informativo. Las rentabilidades proyectadas no garantizan resultados futuros.',
   hdr_highlights:'Highlights de la inversión',
+  sensitivity_matrix:'Matriz de sensibilidad',
+  confidential_rw:'Riverwalk Real Estate · documento confidencial',
+  no_debt:'Sin deuda', entry_prefix:'Entrada', base_term:'Plazo base', add_term:'m plazo',
+  k_net:'k neto', pm2_min:'€/m² mín.',
 };
 const PDF_EN = {
   confidential:'· Confidential Document', deal_type_pase:'Assignment · Contract Flip',
@@ -7695,6 +7699,10 @@ const PDF_EN = {
   carry_no_fee:'0% — full return to investor', rw_fee_structure:'Riverwalk fee structure',
   disclaimer:'Informational document. Projected returns do not guarantee future results.',
   hdr_highlights:'Investment Highlights',
+  sensitivity_matrix:'Sensitivity matrix',
+  confidential_rw:'Riverwalk Real Estate · confidential document',
+  no_debt:'No debt', entry_prefix:'Entry', base_term:'Base term', add_term:'m term',
+  k_net:'k net', pm2_min:'€/m² min.',
 };
 
 // ── PAGE WRAPPER ──────────────────────────────────────────────
@@ -9466,11 +9474,15 @@ setTimeout(() => {
 function rwSlideExtMatrix(matrixId, m) {
   if (typeof RW_SENS_MATRICES === 'undefined') return '';
   const md = RW_SENS_MATRICES[matrixId]; if (!md) return '';
+  const isEN = typeof RW_LANG !== 'undefined' && RW_LANG === 'en';
+  const mdLabel = isEN ? (md.labelEn || md.label) : md.label;
+  const mdSub = isEN ? (md.subEn || md.sub) : md.sub;
+  const mdMetric = isEN ? (md.metricEn || md.metric) : md.metric;
   const rows = md.rowsFn(m); const cols = md.colsFn(m);
   let html = '<div style="width:794px;height:1123px;background:#F7F4EE;padding:64px 52px;box-sizing:border-box;font-family:\'Raleway\',sans-serif;color:#0A0B0D;position:relative">'
-    + '<div style="font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:600;margin-bottom:6px">Matriz de sensibilidad</div>'
-    + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:34px;font-weight:400;color:#0A0B0D;letter-spacing:0.005em;margin-bottom:4px;line-height:1.1">' + md.label + '</div>'
-    + '<div style="font-size:11px;color:#5A5D6E;margin-bottom:32px;line-height:1.6;max-width:640px">' + md.sub + '</div>'
+    + '<div style="font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:600;margin-bottom:6px">' + pdfT('sensitivity_matrix') + '</div>'
+    + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:34px;font-weight:400;color:#0A0B0D;letter-spacing:0.005em;margin-bottom:4px;line-height:1.1">' + mdLabel + '</div>'
+    + '<div style="font-size:11px;color:#5A5D6E;margin-bottom:32px;line-height:1.6;max-width:640px">' + mdSub + '</div>'
     + '<table style="width:100%;border-collapse:collapse;font-family:\'DM Mono\',monospace;font-size:10.5px"><thead><tr>'
     + '<th style="text-align:left;padding:9px 12px;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:#5A5D6E;font-weight:600;border-bottom:1px solid #C4975A"></th>';
   cols.forEach(c => { html += '<th style="padding:9px 10px;text-align:center;font-size:9.5px;letter-spacing:0.08em;color:' + (c.isBase?'#C4975A':'#5A5D6E') + ';font-weight:' + (c.isBase?'700':'500') + ';border-bottom:1px solid #C4975A">' + c.label + '</th>'; });
@@ -9491,7 +9503,7 @@ function rwSlideExtMatrix(matrixId, m) {
     html += '</tr>';
   });
   html += '</tbody></table>'
-    + '<div style="position:absolute;bottom:40px;left:52px;right:52px;display:flex;justify-content:space-between;font-size:9px;color:#9A9A9A;letter-spacing:0.1em;text-transform:uppercase"><span>' + (typeof t === 'function' ? t('confidential_doc') : 'Riverwalk Real Estate · documento confidencial') + '</span><span>' + md.metric + '</span></div>'
+    + '<div style="position:absolute;bottom:40px;left:52px;right:52px;display:flex;justify-content:space-between;font-size:9px;color:#9A9A9A;letter-spacing:0.1em;text-transform:uppercase"><span>' + pdfT('confidential_rw') + '</span><span>' + mdMetric + '</span></div>'
   + '</div>';
   return html;
 }
@@ -9546,14 +9558,16 @@ function rwSlideExtMatrixDark(matrixId, m) {
 const RW_SENS_MATRICES = {
   tir_ltv_price: {
     id:'tir_ltv_price', label:'TIR × Apalancamiento (LTV)', sub:'Cómo la deuda magnifica el retorno anualizado a precios distintos de salida', metric:'TIR anualizada (leveraged)',
+    labelEn:'IRR × Leverage (LTV)', subEn:'How debt amplifies annualised returns at different exit prices', metricEn:'Annualised IRR (leveraged)',
     legendItems: [['#E05555','< 5%'],['rgba(255,165,0,0.9)','5–15%'],['rgba(196,151,90,0.95)','15–25%'],['#52C07A','> 25% · Objetivo']],
     colorFn: (v) => (!isFinite(v)||v<0.05)?'c1':v<0.15?'c2':v<0.25?'c3':'c4',
     axes: { rows:{ label:'Valores LTV', unit:'%', hint:'Ej: 0, 30, 40, 50, 60, 70 — en porcentaje', defaults:[0,30,40,50,60,70] }, cols:null },
     rowsFn: function(m) {
       const vals = rwGetAxisValues(this.id,'rows')||this.axes.rows.defaults;
-      return vals.map(l => ({ label:l===0?'Sin deuda':'LTV '+l+'%', ltv:l/100, isBase:Math.abs(l/100 - (m.ltvPct||0))<0.01 }));
+      const isEN=typeof RW_LANG!=='undefined'&&RW_LANG==='en';
+      return vals.map(l => ({ label:l===0?(isEN?'No debt':'Sin deuda'):'LTV '+l+'%', ltv:l/100, isBase:Math.abs(l/100 - (m.ltvPct||0))<0.01 }));
     },
-    colsFn: (m) => (typeof sensPrices !== 'undefined' ? sensPrices : []).map(p => ({ label:p.toLocaleString('es-ES')+' €/m²', price:p, isBase:p===(typeof V==='function'?V('exitB'):0) })),
+    colsFn: (m) => (typeof sensPrices !== 'undefined' ? sensPrices : []).map(p => ({ label:p.toLocaleString(pdfLocale())+' €/m²', price:p, isBase:p===(typeof V==='function'?V('exitB'):0) })),
     cellFn: function(m, row, col) {
       const ep=col.price; const ltv=row.ltv;
       const saleG=ep*m.surfCapex;
@@ -9569,19 +9583,22 @@ const RW_SENS_MATRICES = {
       const exitM=m.totalMonths; const cf=new Array(exitM+1).fill(0);
       cf[0]-=equity*0.1; cf[Math.min(m.arasMonths||0,exitM)]-=equity*0.9; cf[exitM]+=equity+netP;
       const irr=(typeof annIRR==='function'&&typeof calcIRR==='function')?annIRR(calcIRR(cf,0.025)):0;
-      return { value:irr, display:isFinite(irr)?(irr*100).toFixed(1)+'%':'—', extra:'€'+Math.round(netP/1000)+'k neto' };
+      const isEN=typeof RW_LANG!=='undefined'&&RW_LANG==='en';
+      return { value:irr, display:isFinite(irr)?(irr*100).toFixed(1)+'%':'—', extra:'€'+Math.round(netP/1000)+(isEN?'k net':'k neto') };
     }
   },
   margin_entry_exit: {
     id:'margin_entry_exit', label:'Margen neto · Entrada × Salida', sub:'Zona de negociación: hasta qué precio puedo subir de entrada y qué precio mínimo de salida aguanta', metric:'Margen neto (€)',
+    labelEn:'Net Margin · Entry × Exit', subEn:'Negotiation zone: how much can the entry price increase and what is the minimum sustainable exit price', metricEn:'Net margin (€)',
     legendItems: [['#E05555','Pérdidas'],['rgba(255,165,0,0.9)','0–100k€'],['rgba(196,151,90,0.95)','100–400k€'],['#52C07A','> 400k€ · Objetivo']],
     colorFn: (v) => v<0?'c1':v<100000?'c2':v<400000?'c3':'c4',
     axes: { rows:{ label:'Precio entrada (% sobre base)', unit:'%', hint:'Ej: 90, 95, 100, 105, 110 — % sobre tu precio de compra actual', defaults:[90,95,100,105,110] }, cols:null },
     rowsFn: function(m) {
       const vals=rwGetAxisValues(this.id,'rows')||this.axes.rows.defaults; const base=m.buyPrice;
-      return vals.map(pct => ({ label:'Entrada '+pct+'% · '+(typeof fmtK==='function'?fmtK(base*pct/100):(base*pct/100).toLocaleString('es-ES')), buyPrice:base*pct/100, isBase:Math.abs(pct/100-1)<0.001 }));
+      const isEN=typeof RW_LANG!=='undefined'&&RW_LANG==='en';
+      return vals.map(pct => ({ label:(isEN?'Entry':'Entrada')+' '+pct+'% · '+(typeof fmtK==='function'?fmtK(base*pct/100):(base*pct/100).toLocaleString(pdfLocale())), buyPrice:base*pct/100, isBase:Math.abs(pct/100-1)<0.001 }));
     },
-    colsFn: (m) => (typeof sensPrices!=='undefined'?sensPrices:[]).map(p => ({ label:p.toLocaleString('es-ES')+' €/m²', price:p, isBase:p===(typeof V==='function'?V('exitB'):0) })),
+    colsFn: (m) => (typeof sensPrices!=='undefined'?sensPrices:[]).map(p => ({ label:p.toLocaleString(pdfLocale())+' €/m²', price:p, isBase:p===(typeof V==='function'?V('exitB'):0) })),
     cellFn: function(m, row, col) {
       const bp=row.buyPrice; const ep=col.price;
       const itpR=(typeof V==='function'?V('itpRate'):6)/100;
@@ -9599,6 +9616,7 @@ const RW_SENS_MATRICES = {
   },
   roi_overrun: {
     id:'roi_overrun', label:'ROI · Overrun CapEx × Overrun plazo', sub:'Stress test combinado: obra más cara Y más larga de lo previsto', metric:'ROI bruto',
+    labelEn:'ROI · CapEx Overrun × Time Overrun', subEn:'Combined stress test: renovation more expensive AND longer than planned', metricEn:'Gross ROI',
     legendItems: [['#E05555','< 0%'],['rgba(255,165,0,0.9)','0–8%'],['rgba(196,151,90,0.95)','8–20%'],['#52C07A','> 20% · Objetivo']],
     colorFn: (v) => v<0?'c1':v<0.08?'c2':v<0.20?'c3':'c4',
     axes: {
@@ -9611,7 +9629,8 @@ const RW_SENS_MATRICES = {
     },
     colsFn: function(m) {
       const vals=rwGetAxisValues(this.id,'cols')||this.axes.cols.defaults;
-      return vals.map(d => ({ label:d===0?'Plazo base':'+'+d+'m plazo', delayMonths:d, isBase:d===0 }));
+      const isEN=typeof RW_LANG!=='undefined'&&RW_LANG==='en';
+      return vals.map(d => ({ label:d===0?(isEN?'Base term':'Plazo base'):('+'+d+(isEN?'m term':'m plazo')), delayMonths:d, isBase:d===0 }));
     },
     cellFn: function(m, row, col) {
       const capexAdj=(m.capexNet||0)*(1+row.capexOverrun);
@@ -9630,6 +9649,7 @@ const RW_SENS_MATRICES = {
   },
   breakeven_holding: {
     id:'breakeven_holding', label:'Breakeven · Meses de holding adicional', sub:'Si no vendo en plazo, cuánto precio de salida necesito para cubrir costes', metric:'€/m² breakeven',
+    labelEn:'Breakeven · Additional Holding Months', subEn:'If I cannot sell on time, what exit price do I need to cover all costs', metricEn:'€/m² breakeven',
     legendItems: [['#52C07A','≤ Pesimista'],['rgba(196,151,90,0.95)','Pesimista–Base'],['rgba(255,165,0,0.9)','Base–Optimista'],['#E05555','> Optimista']],
     colorFn: (v) => v>(typeof V==='function'?V('exitO'):0)?'c1':v>(typeof V==='function'?V('exitB'):0)?'c2':v>(typeof V==='function'?V('exitP'):0)?'c3':'c4',
     axes: {
@@ -9654,7 +9674,8 @@ const RW_SENS_MATRICES = {
       const brokerPct=(typeof V==='function'?V('brokerExit'):3)/100;
       const saleG=totAdj/Math.max(0.01,1-brokerPct);
       const bePpm=saleG/Math.max(1,m.surfCapex);
-      return { value:bePpm, display:Math.round(bePpm).toLocaleString('es-ES'), extra:'€/m² mín.' };
+      const isEN=typeof RW_LANG!=='undefined'&&RW_LANG==='en';
+      return { value:bePpm, display:Math.round(bePpm).toLocaleString(pdfLocale()), extra:(isEN?'€/m² min.':'€/m² mín.') };
     }
   },
 };
