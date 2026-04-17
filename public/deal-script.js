@@ -7533,6 +7533,170 @@ async function rwRenderMap(lat, lon) {
   return { url: canvas.toDataURL('image/jpeg', 0.93), w: MAP_W, h: MAP_H };
 }
 
+// ── PDF-ONLY TRANSLATION ─────────────────────────────────────
+function pdfLocale() { return (typeof RW_LANG!=='undefined'&&RW_LANG==='en')?'en-GB':'es-ES'; }
+function pdfT(k) {
+  if (typeof RW_LANG==='undefined'||RW_LANG!=='en') return PDF_ES[k]||k;
+  return PDF_EN[k]||PDF_ES[k]||k;
+}
+const PDF_ES = {
+  confidential:'· Documento Confidencial', deal_type_pase:'Pase · Asignación',
+  deal_type_edificio:'Promoción · Edificio', deal_type_flip:'Fix & Flip · Reforma integral',
+  private_doc:'Documento de inversión privado', area:'Superficie', buy_price:'Precio compra',
+  total_invest:'Inversión total', exit_target:'Objetivo venta', roi_base:'ROI base',
+  duration:'Duración', the_asset:'El activo', description:'Descripción',
+  main_data:'Datos principales', no_photo:'Sin fotografía',
+  add_desc:'Añade una descripción del activo en el panel de dossier.',
+  hdr_asset:'El Activo', months:'meses',
+  lbl_salon:'Salón · estado actual', lbl_cocina:'Cocina · estado actual',
+  lbl_dormitorio:'Dormitorio principal', lbl_bano:'Baño',
+  hdr_estado:'Estado actual', current_state_title:'Estado actual del activo',
+  gross_margin:'Margen bruto', net_roi:'ROI neto', net_roe:'ROE neto',
+  irr_annual:'TIR anualizada', investment_thesis:'Tesis inversora',
+  cost_structure:'Estructura de costes', itp_notaria:'ITP + Notaría',
+  capex_iva:'CapEx + IVA', mgmt_fee:'Mgmt fee', total_invested:'Total invertido',
+  leveraged:'Apalancado', equity_req:'Equity requerido', scenario_analysis:'Análisis de escenarios',
+  hdr_scenario:'Escenario', exit_pm2:'€/m² salida', gross_roi:'ROI bruto',
+  annual_irr:'TIR anual', pessimist:'Pesimista', base_sc:'Base', optimist:'Optimista',
+  breakeven_gross:'Breakeven bruto', buy_pm2:'€/m² compra', hdr_opportunity:'La Oportunidad',
+  hdr_distribution:'Distribución', current_layout:'Distribución actual', no_image:'Sin imagen',
+  facade_orientation:'Orientación fachada', microzone:'Microzona', hdr_zone:'La Zona',
+  price_pm2:'Precio €/m²', exit_target_short:'Obj. venta', breakeven:'Breakeven', no_map:'Sin mapa',
+  sale_price:'Precio venta', carried_interest:'Carried interest', net_margin:'Margen neto',
+  moic:'MOIC', financial_scenarios:'Escenarios Financieros',
+  equity_lbl:'Equity', debt:'Deuda',
+  net_margin_base:'Margen neto base', net_roi_base:'ROI neto base', irr_base:'TIR base',
+  base_scenario_legend:'· = escenario base',
+  confidential_private:'Documento confidencial · Uso privado',
+  asking_price:'Precio inicial asking', offer_submitted:'Oferta presentada',
+  offer_rejected:'Oferta rechazada', counter_offer:'Contraoferta vendedor',
+  agreed_price:'Precio pactado ✓', negotiation_timeline:'Del precio inicial al precio pactado',
+  negotiated_saving:'Ahorro negociado', over_initial:'sobre precio inicial',
+  initial_price:'Precio inicial', agreed_price_lbl:'Precio pactado',
+  absolute_saving:'Ahorro absoluto', purchase_price_lbl:'Precio de compra',
+  hdr_market:'El Mercado', no_negotiation:'Sin historial de negociación registrado.',
+  the_project_lbl:'El proyecto', full_renovation:'Reforma integral', qualities:'Calidades',
+  obra_pm2:'Obra (€/m²)', interiorism:'Interiorismo', capex_total:'CapEx total',
+  superficie:'Superficie', obra_duration:'Duración obras',
+  target_layout:'Distribución objetivo', months_estimated:'meses (estimado)',
+  hdr_project:'El Proyecto',
+  avg_reformed:'Media reformados', avg_to_reform:'Media sin reformar',
+  no_witnesses:'Sin testigos registrados. Añade comparables en la sección Testigos.',
+  exit_price_scenarios:'Escenarios de precio de salida',
+  discount_vs_market:'Descuento compra vs mercado sin reformar', hdr_witnesses:'Testigos de mercado',
+  arras_lbl:'Arras', escritura_lbl:'Escritura', inicio_obra_lbl:'Inicio obra',
+  fin_obras_lbl:'Fin obras', venta_lbl:'Venta', arras_sub:'Firma del contrato',
+  inicio_capex_sub:'Inicio CapEx', entrega_sub:'Entrega',
+  arras_period:'Período arras', reform_commercial:'Reforma + comercialización',
+  total_operation:'Total operación', base_exit_price:'Precio salida base',
+  operation_timeline:'Temporalidad de la operación',
+  arras_phase:'Arras', reform_sale_phase:'Reforma &amp; Venta', hdr_calendar:'Calendario',
+  margin_vs_base:'Margen s/ base',
+  roi_price_duration:'ROI · Precio salida × Duración',
+  roi_capex_price:'ROI · Variación CapEx × Precio salida',
+  capex_base_lbl:'CapEx base ·',
+  legend_losses:'< 0% · Pérdidas', legend_adjusted:'0–8% · Ajustado',
+  legend_acceptable:'8–15% · Aceptable', legend_target:'> 15% · Objetivo',
+  base_scenario_dot:'· = escenario base', hdr_protection:'Protección de Capital',
+  spv_unica_lbl:'SPV · Única operación', spv_multi_lbl:'SPV · Multi-activo',
+  club_deal_lbl:'Club Deal',
+  spv_unica_desc:'Sociedad de propósito específico constituida para esta operación. Separación total de riesgo patrimonial.',
+  spv_multi_desc:'Vehículo multi-activo. Permite diversificación y acceso a operaciones futuras.',
+  club_deal_desc:'Grupo cerrado de inversores privados. Estructura ágil regida por pacto entre partes.',
+  pp_lbl:'Préstamo participativo', cp_lbl:'Cuenta en participación',
+  ac_lbl:'Ampliación de capital', ph_lbl:'Préstamo c/ garantía hipotecaria',
+  pp_desc:'Interés fijo + participación variable en beneficio. Sin transmisión de propiedad.',
+  cp_desc:'Capital cedido al gestor. Comparte riesgo y beneficio en proporción a la aportación.',
+  ac_desc:'El inversor entra como socio de la sociedad, con derechos societarios.',
+  ph_desc:'Retorno fijo garantizado con el activo como colateral. Perfil más conservador.',
+  min_ticket:'Ticket mínimo', gross_roi_base:'ROI bruto base', annual_irr_base:'TIR anual base',
+  estimated_term:'Plazo estimado', key_metrics:'Métricas clave',
+  investment_vehicle:'Vehículo de inversión', contribution_type:'Forma de aportación',
+  gross_roi_projection:'Proyección ROI bruto', mgmt_fee_lbl:'Management fee',
+  carry_no_fee:'0% — íntegro al inversor', rw_fee_structure:'Estructura de fees Riverwalk',
+  disclaimer:'Documento informativo. Las rentabilidades proyectadas no garantizan resultados futuros.',
+  hdr_highlights:'Highlights de la inversión',
+};
+const PDF_EN = {
+  confidential:'· Confidential Document', deal_type_pase:'Assignment · Contract Flip',
+  deal_type_edificio:'Development · Building', deal_type_flip:'Fix & Flip · Full Renovation',
+  private_doc:'Private investment document', area:'Area', buy_price:'Purchase price',
+  total_invest:'Total investment', exit_target:'Target exit price', roi_base:'Base ROI',
+  duration:'Duration', the_asset:'The asset', description:'Description',
+  main_data:'Key data', no_photo:'No photograph',
+  add_desc:'Add an asset description in the dossier panel.',
+  hdr_asset:'The Asset', months:'months',
+  lbl_salon:'Living room · current state', lbl_cocina:'Kitchen · current state',
+  lbl_dormitorio:'Master bedroom', lbl_bano:'Bathroom',
+  hdr_estado:'Current state', current_state_title:'Current state of the asset',
+  gross_margin:'Gross margin', net_roi:'Net ROI', net_roe:'Net ROE',
+  irr_annual:'Annualised IRR', investment_thesis:'Investment thesis',
+  cost_structure:'Cost structure', itp_notaria:'Transfer tax + Notary',
+  capex_iva:'CapEx + VAT', mgmt_fee:'Mgmt fee', total_invested:'Total invested',
+  leveraged:'Leveraged', equity_req:'Required equity', scenario_analysis:'Scenario analysis',
+  hdr_scenario:'Scenario', exit_pm2:'€/m² exit', gross_roi:'Gross ROI',
+  annual_irr:'Annual IRR', pessimist:'Pessimistic', base_sc:'Base', optimist:'Optimistic',
+  breakeven_gross:'Gross breakeven', buy_pm2:'€/m² purchase', hdr_opportunity:'The Opportunity',
+  hdr_distribution:'Floor Plan', current_layout:'Current layout', no_image:'No image',
+  facade_orientation:'Facade orientation', microzone:'Micro-location',
+  hdr_zone:'The Neighbourhood', price_pm2:'Price €/m²', exit_target_short:'Exit target',
+  breakeven:'Breakeven', no_map:'No map', sale_price:'Sale price',
+  carried_interest:'Carried interest', net_margin:'Net margin', moic:'MOIC',
+  financial_scenarios:'Financial Scenarios',
+  equity_lbl:'Equity', debt:'Debt',
+  net_margin_base:'Base net margin', net_roi_base:'Base net ROI', irr_base:'Base IRR',
+  base_scenario_legend:'· = base scenario',
+  confidential_private:'Confidential document · Private use',
+  asking_price:'Initial asking price', offer_submitted:'Offer submitted',
+  offer_rejected:'Offer rejected', counter_offer:'Seller counter-offer',
+  agreed_price:'Agreed price ✓', negotiation_timeline:'From asking price to agreed price',
+  negotiated_saving:'Negotiated saving', over_initial:'over initial price',
+  initial_price:'Initial price', agreed_price_lbl:'Agreed price',
+  absolute_saving:'Absolute saving', purchase_price_lbl:'Purchase price',
+  hdr_market:'The Market', no_negotiation:'No negotiation history recorded.',
+  the_project_lbl:'The project', full_renovation:'Full renovation', qualities:'Finishes',
+  obra_pm2:'Construction (€/m²)', interiorism:'Interior design', capex_total:'Total CapEx',
+  superficie:'Area', obra_duration:'Construction period',
+  target_layout:'Target layout', months_estimated:'months (estimated)',
+  hdr_project:'The Project',
+  avg_reformed:'Avg. renovated', avg_to_reform:'Avg. unrenovated',
+  no_witnesses:'No comparables recorded. Add comps in the Comparables section.',
+  exit_price_scenarios:'Exit price scenarios',
+  discount_vs_market:'Purchase discount vs unrenovated market', hdr_witnesses:'Market comparables',
+  arras_lbl:'Deposit', escritura_lbl:'Completion', inicio_obra_lbl:'Works start',
+  fin_obras_lbl:'Works end', venta_lbl:'Sale', arras_sub:'Contract signing',
+  inicio_capex_sub:'CapEx start', entrega_sub:'Handover',
+  arras_period:'Deposit period', reform_commercial:'Works + marketing',
+  total_operation:'Total operation', base_exit_price:'Base exit price',
+  operation_timeline:'Operation timeline',
+  arras_phase:'Deposit', reform_sale_phase:'Works &amp; Sale', hdr_calendar:'Timeline',
+  margin_vs_base:'Margin vs base',
+  roi_price_duration:'ROI · Exit price × Duration',
+  roi_capex_price:'ROI · CapEx variance × Exit price',
+  capex_base_lbl:'Base CapEx ·',
+  legend_losses:'< 0% · Loss', legend_adjusted:'0–8% · Tight',
+  legend_acceptable:'8–15% · Acceptable', legend_target:'> 15% · Target',
+  base_scenario_dot:'· = base scenario', hdr_protection:'Capital Protection',
+  spv_unica_lbl:'SPV · Single deal', spv_multi_lbl:'SPV · Multi-asset',
+  club_deal_lbl:'Club Deal',
+  spv_unica_desc:'Special purpose vehicle set up for this deal. Full separation of balance sheet risk.',
+  spv_multi_desc:'Multi-asset vehicle. Allows diversification and access to future deals.',
+  club_deal_desc:'Closed group of private investors. Agile structure governed by agreement between parties.',
+  pp_lbl:'Participating loan', cp_lbl:'Silent partnership',
+  ac_lbl:'Capital increase', ph_lbl:'Loan with mortgage security',
+  pp_desc:'Fixed interest + variable profit participation. No property transfer.',
+  cp_desc:'Capital entrusted to the manager. Shares risk and profit in proportion to the contribution.',
+  ac_desc:'The investor becomes a partner in the company, with corporate rights.',
+  ph_desc:'Fixed return guaranteed by the asset as collateral. More conservative profile.',
+  min_ticket:'Min. ticket', gross_roi_base:'Base gross ROI', annual_irr_base:'Base annual IRR',
+  estimated_term:'Estimated term', key_metrics:'Key metrics',
+  investment_vehicle:'Investment vehicle', contribution_type:'Contribution type',
+  gross_roi_projection:'Gross ROI projection', mgmt_fee_lbl:'Management fee',
+  carry_no_fee:'0% — full return to investor', rw_fee_structure:'Riverwalk fee structure',
+  disclaimer:'Informational document. Projected returns do not guarantee future results.',
+  hdr_highlights:'Investment Highlights',
+};
+
 // ── PAGE WRAPPER ──────────────────────────────────────────────
 const pg = (inner, bg = '#F7F4EE') =>
   `<div style="width:794px;height:1123px;overflow:hidden;background:${bg};font-family:'Raleway',sans-serif;position:relative;box-sizing:border-box;">${inner}</div>`;
@@ -7553,7 +7717,7 @@ function ftr(light) {
   return `<div style="position:absolute;bottom:0;left:0;right:0;padding:12px 48px;border-top:1px solid ${light?'rgba(255,255,255,0.07)':'rgba(196,151,90,0.15)'};display:flex;justify-content:space-between;align-items:center;">
     <div style="display:flex;align-items:center;gap:10px;">
       <img src="${logoSrc}" style="height:11px;width:auto;display:block;opacity:${logoOp};">
-      <span style="font-size:7px;color:${light?'rgba(255,255,255,0.2)':'rgba(160,148,130,0.65)'};letter-spacing:0.14em;text-transform:uppercase;">· Documento Confidencial</span>
+      <span style="font-size:7px;color:${light?'rgba(255,255,255,0.2)':'rgba(160,148,130,0.65)'};letter-spacing:0.14em;text-transform:uppercase;">${pdfT('confidential')}</span>
     </div>
     <div style="font-size:7px;color:${light?'rgba(196,151,90,0.3)':'rgba(196,151,90,0.55)'};letter-spacing:0.12em;">${new Date().getFullYear()}</div>
   </div>`;
@@ -7578,7 +7742,7 @@ function rwMd(text) {
 
 // ── SLIDE 1: PORTADA ──────────────────────────────────────────
 function rwSlide1(dealName, dealAddr, dealType, dateStr, fachada) {
-  const tipo = dealType === 'pase' ? 'Pase · Asignación' : dealType === 'edificio' ? 'Promoción · Edificio' : 'Fix & Flip · Reforma integral';
+  const tipo = dealType === 'pase' ? pdfT('deal_type_pase') : dealType === 'edificio' ? pdfT('deal_type_edificio') : pdfT('deal_type_flip');
   const bgStyle = fachada
     ? `background:linear-gradient(to right, rgba(10,11,16,0.92) 52%, rgba(10,11,16,0.55) 100%), url(${fachada}) center/cover no-repeat;`
     : `background:#0F1014;`;
@@ -7602,7 +7766,7 @@ function rwSlide1(dealName, dealAddr, dealType, dateStr, fachada) {
     </div>
     <!-- Bottom -->
     <div style="position:absolute;bottom:36px;left:44px;right:44px;display:flex;justify-content:space-between;">
-      <div style="font-size:7.5px;color:rgba(255,255,255,0.15);letter-spacing:0.12em;">Documento de inversión privado</div>
+      <div style="font-size:7.5px;color:rgba(255,255,255,0.15);letter-spacing:0.12em;">${pdfT('private_doc')}</div>
       <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(196,151,90,0.4);letter-spacing:0.08em;">${dateStr}</div>
     </div>
   `, '#0F1014');
@@ -7615,12 +7779,12 @@ function rwSlide2(dealName, dealAddr, m, narr, fachada) {
   const BODY_H   = 1123 - HEADER_H - FOOTER_H;
 
   const dataItems = [
-    { l: 'Superficie', v: `${m.surfCapex} m²` },
-    { l: 'Precio compra', v: rwFmtK(m.buyPrice) },
-    { l: 'Inversión total', v: rwFmtK(m.totalInvest) },
-    { l: 'Objetivo venta', v: `${(V('exitB')||0).toLocaleString('es-ES')} €/m²` },
-    { l: 'ROI base', v: rwPct(m.base.roiNet) },
-    { l: 'Duración', v: `${m.totalMonths} meses` },
+    { l: pdfT('area'), v: `${m.surfCapex} m²` },
+    { l: pdfT('buy_price'), v: rwFmtK(m.buyPrice) },
+    { l: pdfT('total_invest'), v: rwFmtK(m.totalInvest) },
+    { l: pdfT('exit_target'), v: `${(V('exitB')||0).toLocaleString(pdfLocale())} €/m²` },
+    { l: pdfT('roi_base'), v: rwPct(m.base.roiNet) },
+    { l: pdfT('duration'), v: `${m.totalMonths} ${pdfT('months')}` },
   ];
 
   const photoCol = fachada ? `
@@ -7628,14 +7792,14 @@ function rwSlide2(dealName, dealAddr, m, narr, fachada) {
       <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(247,244,238,0) 60%,rgba(247,244,238,0.3) 100%);"></div>
     </div>` : `
     <div style="width:42%;flex-shrink:0;height:${BODY_H}px;background:linear-gradient(135deg,#1A1D23 0%,#2A2D35 100%);display:flex;align-items:center;justify-content:center;">
-      <div style="font-size:8px;letter-spacing:0.2em;color:rgba(196,151,90,0.3);text-transform:uppercase;">Sin fotografía</div>
+      <div style="font-size:8px;letter-spacing:0.2em;color:rgba(196,151,90,0.3);text-transform:uppercase;">${pdfT('no_photo')}</div>
     </div>`;
 
   const rightCol = `
     <div style="flex:1;padding:40px 48px 40px 44px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;">
       <!-- Title block -->
       <div>
-        <div style="font-size:7px;letter-spacing:0.28em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:12px;">El activo</div>
+        <div style="font-size:7px;letter-spacing:0.28em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:12px;">${pdfT('the_asset')}</div>
         <div style="font-family:'Cormorant Garamond',serif;font-size:${dealName.length>22?32:40}px;font-weight:300;color:#1A1D23;line-height:1.1;margin-bottom:16px;">${dealName}</div>
         ${dealAddr ? `<div style="font-size:10px;color:rgba(90,82,72,0.55);letter-spacing:0.04em;margin-bottom:28px;">${dealAddr}</div>` : '<div style="margin-bottom:28px;"></div>'}
         <!-- Data grid -->
@@ -7650,17 +7814,17 @@ function rwSlide2(dealName, dealAddr, m, narr, fachada) {
       <!-- Narrative -->
       ${narr.activo && narr.activo.length > 15 ? `
       <div style="border-top:1px solid rgba(196,151,90,0.2);padding-top:18px;">
-        <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">Descripción</div>
+        <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">${pdfT('description')}</div>
         <div style="font-size:10px;line-height:1.7;color:rgba(50,44,36,0.85);font-weight:300;">${rwMd(narr.activo)}</div>
       </div>` : `
       <div style="border-top:1px solid rgba(196,151,90,0.2);padding-top:18px;">
-        <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">Datos principales</div>
-        <div style="font-size:11px;line-height:1.82;color:rgba(100,90,78,0.6);font-style:italic;">Añade una descripción del activo en el panel de dossier.</div>
+        <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">${pdfT('main_data')}</div>
+        <div style="font-size:11px;line-height:1.82;color:rgba(100,90,78,0.6);font-style:italic;">${pdfT('add_desc')}</div>
       </div>`}
     </div>`;
 
   return pg(`
-    ${hdr('El Activo', dealAddr || dealName, 2)}
+    ${hdr(pdfT('hdr_asset'), dealAddr || dealName, 2)}
     <div style="display:flex;height:${BODY_H}px;">
       ${photoCol}
       ${rightCol}
@@ -7674,7 +7838,7 @@ function rwSlide3(dealName, interiores) {
   const imgs = interiores.filter(Boolean);
   if (imgs.length === 0) return null;
 
-  const labels = ['Salón · estado actual', 'Cocina · estado actual', 'Dormitorio principal', 'Baño'];
+  const labels = [pdfT('lbl_salon'), pdfT('lbl_cocina'), pdfT('lbl_dormitorio'), pdfT('lbl_bano')];
   const grid = imgs.slice(0,4).map((src, i) => `
     <div style="position:relative;overflow:hidden;background:#1A1D23;aspect-ratio:4/3;">
       <img src="${src}" style="width:100%;height:100%;object-fit:cover;display:block;">
@@ -7686,9 +7850,9 @@ function rwSlide3(dealName, interiores) {
   const cols = imgs.length <= 2 ? `repeat(${imgs.length},1fr)` : 'repeat(2,1fr)';
 
   return pg(`
-    ${hdr('Estado actual', dealName, 3)}
+    ${hdr(pdfT('hdr_estado'), dealName, 3)}
     <div style="padding:20px 44px 20px;height:calc(100% - 74px - 40px);box-sizing:border-box;display:flex;flex-direction:column;gap:12px;">
-      <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:300;color:#1A1D23;flex-shrink:0;">Estado actual del activo</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:300;color:#1A1D23;flex-shrink:0;">${pdfT('current_state_title')}</div>
       <div style="flex:1;display:flex;align-items:center;justify-content:center;min-height:0;">
         <div style="display:grid;grid-template-columns:${cols};gap:8px;width:100%;">
           ${grid}
@@ -7707,30 +7871,30 @@ function rwSlide4(dealName, m, narr) {
 
   // Hero KPIs
   const heroKpis = [
-    { v: rwFmtK(m.totalInvest),       l: 'Inversión total',  c: '#1A1D23' },
-    { v: rwFmtK(m.base.grossProfit),  l: 'Margen bruto',     c: '#1A6B3C' },
-    { v: rwPct(lev ? levPDF.roe : m.base.roiNet), l: lev ? 'ROE neto' : 'ROI neto', c: '#C4975A' },
-    { v: m.irrBase > 0 ? rwPct(m.irrBase) : '—', l: 'TIR anualizada', c: '#2A5298' },
+    { v: rwFmtK(m.totalInvest),       l: pdfT('total_invest'),  c: '#1A1D23' },
+    { v: rwFmtK(m.base.grossProfit),  l: pdfT('gross_margin'),  c: '#1A6B3C' },
+    { v: rwPct(lev ? levPDF.roe : m.base.roiNet), l: lev ? pdfT('net_roe') : pdfT('net_roi'), c: '#C4975A' },
+    { v: m.irrBase > 0 ? rwPct(m.irrBase) : '—', l: pdfT('irr_annual'), c: '#2A5298' },
   ];
 
   // Cost breakdown
   const costs = [
-    ['Precio compra',    rwFmt(m.buyPrice)],
-    ['ITP + Notaría',    rwFmt(m.itp + m.notaria)],
-    ['CapEx + IVA',      rwFmt(m.capexNet * (1 + V('ivaObra')/100))],
-    ['Mgmt fee',         rwFmt(m.mgmtFee)],
-    ['Total invertido',  rwFmtK(m.totalInvest)],
+    [pdfT('buy_price'),    rwFmt(m.buyPrice)],
+    [pdfT('itp_notaria'),  rwFmt(m.itp + m.notaria)],
+    [pdfT('capex_iva'),    rwFmt(m.capexNet * (1 + V('ivaObra')/100))],
+    [pdfT('mgmt_fee'),     rwFmt(m.mgmtFee)],
+    [pdfT('total_invested'), rwFmtK(m.totalInvest)],
   ];
 
   // 3-scenario table
   const scRows = [
-    { l: 'Pesimista', sc: m.pess, ep: V('exitP'), irr: m.irrPess, col: '#B85050' },
-    { l: 'Base',      sc: m.base, ep: V('exitB'), irr: m.irrBase, col: '#C4975A' },
-    { l: 'Optimista', sc: m.opt,  ep: V('exitO'), irr: m.irrOpt,  col: '#1A6B3C' },
+    { l: pdfT('pessimist'), sc: m.pess, ep: V('exitP'), irr: m.irrPess, col: '#B85050' },
+    { l: pdfT('base_sc'),   sc: m.base, ep: V('exitB'), irr: m.irrBase, col: '#C4975A' },
+    { l: pdfT('optimist'),  sc: m.opt,  ep: V('exitO'), irr: m.irrOpt,  col: '#1A6B3C' },
   ];
 
   return pg(`
-    ${hdr('La Oportunidad', dealName, 4)}
+    ${hdr(pdfT('hdr_opportunity'), dealName, 4)}
     <div style="padding:20px 44px 0;display:flex;flex-direction:column;gap:16px;">
 
       <!-- Hero KPI row -->
@@ -7744,7 +7908,7 @@ function rwSlide4(dealName, m, narr) {
 
       ${narr.tesis && narr.tesis.length > 15 ? `
       <div style="border-left:2px solid #C4975A;padding:12px 16px;background:#FAF7F2;flex-shrink:0;">
-        <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;margin-bottom:7px;font-weight:600;">Tesis inversora</div>
+        <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;margin-bottom:7px;font-weight:600;">${pdfT('investment_thesis')}</div>
         <div style="font-size:10px;line-height:1.7;color:#3D3730;font-weight:300;">${rwMd(narr.tesis)}</div>
       </div>` : ''}
 
@@ -7753,7 +7917,7 @@ function rwSlide4(dealName, m, narr) {
 
         <!-- Left: cost breakdown -->
         <div>
-          <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">Estructura de costes</div>
+          <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">${pdfT('cost_structure')}</div>
           ${costs.map(([l,v], i) => {
             const isTotal = i === costs.length - 1;
             return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;${isTotal?'background:#F4F1EB;border-top:1.5px solid rgba(196,151,90,0.35);margin-top:3px;':'border-bottom:1px solid rgba(196,151,90,0.12);'}">
@@ -7763,13 +7927,13 @@ function rwSlide4(dealName, m, narr) {
           }).join('')}
           ${lev ? `
           <div style="margin-top:10px;padding:10px 12px;background:rgba(42,82,152,0.06);border:0.5px solid rgba(42,82,152,0.2);">
-            <div style="font-size:6.5px;letter-spacing:0.2em;text-transform:uppercase;color:#2A5298;margin-bottom:6px;">Apalancado · LTV ${Math.round(m.ltvPct*100)}%</div>
+            <div style="font-size:6.5px;letter-spacing:0.2em;text-transform:uppercase;color:#2A5298;margin-bottom:6px;">${pdfT('leveraged')} · LTV ${Math.round(m.ltvPct*100)}%</div>
             <div style="display:flex;justify-content:space-between;">
-              <span style="font-size:9px;color:#8B8074;">Equity requerido</span>
+              <span style="font-size:9px;color:#8B8074;">${pdfT('equity_req')}</span>
               <span style="font-family:'DM Mono',monospace;font-size:11px;color:#2A5298;">${rwFmtK(levPDF.equity)}</span>
             </div>
             <div style="display:flex;justify-content:space-between;margin-top:4px;">
-              <span style="font-size:9px;color:#8B8074;">ROE neto</span>
+              <span style="font-size:9px;color:#8B8074;">${pdfT('net_roe')}</span>
               <span style="font-family:'DM Mono',monospace;font-size:11px;color:#C4975A;">${rwPct(levPDF.roe)}</span>
             </div>
           </div>` : ''}
@@ -7777,18 +7941,18 @@ function rwSlide4(dealName, m, narr) {
 
         <!-- Right: 3-scenario table -->
         <div>
-          <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">Análisis de escenarios</div>
+          <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">${pdfT('scenario_analysis')}</div>
           <table style="width:100%;border-collapse:collapse;">
             <thead>
               <tr style="border-bottom:1px solid rgba(196,151,90,0.25);">
-                ${['Escenario','€/m² salida','ROI bruto','TIR anual'].map(h=>`<th style="padding:7px 8px;font-size:7px;letter-spacing:0.12em;text-transform:uppercase;color:#A09282;font-weight:400;text-align:left;">${h}</th>`).join('')}
+                ${[pdfT('hdr_scenario'),pdfT('exit_pm2'),pdfT('gross_roi'),pdfT('annual_irr')].map(h=>`<th style="padding:7px 8px;font-size:7px;letter-spacing:0.12em;text-transform:uppercase;color:#A09282;font-weight:400;text-align:left;">${h}</th>`).join('')}
               </tr>
             </thead>
             <tbody>
               ${scRows.map(({l,sc,ep,irr,col})=>`
               <tr style="border-bottom:1px solid rgba(196,151,90,0.1);">
                 <td style="padding:9px 8px;font-size:9px;color:${col};font-weight:600;letter-spacing:0.06em;">${l}</td>
-                <td style="padding:9px 8px;font-family:'DM Mono',monospace;font-size:10px;color:#1A1D23;">${(ep||0).toLocaleString('es-ES')}</td>
+                <td style="padding:9px 8px;font-family:'DM Mono',monospace;font-size:10px;color:#1A1D23;">${(ep||0).toLocaleString(pdfLocale())}</td>
                 <td style="padding:9px 8px;font-family:'DM Mono',monospace;font-size:10px;color:${col};">${rwPct(sc.roiGross)}</td>
                 <td style="padding:9px 8px;font-family:'DM Mono',monospace;font-size:10px;color:${irr>0?col:'#A09282'}">${irr>0?rwPct(irr):'—'}</td>
               </tr>`).join('')}
@@ -7796,12 +7960,12 @@ function rwSlide4(dealName, m, narr) {
           </table>
           <div style="margin-top:10px;padding:10px 12px;background:#F4F1EB;border-left:2px solid #C4975A;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-size:9px;color:#8B8074;">Breakeven bruto</span>
-              <span style="font-family:'DM Mono',monospace;font-size:12px;color:#1A1D23;font-weight:600;">${Math.round(m.bePriceM2).toLocaleString('es-ES')} €/m²</span>
+              <span style="font-size:9px;color:#8B8074;">${pdfT('breakeven_gross')}</span>
+              <span style="font-family:'DM Mono',monospace;font-size:12px;color:#1A1D23;font-weight:600;">${Math.round(m.bePriceM2).toLocaleString(pdfLocale())} €/m²</span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">
-              <span style="font-size:9px;color:#8B8074;">€/m² compra</span>
-              <span style="font-family:'DM Mono',monospace;font-size:12px;color:#1A1D23;">${buyPm2.toLocaleString('es-ES')} €/m²</span>
+              <span style="font-size:9px;color:#8B8074;">${pdfT('buy_pm2')}</span>
+              <span style="font-family:'DM Mono',monospace;font-size:12px;color:#1A1D23;">${buyPm2.toLocaleString(pdfLocale())} €/m²</span>
             </div>
           </div>
         </div>
@@ -7828,16 +7992,16 @@ function rwSlide5(dealName, planoActual, planoObjetivo, narr) {
       <div style="flex:1;background:#FFFFFF;overflow:hidden;display:flex;align-items:center;justify-content:center;border:0.5px solid rgba(196,151,90,0.15);min-height:0;">
         ${src
           ? `<img src="${src}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;">`
-          : `<div style="font-size:8.5px;color:#B0A898;letter-spacing:0.1em;text-transform:uppercase;">Sin imagen</div>`}
+          : `<div style="font-size:8.5px;color:#B0A898;letter-spacing:0.1em;text-transform:uppercase;">${pdfT('no_image')}</div>`}
       </div>
     </div>`;
 
   return pg(`
-    ${hdr('Distribución', dealName, 5)}
+    ${hdr(pdfT('hdr_distribution'), dealName, 5)}
     <div style="padding:20px 44px;height:${BODY_H}px;box-sizing:border-box;display:flex;flex-direction:column;gap:0;">
-      <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:300;color:#1A1D23;margin-bottom:16px;flex-shrink:0;">Distribución actual</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:300;color:#1A1D23;margin-bottom:16px;flex-shrink:0;">${pdfT('current_layout')}</div>
       <div style="flex:1;display:flex;flex-direction:column;gap:14px;min-height:0;">
-        ${planoCard(planoActual || planoObjetivo, 'Distribución actual', '1')}
+        ${planoCard(planoActual || planoObjetivo, pdfT('current_layout'), '1')}
       </div>
     </div>
     ${ftr()}
@@ -7879,7 +8043,7 @@ function rwSlide6(dealName, dealAddr, mapData, narr, m, orientation) {
       <div style="flex-shrink:0;display:flex;align-items:center;gap:14px;padding:0 24px;border-right:1px solid rgba(196,151,90,0.2);">
         ${compassSVG}
         <div>
-          <div style="font-size:6px;letter-spacing:0.22em;text-transform:uppercase;color:rgba(196,151,90,0.55);margin-bottom:2px;font-weight:600;">Orientación fachada</div>
+          <div style="font-size:6px;letter-spacing:0.22em;text-transform:uppercase;color:rgba(196,151,90,0.55);margin-bottom:2px;font-weight:600;">${pdfT('facade_orientation')}</div>
           <div style="font-family:'Cormorant Garamond',serif;font-size:20px;color:${sd.color};line-height:1;margin-bottom:1px;">${sd.label}</div>
           <div style="font-size:7.5px;color:rgba(255,255,255,0.3);">${ang}° · ${sd.short || ''}</div>
         </div>
@@ -7898,21 +8062,21 @@ function rwSlide6(dealName, dealAddr, mapData, narr, m, orientation) {
   const addrBottom = oriBar ? '70px' : '16px';
   const addrLabel = hasMap ? `
     <div style="position:absolute;bottom:${addrBottom};left:44px;padding:5px 12px;background:rgba(247,244,238,0.93);border-left:2px solid #C4975A;z-index:10;">
-      <div style="font-size:7.5px;color:#1A1D23;letter-spacing:0.08em;font-weight:500;">${dealAddr || 'Ubicación del activo'}</div>
+      <div style="font-size:7.5px;color:#1A1D23;letter-spacing:0.08em;font-weight:500;">${dealAddr || (RW_LANG==='en'?'Asset location':'Ubicación del activo')}</div>
     </div>` : '';
 
   const MAP_H_WITH_BAR = MAP_H; // bar is inside the map div
   const contentH = 1123 - 74 - MAP_H_WITH_BAR - 40 - 20; // extra 20px bottom margin
 
   return pg(`
-    ${hdr('La Zona', dealAddr || dealName, 6)}
+    ${hdr(pdfT('hdr_zone'), dealAddr || dealName, 6)}
     <div style="width:794px;height:${MAP_H}px;overflow:hidden;position:relative;flex-shrink:0;background:#EDE9E0;">
       ${hasMap
         ? `<img src="${mapData.url}" style="width:794px;height:${MAP_H}px;display:block;image-rendering:auto;">
            <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(247,244,238,0) 55%,rgba(10,11,15,0.4) 100%);pointer-events:none;"></div>`
         : `<div style="height:100%;display:flex;align-items:center;justify-content:center;background:#1A1D23;">
              <div style="text-align:center;">
-               <div style="font-size:9px;color:rgba(196,151,90,0.5);letter-spacing:0.2em;text-transform:uppercase;">Sin mapa</div>
+               <div style="font-size:9px;color:rgba(196,151,90,0.5);letter-spacing:0.2em;text-transform:uppercase;">${pdfT('no_map')}</div>
                <div style="font-size:8.5px;color:rgba(255,255,255,0.3);margin-top:6px;">${dealAddr || ''}</div>
              </div>
            </div>`}
@@ -7923,7 +8087,7 @@ function rwSlide6(dealName, dealAddr, mapData, narr, m, orientation) {
     <div style="padding:${hasNarr?'18px':'14px'} 44px 20px;height:${contentH}px;box-sizing:border-box;display:flex;gap:36px;align-items:flex-start;">
       <div style="flex:1;min-width:0;">
         ${hasNarr ? `
-        <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">Microzona</div>
+        <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">${pdfT('microzone')}</div>
         <div style="font-size:9.5px;line-height:1.7;color:rgba(50,44,36,0.75);font-weight:300;">${rwMd(narrText)}</div>
         ` : `
         <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:300;color:#1A1D23;">${dealAddr || dealName}</div>
@@ -7931,11 +8095,11 @@ function rwSlide6(dealName, dealAddr, mapData, narr, m, orientation) {
       </div>
       ${m ? `
       <div style="flex-shrink:0;width:150px;">
-        <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:12px;">Precio €/m²</div>
+        <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:12px;">${pdfT('price_pm2')}</div>
         ${[
-          ['€/m² compra',  `${(m.surfCapex>0?Math.round(m.buyPrice/m.surfCapex):0).toLocaleString('es-ES')} €/m²`],
-          ['Obj. venta',   `${(V('exitB')||0).toLocaleString('es-ES')} €/m²`],
-          ['Breakeven',    `${Math.round(m.bePriceM2).toLocaleString('es-ES')} €/m²`],
+          [pdfT('buy_pm2'),         `${(m.surfCapex>0?Math.round(m.buyPrice/m.surfCapex):0).toLocaleString(pdfLocale())} €/m²`],
+          [pdfT('exit_target_short'), `${(V('exitB')||0).toLocaleString(pdfLocale())} €/m²`],
+          [pdfT('breakeven'),       `${Math.round(m.bePriceM2).toLocaleString(pdfLocale())} €/m²`],
         ].map(([l,v]) => `
         <div style="padding:10px 0;border-bottom:1px solid rgba(196,151,90,0.15);">
           <div style="font-family:'DM Mono',monospace;font-size:13px;color:#1A1D23;font-weight:500;margin-bottom:3px;">${v}</div>
@@ -7962,14 +8126,14 @@ function rwSlide7(dealName, m) {
     const bdr = dark ? 'none' : '1px solid rgba(196,151,90,0.18)';
 
     const rows = [
-      ['Precio venta', rwFmt(sc.saleGross)],
-      ['Margen bruto', rwFmt(sc.grossProfit)],
-      ['ROI bruto', rwPct(sc.roiGross)],
-      ...(sc.sf > 0 ? [['Carried interest', rwFmt(sc.sf)]] : []),
-      ['Margen neto', rwFmt(sc.netProfit)],
-      [lev ? 'ROE neto' : 'ROI neto', rwPct(roi)],
-      ['TIR anualizada', irr > 0 ? rwPct(irr) : '—'],
-      ['MOIC', (lev ? levPDF7.moic : (1 + sc.roiNet)).toFixed(2) + '×'],
+      [pdfT('sale_price'), rwFmt(sc.saleGross)],
+      [pdfT('gross_margin'), rwFmt(sc.grossProfit)],
+      [pdfT('gross_roi'), rwPct(sc.roiGross)],
+      ...(sc.sf > 0 ? [[pdfT('carried_interest'), rwFmt(sc.sf)]] : []),
+      [pdfT('net_margin'), rwFmt(sc.netProfit)],
+      [lev ? pdfT('net_roe') : pdfT('net_roi'), rwPct(roi)],
+      [pdfT('irr_annual'), irr > 0 ? rwPct(irr) : '—'],
+      [pdfT('moic'), (lev ? levPDF7.moic : (1 + sc.roiNet)).toFixed(2) + '×'],
     ];
 
     return `
@@ -7978,7 +8142,7 @@ function rwSlide7(dealName, m) {
       <div style="padding:18px 20px 16px;border-bottom:1px solid ${sep};">
         <div style="font-size:7px;letter-spacing:0.26em;text-transform:uppercase;color:${acc};font-weight:600;margin-bottom:8px;">${label}</div>
         <div style="font-family:'DM Mono',monospace;font-size:26px;font-weight:500;color:${tc};line-height:1;">${rwFmtK(sc.saleGross)}</div>
-        <div style="font-size:8.5px;color:${tc2};margin-top:5px;">${Math.round(sc.saleGross/m.surfCapex).toLocaleString('es-ES')} €/m²</div>
+        <div style="font-size:8.5px;color:${tc2};margin-top:5px;">${Math.round(sc.saleGross/m.surfCapex).toLocaleString(pdfLocale())} €/m²</div>
       </div>
       <!-- rows -->
       <div style="flex:1;display:flex;flex-direction:column;justify-content:space-evenly;padding:6px 0;">
@@ -7992,46 +8156,46 @@ function rwSlide7(dealName, m) {
   };
 
   return pg(`
-    ${hdr('Escenarios Financieros', dealName, 7)}
+    ${hdr(pdfT('financial_scenarios'), dealName, 7)}
 
     <!-- Title row -->
     <div style="padding:28px 48px 0;">
-      <div style="font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:300;color:#1A1D23;letter-spacing:0.01em;margin-bottom:6px;">Análisis de escenarios</div>
-      <div style="font-size:9.5px;color:rgba(90,80,68,0.55);letter-spacing:0.04em;margin-bottom:24px;">Escenario base a ${(V('exitB')||0).toLocaleString('es-ES')} €/m² · ${m.totalMonths} meses · superficie ${m.surfCapex} m²</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:300;color:#1A1D23;letter-spacing:0.01em;margin-bottom:6px;">${pdfT('scenario_analysis')}</div>
+      <div style="font-size:9.5px;color:rgba(90,80,68,0.55);letter-spacing:0.04em;margin-bottom:24px;">${RW_LANG==='en'?`Base scenario at ${(V('exitB')||0).toLocaleString(pdfLocale())} €/m² · ${m.totalMonths} months · area ${m.surfCapex} m²`:`Escenario base a ${(V('exitB')||0).toLocaleString(pdfLocale())} €/m² · ${m.totalMonths} meses · superficie ${m.surfCapex} m²`}</div>
     </div>
 
     <!-- Columns -->
     <div style="padding:0 48px;display:flex;gap:8px;height:${lev ? 560 : 650}px;">
-      ${scBlock(m.pess, m.irrPess, 'Pesimista', false)}
-      ${scBlock(m.base, m.irrBase, 'Base', true)}
-      ${scBlock(m.opt,  m.irrOpt,  'Optimista', false)}
+      ${scBlock(m.pess, m.irrPess, pdfT('pessimist'), false)}
+      ${scBlock(m.base, m.irrBase, pdfT('base_sc'), true)}
+      ${scBlock(m.opt,  m.irrOpt,  pdfT('optimist'), false)}
     </div>
 
     <!-- Bottom summary / lev row -->
     ${lev ? `
     <div style="margin:16px 48px 0;padding:16px 20px;background:#1A1D23;display:grid;grid-template-columns:auto repeat(4,1fr);align-items:center;gap:0;">
       <div style="padding-right:24px;border-right:1px solid rgba(255,255,255,0.1);">
-        <div style="font-size:7px;letter-spacing:0.26em;text-transform:uppercase;color:rgba(196,151,90,0.65);font-weight:600;margin-bottom:2px;">Apalancado</div>
-        <div style="font-size:8.5px;color:rgba(255,255,255,0.3);letter-spacing:0.04em;">LTV ${Math.round(m.ltvPct*100)}% · escenario base</div>
+        <div style="font-size:7px;letter-spacing:0.26em;text-transform:uppercase;color:rgba(196,151,90,0.65);font-weight:600;margin-bottom:2px;">${pdfT('leveraged')}</div>
+        <div style="font-size:8.5px;color:rgba(255,255,255,0.3);letter-spacing:0.04em;">LTV ${Math.round(m.ltvPct*100)}% · ${RW_LANG==='en'?'base scenario':'escenario base'}</div>
       </div>
       ${[
-        ['Equity', rwFmtK(levPDF7.equity)],
-        ['Deuda', rwFmtK(levPDF7.loan)],
-        ['ROE neto', rwPct(levPDF7.roe)],
-        ['MOIC', levPDF7.moic.toFixed(2) + '×'],
+        [pdfT('equity_lbl'), rwFmtK(levPDF7.equity)],
+        [pdfT('debt'), rwFmtK(levPDF7.loan)],
+        [pdfT('net_roe'), rwPct(levPDF7.roe)],
+        [pdfT('moic'), levPDF7.moic.toFixed(2) + '×'],
       ].map(([l,v]) => `
       <div style="padding:0 16px;text-align:center;">
         <div style="font-family:'DM Mono',monospace;font-size:16px;color:#FAFAF8;margin-bottom:3px;">${v}</div>
         <div style="font-size:7px;color:rgba(255,255,255,0.28);letter-spacing:0.14em;text-transform:uppercase;">${l}</div>
       </div>`).join('')}
     </div>` : `
-    <!-- Summary bar (sin leverage) -->
+    <!-- Summary bar -->
     <div style="margin:16px 48px 0;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
       ${[
-        ['Margen neto base', rwFmt(m.base.netProfit)],
-        ['ROI neto base', rwPct(m.base.roiNet)],
-        ['TIR base', m.irrBase > 0 ? rwPct(m.irrBase) : '—'],
-        ['Breakeven', `${Math.round(m.bePriceM2).toLocaleString('es-ES')} €/m²`],
+        [pdfT('net_margin_base'), rwFmt(m.base.netProfit)],
+        [pdfT('net_roi_base'), rwPct(m.base.roiNet)],
+        [pdfT('irr_base'), m.irrBase > 0 ? rwPct(m.irrBase) : '—'],
+        [pdfT('breakeven_gross'), `${Math.round(m.bePriceM2).toLocaleString(pdfLocale())} €/m²`],
       ].map(([l,v]) => `
       <div style="padding:14px 18px;background:#1A1D23;text-align:center;">
         <div style="font-family:'DM Mono',monospace;font-size:18px;color:#FAFAF8;margin-bottom:4px;">${v}</div>
@@ -8050,7 +8214,7 @@ function rwSlide8() {
     <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
       <img src="/Riverwalk_Logo_Blanco.png" style="height:44px;width:auto;display:block;opacity:0.85;margin-bottom:12px;">
       <div style="width:40px;height:0.5px;background:rgba(196,151,90,0.3);margin:28px auto;"></div>
-      <div style="font-size:9px;color:rgba(255,255,255,0.18);letter-spacing:0.14em;">Documento confidencial · Uso privado</div>
+      <div style="font-size:9px;color:rgba(255,255,255,0.18);letter-spacing:0.14em;">${pdfT('confidential_private')}</div>
     </div>
     <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,rgba(196,151,90,0.2),transparent);"></div>
   `, '#0F1014');
@@ -8065,11 +8229,11 @@ function rwSlideMercadoPDF(dealName, negotiation, m) {
   const savPct = (askH?.importe > 0 && pactH?.importe > 0) ? ((savAbs / askH.importe) * 100).toFixed(1) : null;
 
   const tipoCfg = {
-    asking:       { label:'Precio inicial asking',  color:'#C0443A' },
-    oferta:       { label:'Oferta presentada',       color:'#8B6520' },
-    rechazada:    { label:'Oferta rechazada',        color:'#B05028' },
-    contraoferta: { label:'Contraoferta vendedor',   color:'#7A6010' },
-    pactado:      { label:'Precio pactado ✓',       color:'#1A6B3C' },
+    asking:       { label:pdfT('asking_price'),   color:'#C0443A' },
+    oferta:       { label:pdfT('offer_submitted'), color:'#8B6520' },
+    rechazada:    { label:pdfT('offer_rejected'),  color:'#B05028' },
+    contraoferta: { label:pdfT('counter_offer'),   color:'#7A6010' },
+    pactado:      { label:pdfT('agreed_price'),    color:'#1A6B3C' },
   };
 
   const buyPm2 = m.surfCapex > 0 ? Math.round(m.buyPrice / m.surfCapex) : 0;
@@ -8078,8 +8242,8 @@ function rwSlideMercadoPDF(dealName, negotiation, m) {
     const cfg = tipoCfg[h.tipo] || tipoCfg.oferta;
     const isPactado = h.tipo === 'pactado';
     const isLast = i === neg.length - 1;
-    const fmtI = h.importe > 0 ? h.importe.toLocaleString('es-ES') + ' €' : '';
-    const fmtF = h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', {month:'short', year:'numeric'}).toUpperCase() : '';
+    const fmtI = h.importe > 0 ? h.importe.toLocaleString(pdfLocale()) + ' €' : '';
+    const fmtF = h.fecha ? new Date(h.fecha).toLocaleDateString(pdfLocale(), {month:'short', year:'numeric'}).toUpperCase() : '';
     return `
     <div style="display:flex;gap:14px;margin-bottom:${isLast?0:14}px;align-items:flex-start;">
       <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding-top:4px;">
@@ -8095,40 +8259,40 @@ function rwSlideMercadoPDF(dealName, negotiation, m) {
         ${h.nota?`<div style="font-size:9px;color:#8B8074;line-height:1.6;margin-top:6px;font-style:italic;">${h.nota}</div>`:''}
       </div>
     </div>`;
-  }).join('') : `<div style="font-size:10px;color:#A09282;font-style:italic;padding:20px 0;">Sin historial de negociación registrado.</div>`;
+  }).join('') : `<div style="font-size:10px;color:#A09282;font-style:italic;padding:20px 0;">${pdfT('no_negotiation')}</div>`;
 
   return pg(`
-    ${hdr('El Mercado', dealName, 5)}
+    ${hdr(pdfT('hdr_market'), dealName, 5)}
     <div style="padding:20px 44px 0;display:flex;gap:32px;height:calc(100% - 74px - 40px);overflow:hidden;">
       <!-- Left: timeline -->
       <div style="flex:1;overflow:hidden;">
-        <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:14px;">Del precio inicial al precio pactado</div>
+        <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:14px;">${pdfT('negotiation_timeline')}</div>
         ${timelineHTML}
       </div>
       <!-- Right: resultado -->
       <div style="width:210px;flex-shrink:0;display:flex;flex-direction:column;gap:12px;justify-content:flex-start;padding-top:22px;">
         ${savPct ? `
         <div style="padding:24px 20px 20px;background:#1A6B3C;text-align:center;">
-          <div style="font-size:6.5px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.6);margin-bottom:14px;">Ahorro negociado</div>
+          <div style="font-size:6.5px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.6);margin-bottom:14px;">${pdfT('negotiated_saving')}</div>
           <div style="font-family:'Cormorant Garamond',serif;font-size:40px;font-weight:300;color:#FFFFFF;line-height:1.2;margin-bottom:10px;">−${savPct}<span style="font-size:20px;">%</span></div>
-          <div style="font-size:8px;color:rgba(255,255,255,0.5);">sobre precio inicial</div>
+          <div style="font-size:8px;color:rgba(255,255,255,0.5);">${pdfT('over_initial')}</div>
         </div>
         <div style="padding:14px 16px;background:#FAF7F2;border:0.5px solid rgba(196,151,90,0.2);">
-          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:6px;">Precio inicial</div>
-          <div style="font-family:'DM Mono',monospace;font-size:13px;color:#A09282;text-decoration:line-through;">${askH.importe.toLocaleString('es-ES')} €</div>
+          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:6px;">${pdfT('initial_price')}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:13px;color:#A09282;text-decoration:line-through;">${askH.importe.toLocaleString(pdfLocale())} €</div>
         </div>
         <div style="padding:14px 16px;background:#F4F1EB;border-left:2px solid #C4975A;">
-          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:6px;">Precio pactado</div>
-          <div style="font-family:'DM Mono',monospace;font-size:16px;color:#1A1D23;font-weight:600;">${pactH.importe.toLocaleString('es-ES')} €</div>
+          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:6px;">${pdfT('agreed_price_lbl')}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:16px;color:#1A1D23;font-weight:600;">${pactH.importe.toLocaleString(pdfLocale())} €</div>
         </div>
         <div style="padding:14px 16px;background:#FAF7F2;border:0.5px solid rgba(26,107,60,0.2);">
-          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:6px;">Ahorro absoluto</div>
-          <div style="font-family:'DM Mono',monospace;font-size:15px;color:#1A6B3C;font-weight:600;">${savAbs.toLocaleString('es-ES')} €</div>
+          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:6px;">${pdfT('absolute_saving')}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:15px;color:#1A6B3C;font-weight:600;">${savAbs.toLocaleString(pdfLocale())} €</div>
         </div>` : `
         <div style="padding:16px 18px;background:#F4F1EB;border-left:2px solid #C4975A;">
-          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:8px;">Precio de compra</div>
-          <div style="font-family:'DM Mono',monospace;font-size:20px;color:#1A1D23;">${m.buyPrice.toLocaleString('es-ES')} €</div>
-          <div style="font-size:9px;color:#A09282;margin-top:4px;">${buyPm2.toLocaleString('es-ES')} €/m²</div>
+          <div style="font-size:6.5px;letter-spacing:0.14em;text-transform:uppercase;color:#A09282;margin-bottom:8px;">${pdfT('purchase_price_lbl')}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:20px;color:#1A1D23;">${m.buyPrice.toLocaleString(pdfLocale())} €</div>
+          <div style="font-size:9px;color:#A09282;margin-top:4px;">${buyPm2.toLocaleString(pdfLocale())} €/m²</div>
         </div>`}
       </div>
     </div>
@@ -8143,11 +8307,11 @@ function rwSlideProyectoPDF(dealName, m, narr, planoObjetivo, materials, interio
   const calidadesText = (window.__rwCalidadesText) || '';
 
   const reformData = [
-    ['Obra (€/m²)',      V('obraM2').toLocaleString('es-ES') + ' €/m² + IVA'],
-    ['Interiorismo',     V('decoM2').toLocaleString('es-ES') + ' €/m² + IVA'],
-    ['CapEx total',      rwFmt(m.capexNet * (1 + V('ivaObra')/100))],
-    ['Superficie',       m.surfCapex + ' m²'],
-    ['Duración obras',   V('mesesObra') + ' meses (estimado)'],
+    [pdfT('obra_pm2'),      V('obraM2').toLocaleString(pdfLocale()) + ` €/m² + ${RW_LANG==='en'?'VAT':'IVA'}`],
+    [pdfT('interiorism'),   V('decoM2').toLocaleString(pdfLocale()) + ` €/m² + ${RW_LANG==='en'?'VAT':'IVA'}`],
+    [pdfT('capex_total'),   rwFmt(m.capexNet * (1 + V('ivaObra')/100))],
+    [pdfT('superficie'),    m.surfCapex + ' m²'],
+    [pdfT('obra_duration'), V('mesesObra') + ' ' + pdfT('months_estimated')],
   ];
 
   // Layout: top zone (text+table left | reform summary right), then plan, then interiorism image
@@ -8157,7 +8321,7 @@ function rwSlideProyectoPDF(dealName, m, narr, planoObjetivo, materials, interio
   const PLAN_H = BODY_H - TOP_H - MAT_H - (MAT_H ? 28 : 16); // 28 = separator + gap when image present
 
   return pg(`
-    ${hdr('El Proyecto', dealName, 6)}
+    ${hdr(pdfT('hdr_project'), dealName, 6)}
     <div style="padding:18px 44px 0;height:${BODY_H}px;box-sizing:border-box;display:flex;flex-direction:column;gap:0;overflow:hidden;">
 
       <!-- TOP ZONE: text left + reform table right -->
@@ -8165,14 +8329,14 @@ function rwSlideProyectoPDF(dealName, m, narr, planoObjetivo, materials, interio
         <!-- Left: title + narrative -->
         <div style="flex:1;display:flex;flex-direction:column;gap:10px;overflow:hidden;padding-right:4px;">
           <div>
-            <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:8px;">El proyecto</div>
-            <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:300;color:#1A1D23;margin-bottom:10px;">Reforma integral</div>
+            <div style="font-size:6.5px;letter-spacing:0.26em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:8px;">${pdfT('the_project_lbl')}</div>
+            <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:300;color:#1A1D23;margin-bottom:10px;">${pdfT('full_renovation')}</div>
             ${narr.proyecto && narr.proyecto.length > 10 ? `
             <div style="font-size:9.5px;line-height:1.7;color:rgba(50,44,36,0.8);font-weight:300;">${rwMd(narr.proyecto)}</div>` : ''}
           </div>
           ${calidadesText ? `
           <div style="padding:10px 14px;background:#F5F3EF;border-left:2px solid rgba(196,151,90,0.5);flex-shrink:0;">
-            <div style="font-size:6px;letter-spacing:0.2em;text-transform:uppercase;color:#C4975A;margin-bottom:5px;font-weight:600;">Calidades</div>
+            <div style="font-size:6px;letter-spacing:0.2em;text-transform:uppercase;color:#C4975A;margin-bottom:5px;font-weight:600;">${pdfT('qualities')}</div>
             <div style="font-size:9px;line-height:1.65;color:#5A5040;">${rwMd(calidadesText)}</div>
           </div>` : ''}
         </div>
@@ -8189,7 +8353,7 @@ function rwSlideProyectoPDF(dealName, m, narr, planoObjetivo, materials, interio
       ${planoObjetivo ? `
       <!-- SEPARATOR when plan exists -->
       <div style="height:16px;flex-shrink:0;display:flex;align-items:center;">
-        <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:600;">Distribución objetivo</div>
+        <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:600;">${pdfT('target_layout')}</div>
       </div>
       <!-- PLAN ZONE -->
       <div style="height:${PLAN_H}px;flex-shrink:0;background:#FFFFFF;overflow:hidden;display:flex;align-items:center;justify-content:center;">
@@ -8227,57 +8391,57 @@ function rwSlideTestigosPDF(dealName, m) {
     <div style="display:flex;align-items:center;padding:10px 14px;background:#FAF7F2;border-left:2px solid ${accent};margin-bottom:4px;gap:10px;">
       <div style="flex:1;font-size:9.5px;color:#5A5040;min-width:0;">${label}</div>
       <div style="font-family:'DM Mono',monospace;color:#A09282;font-size:9px;white-space:nowrap;flex-shrink:0;">${c.m2}m²</div>
-      <div style="font-family:'DM Mono',monospace;color:#1A1D23;font-size:11px;font-weight:500;white-space:nowrap;flex-shrink:0;">${Math.round(c.precio/c.m2).toLocaleString('es-ES')} €/m²</div>
+      <div style="font-family:'DM Mono',monospace;color:#1A1D23;font-size:11px;font-weight:500;white-space:nowrap;flex-shrink:0;">${Math.round(c.precio/c.m2).toLocaleString(pdfLocale())} €/m²</div>
     </div>`;
   };
 
   const scRows = [
-    { lbl:'Pesimista', ep:V('exitP'), sc:m.pess, col:'#B05050', bg:'rgba(176,80,80,0.05)' },
-    { lbl:'Base',      ep:V('exitB'), sc:m.base, col:'#C4975A', bg:'rgba(196,151,90,0.08)' },
-    { lbl:'Optimista', ep:V('exitO'), sc:m.opt,  col:'#1A6B3C', bg:'rgba(26,107,60,0.05)' },
+    { lbl:pdfT('pessimist'), ep:V('exitP'), sc:m.pess, col:'#B05050', bg:'rgba(176,80,80,0.05)' },
+    { lbl:pdfT('base_sc'),   ep:V('exitB'), sc:m.base, col:'#C4975A', bg:'rgba(196,151,90,0.08)' },
+    { lbl:pdfT('optimist'),  ep:V('exitO'), sc:m.opt,  col:'#1A6B3C', bg:'rgba(26,107,60,0.05)' },
   ];
 
   return pg(`
-    ${hdr('Testigos de mercado', dealName, 8)}
+    ${hdr(pdfT('hdr_witnesses'), dealName, 8)}
     <div style="padding:18px 44px 0;display:grid;grid-template-columns:1fr 1fr;gap:24px;height:calc(100% - 74px - 40px);overflow:hidden;">
       <!-- Left: comparables -->
       <div style="display:flex;flex-direction:column;gap:16px;overflow:hidden;">
         ${reforComp.length > 0 ? `
         <div>
-          <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:12px;">Testigos reformados (${reforComp.length})</div>
+          <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:12px;">${RW_LANG==='en'?`Renovated comparables (${reforComp.length})`:`Testigos reformados (${reforComp.length})`}</div>
           ${reforComp.slice(0,5).map(c=>compRow(c,'rgba(26,107,60,0.5)')).join('')}
           ${medRefPm2 > 0 ? `<div style="margin-top:8px;padding:10px 12px;background:#F4F1EB;border-left:2px solid #C4975A;display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-size:8.5px;color:#8B8074;">Media reformados</span>
-            <span style="font-family:'DM Mono',monospace;font-size:14px;color:#C4975A;font-weight:600;">${medRefPm2.toLocaleString('es-ES')} €/m²</span>
+            <span style="font-size:8.5px;color:#8B8074;">${pdfT('avg_reformed')}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:14px;color:#C4975A;font-weight:600;">${medRefPm2.toLocaleString(pdfLocale())} €/m²</span>
           </div>` : ''}
         </div>` : ''}
         ${reformarComp.length > 0 ? `
         <div>
-          <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#8B8074;font-weight:700;margin-bottom:12px;">A reformar (${reformarComp.length})</div>
+          <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#8B8074;font-weight:700;margin-bottom:12px;">${RW_LANG==='en'?`To renovate (${reformarComp.length})`:`A reformar (${reformarComp.length})`}</div>
           ${reformarComp.slice(0,3).map(c=>compRow(c,'rgba(196,151,90,0.4)')).join('')}
           ${medRfmPm2 > 0 ? `<div style="margin-top:8px;padding:10px 12px;background:#FAF7F2;border:0.5px solid rgba(196,151,90,0.2);display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-size:8.5px;color:#8B8074;">Media sin reformar</span>
-            <span style="font-family:'DM Mono',monospace;font-size:14px;color:#1A1D23;">${medRfmPm2.toLocaleString('es-ES')} €/m²</span>
+            <span style="font-size:8.5px;color:#8B8074;">${pdfT('avg_to_reform')}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:14px;color:#1A1D23;">${medRfmPm2.toLocaleString(pdfLocale())} €/m²</span>
           </div>` : ''}
         </div>` : ''}
-        ${!reforComp.length && !reformarComp.length ? `<div style="font-size:10px;color:#A09282;font-style:italic;padding:20px 0;">Sin testigos registrados. Añade comparables en la sección Testigos.</div>` : ''}
+        ${!reforComp.length && !reformarComp.length ? `<div style="font-size:10px;color:#A09282;font-style:italic;padding:20px 0;">${pdfT('no_witnesses')}</div>` : ''}
       </div>
       <!-- Right: price scenarios + discount -->
       <div style="display:flex;flex-direction:column;gap:10px;justify-content:flex-start;padding-top:4px;">
-        <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:6px;">Escenarios de precio de salida</div>
+        <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:6px;">${pdfT('exit_price_scenarios')}</div>
         ${scRows.map(({lbl,ep,sc,col,bg})=>`
         <div style="padding:14px 16px;background:${bg};border-left:2px solid ${col};">
           <div style="font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:${col};margin-bottom:6px;font-weight:600;">${lbl}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:22px;color:#1A1D23;font-weight:500;line-height:1;">${ep.toLocaleString('es-ES')} <span style="font-size:11px;color:#A09282;">€/m²</span></div>
+          <div style="font-family:'DM Mono',monospace;font-size:22px;color:#1A1D23;font-weight:500;line-height:1;">${ep.toLocaleString(pdfLocale())} <span style="font-size:11px;color:#A09282;">€/m²</span></div>
           <div style="display:flex;gap:16px;margin-top:8px;">
-            <span style="font-size:8.5px;color:#8B8074;">Total: <span style="font-family:'DM Mono',monospace;color:#1A1D23;">${rwFmtK(ep*m.surfCapex)}</span></span>
-            <span style="font-size:8.5px;color:#8B8074;">ROI: <span style="font-family:'DM Mono',monospace;color:${col};">${rwPct(sc.roiGross)}</span></span>
-            <span style="font-size:8.5px;color:#8B8074;">TIR: <span style="font-family:'DM Mono',monospace;color:${col};">${sc.irr > 0 ? rwPct(sc.irr) : '—'}</span></span>
+            <span style="font-size:8.5px;color:#8B8074;">${RW_LANG==='en'?'Total':'Total'}: <span style="font-family:'DM Mono',monospace;color:#1A1D23;">${rwFmtK(ep*m.surfCapex)}</span></span>
+            <span style="font-size:8.5px;color:#8B8074;">${RW_LANG==='en'?'ROI':'ROI'}: <span style="font-family:'DM Mono',monospace;color:${col};">${rwPct(sc.roiGross)}</span></span>
+            <span style="font-size:8.5px;color:#8B8074;">${RW_LANG==='en'?'IRR':'TIR'}: <span style="font-family:'DM Mono',monospace;color:${col};">${sc.irr > 0 ? rwPct(sc.irr) : '—'}</span></span>
           </div>
         </div>`).join('')}
         ${descuento ? `
         <div style="padding:12px 14px;background:#F4F1EB;border:0.5px solid rgba(196,151,90,0.3);display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
-          <span style="font-size:9px;color:#8B8074;">Descuento compra vs mercado sin reformar</span>
+          <span style="font-size:9px;color:#8B8074;">${pdfT('discount_vs_market')}</span>
           <span style="font-family:'DM Mono',monospace;font-size:16px;color:#1A6B3C;font-weight:700;">−${descuento}%</span>
         </div>` : ''}
       </div>
@@ -8289,29 +8453,29 @@ function rwSlideTestigosPDF(dealName, m) {
 // ── PDF SLIDE: CALENDARIO ─────────────────────────────────────
 function rwSlideCalendarioPDF(dealName, m) {
   const tlSteps = [
-    { lbl:'Arras',       m: 0,                            sub: 'Firma del contrato' },
-    { lbl:'Escritura',   m: m.arasMonths,                 sub: m.arasMonths + 'm' },
-    { lbl:'Inicio obra', m: m.arasMonths + 1,             sub: 'Inicio CapEx' },
-    { lbl:'Fin obras',   m: m.arasMonths + Math.round(m.monthsSale * 0.75), sub: 'Entrega' },
-    { lbl:'Venta',       m: m.totalMonths,                sub: m.totalMonths + 'm total' },
+    { lbl:pdfT('arras_lbl'),      m: 0,                            sub: pdfT('arras_sub') },
+    { lbl:pdfT('escritura_lbl'),  m: m.arasMonths,                 sub: m.arasMonths + 'm' },
+    { lbl:pdfT('inicio_obra_lbl'),m: m.arasMonths + 1,             sub: pdfT('inicio_capex_sub') },
+    { lbl:pdfT('fin_obras_lbl'),  m: m.arasMonths + Math.round(m.monthsSale * 0.75), sub: pdfT('entrega_sub') },
+    { lbl:pdfT('venta_lbl'),      m: m.totalMonths,                sub: m.totalMonths + 'm total' },
   ];
   const maxM = m.totalMonths;
 
   const phaseData = [
-    { l: 'Período arras',       v: m.arasMonths + ' meses',   c: '#8B8074' },
-    { l: 'Reforma + comercialización', v: m.monthsSale + ' meses', c: '#C4975A' },
-    { l: 'Total operación',     v: m.totalMonths + ' meses',  c: '#1A1D23' },
-    { l: 'Precio compra',       v: rwFmtK(m.buyPrice),         c: '#1A1D23' },
-    { l: 'Inversión total',     v: rwFmtK(m.totalInvest),      c: '#C4975A' },
-    { l: 'Precio salida base',  v: rwFmtK(m.base.saleGross),   c: '#1A6B3C' },
+    { l: pdfT('arras_period'),       v: m.arasMonths + ' ' + pdfT('months'),   c: '#8B8074' },
+    { l: pdfT('reform_commercial'),  v: m.monthsSale + ' ' + pdfT('months'),   c: '#C4975A' },
+    { l: pdfT('total_operation'),    v: m.totalMonths + ' ' + pdfT('months'),  c: '#1A1D23' },
+    { l: pdfT('buy_price'),          v: rwFmtK(m.buyPrice),                    c: '#1A1D23' },
+    { l: pdfT('total_invest'),       v: rwFmtK(m.totalInvest),                 c: '#C4975A' },
+    { l: pdfT('base_exit_price'),    v: rwFmtK(m.base.saleGross),              c: '#1A6B3C' },
   ];
 
   return pg(`
-    ${hdr('Calendario', dealName, 9)}
+    ${hdr(pdfT('hdr_calendar'), dealName, 9)}
     <div style="padding:28px 44px;height:calc(100% - 74px - 40px);box-sizing:border-box;display:flex;flex-direction:column;gap:40px;">
       <div>
-        <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:300;color:#1A1D23;margin-bottom:8px;">Temporalidad de la operación</div>
-        <div style="font-size:9.5px;color:#8B8074;">Duración total estimada: ${m.totalMonths} meses · ${Math.round(m.totalMonths/12*10)/10} años</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:300;color:#1A1D23;margin-bottom:8px;">${pdfT('operation_timeline')}</div>
+        <div style="font-size:9.5px;color:#8B8074;">${RW_LANG==='en'?`Estimated total duration: ${m.totalMonths} months · ${Math.round(m.totalMonths/12*10)/10} years`:`Duración total estimada: ${m.totalMonths} meses · ${Math.round(m.totalMonths/12*10)/10} años`}</div>
       </div>
 
       <!-- Timeline track -->
@@ -8338,11 +8502,11 @@ function rwSlideCalendarioPDF(dealName, m) {
       <div style="position:relative;height:32px;background:#F0EDE6;border-radius:2px;overflow:hidden;">
         <!-- Arras phase -->
         <div style="position:absolute;left:0;top:0;height:100%;width:${(m.arasMonths/maxM*100).toFixed(1)}%;background:rgba(139,128,116,0.3);border-right:2px solid rgba(139,128,116,0.5);">
-          <div style="padding:0 8px;line-height:32px;font-size:7.5px;letter-spacing:0.1em;text-transform:uppercase;color:#5A5040;white-space:nowrap;overflow:hidden;">Arras</div>
+          <div style="padding:0 8px;line-height:32px;font-size:7.5px;letter-spacing:0.1em;text-transform:uppercase;color:#5A5040;white-space:nowrap;overflow:hidden;">${pdfT('arras_phase')}</div>
         </div>
         <!-- Reforma phase -->
         <div style="position:absolute;left:${(m.arasMonths/maxM*100).toFixed(1)}%;top:0;height:100%;width:${(m.monthsSale/maxM*100).toFixed(1)}%;background:rgba(196,151,90,0.25);border-right:2px solid rgba(196,151,90,0.5);">
-          <div style="padding:0 8px;line-height:32px;font-size:7.5px;letter-spacing:0.1em;text-transform:uppercase;color:#5A4010;white-space:nowrap;overflow:hidden;">Reforma &amp; Venta</div>
+          <div style="padding:0 8px;line-height:32px;font-size:7.5px;letter-spacing:0.1em;text-transform:uppercase;color:#5A4010;white-space:nowrap;overflow:hidden;">${pdfT('reform_sale_phase')}</div>
         </div>
       </div>
 
@@ -8399,14 +8563,14 @@ function rwSlideProteccionPDF(dealName, m) {
   const thLeftStyle = 'padding:5px 12px;font-size:7.5px;letter-spacing:0.1em;text-transform:uppercase;color:#8B8074;font-weight:400;text-align:left;border-bottom:1px solid rgba(196,151,90,0.2);';
 
   return pg(`
-    ${hdr('Protección de Capital', dealName, 10)}
+    ${hdr(pdfT('hdr_protection'), dealName, 10)}
     <div style="padding:16px 44px 0;display:flex;flex-direction:column;gap:14px;height:calc(100% - 74px - 40px);overflow:hidden;">
       <!-- Header stats -->
       <div style="display:flex;gap:10px;flex-shrink:0;">
         ${[
-          ['Breakeven bruto', beM2.toLocaleString('es-ES') + ' €/m²', '#C4975A'],
-          ['Margen s/ base', marginPct + '%', '#1A6B3C'],
-          ['Precio compra', `${(m.surfCapex>0?Math.round(m.buyPrice/m.surfCapex):0).toLocaleString('es-ES')} €/m²`, '#1A1D23'],
+          [pdfT('breakeven_gross'), beM2.toLocaleString(pdfLocale()) + ' €/m²', '#C4975A'],
+          [pdfT('margin_vs_base'), marginPct + '%', '#1A6B3C'],
+          [pdfT('buy_price'), `${(m.surfCapex>0?Math.round(m.buyPrice/m.surfCapex):0).toLocaleString(pdfLocale())} €/m²`, '#1A1D23'],
         ].map(([l,v,c])=>`
         <div style="flex:1;padding:12px 14px;background:#F4F1EB;border-top:2px solid ${c};">
           <div style="font-family:'DM Mono',monospace;font-size:18px;color:${c};line-height:1;margin-bottom:4px;">${v}</div>
@@ -8418,7 +8582,7 @@ function rwSlideProteccionPDF(dealName, m) {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;flex:1;min-height:0;overflow:hidden;">
         <!-- Matrix 1: Precio × Duración -->
         <div style="display:flex;flex-direction:column;">
-          <div style="font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:#8B8074;margin-bottom:8px;font-weight:600;">ROI · Precio salida × Duración</div>
+          <div style="font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:#8B8074;margin-bottom:8px;font-weight:600;">${pdfT('roi_price_duration')}</div>
           <table style="width:100%;border-collapse:collapse;">
             <thead><tr>
               <th style="${thLeftStyle}">€/m²</th>
@@ -8429,7 +8593,7 @@ function rwSlideProteccionPDF(dealName, m) {
                 const isBase = Math.abs(ep - exitBase) < 200;
                 return `<tr>
                   <td style="padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;color:${isBase?'#C4975A':'#8B8074'};white-space:nowrap;border-bottom:1px solid rgba(196,151,90,0.1);${isBase?'font-weight:600;':''}">
-                    ${ep.toLocaleString('es-ES')}${isBase?' ·':''}
+                    ${ep.toLocaleString(pdfLocale())}${isBase?' ·':''}
                   </td>
                   ${durCols.map(({months}) => {
                     const roi = cellROI(ep, months);
@@ -8445,16 +8609,16 @@ function rwSlideProteccionPDF(dealName, m) {
         </div>
         <!-- Matrix 2: CapEx × Precio -->
         <div style="display:flex;flex-direction:column;">
-          <div style="font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:#8B8074;margin-bottom:8px;font-weight:600;">ROI · Variación CapEx × Precio salida</div>
+          <div style="font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:#8B8074;margin-bottom:8px;font-weight:600;">${pdfT('roi_capex_price')}</div>
           <table style="width:100%;border-collapse:collapse;">
             <thead><tr>
               <th style="${thLeftStyle}">CapEx</th>
-              ${capexExits.map(ep=>`<th style="${thStyle.replace('#8B8074', Math.abs(ep-exitBase)<200?'#C4975A':'#8B8074')}">${ep.toLocaleString('es-ES')}</th>`).join('')}
+              ${capexExits.map(ep=>`<th style="${thStyle.replace('#8B8074', Math.abs(ep-exitBase)<200?'#C4975A':'#8B8074')}">${ep.toLocaleString(pdfLocale())}</th>`).join('')}
             </tr></thead>
             <tbody>
               ${capexAdjs.map(adj => {
                 const isBase = adj === 0;
-                const lbl = isBase ? 'CapEx base ·' : `${adj>0?'+':''}${(adj*100).toFixed(0)}%`;
+                const lbl = isBase ? pdfT('capex_base_lbl') : `${adj>0?'+':''}${(adj*100).toFixed(0)}%`;
                 return `<tr>
                   <td style="padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;color:${isBase?'#C4975A':'#8B8074'};white-space:nowrap;border-bottom:1px solid rgba(196,151,90,0.1);${isBase?'font-weight:600;':''}">
                     ${lbl}
@@ -8475,12 +8639,12 @@ function rwSlideProteccionPDF(dealName, m) {
 
       <!-- Legend -->
       <div style="display:flex;gap:14px;padding:10px 0;border-top:1px solid rgba(196,151,90,0.15);flex-shrink:0;">
-        ${[['#C0443A','rgba(180,30,30,0.15)','< 0% · Pérdidas'],['#8B5A10','rgba(180,100,20,0.12)','0–8% · Ajustado'],['#7A6010','rgba(139,105,20,0.1)','8–15% · Aceptable'],['#1A6B3C','rgba(26,107,60,0.08)','> 15% · Objetivo']].map(([c,bg,l])=>`
+        ${[['#C0443A','rgba(180,30,30,0.15)',pdfT('legend_losses')],['#8B5A10','rgba(180,100,20,0.12)',pdfT('legend_adjusted')],['#7A6010','rgba(139,105,20,0.1)',pdfT('legend_acceptable')],['#1A6B3C','rgba(26,107,60,0.08)',pdfT('legend_target')]].map(([c,bg,l])=>`
         <div style="display:flex;align-items:center;gap:6px;">
           <div style="width:12px;height:12px;background:${bg};border:0.5px solid ${c};flex-shrink:0;border-radius:1px;"></div>
           <span style="font-size:8.5px;color:#8B8074;">${l}</span>
         </div>`).join('')}
-        <div style="margin-left:auto;font-size:8px;color:#A09282;">· = escenario base</div>
+        <div style="margin-left:auto;font-size:8px;color:#A09282;">${pdfT('base_scenario_dot')}</div>
       </div>
     </div>
     ${ftr()}
@@ -8490,22 +8654,19 @@ function rwSlideProteccionPDF(dealName, m) {
 // ── PDF SLIDE: HIGHLIGHTS ─────────────────────────────────────
 function rwSlideHighlightsPDF(dealName, m, d) {
   const est = d.estructura || {};
-  const VEHICULO_LABELS = { spv_unica:'SPV · Única operación', spv_multi:'SPV · Multi-activo', club_deal:'Club Deal' };
+  const VEHICULO_LABELS = { spv_unica:pdfT('spv_unica_lbl'), spv_multi:pdfT('spv_multi_lbl'), club_deal:pdfT('club_deal_lbl') };
   const VEHICULO_DESC   = {
-    spv_unica:'Sociedad de propósito específico constituida para esta operación. Separación total de riesgo patrimonial.',
-    spv_multi:'Vehículo multi-activo. Permite diversificación y acceso a operaciones futuras.',
-    club_deal:'Grupo cerrado de inversores privados. Estructura ágil regida por pacto entre partes.'
+    spv_unica:pdfT('spv_unica_desc'),
+    spv_multi:pdfT('spv_multi_desc'),
+    club_deal:pdfT('club_deal_desc'),
   };
-  const APORTACION_LABELS = { pp:'Préstamo participativo', cp:'Cuenta en participación', ac:'Ampliación de capital', ph:'Préstamo c/ garantía hipotecaria' };
+  const APORTACION_LABELS = { pp:pdfT('pp_lbl'), cp:pdfT('cp_lbl'), ac:pdfT('ac_lbl'), ph:pdfT('ph_lbl') };
   const APORTACION_DESC = {
-    pp:'Interés fijo + participación variable en beneficio. Sin transmisión de propiedad.',
-    cp:'Capital cedido al gestor. Comparte riesgo y beneficio en proporción a la aportación.',
-    ac:'El inversor entra como socio de la sociedad, con derechos societarios.',
-    ph:'Retorno fijo garantizado con el activo como colateral. Perfil más conservador.'
+    pp:pdfT('pp_desc'), cp:pdfT('cp_desc'), ac:pdfT('ac_desc'), ph:pdfT('ph_desc'),
   };
   const sf1T=V('sf1T'), sf2T=V('sf2T'), sf1P=V('sf1P'), sf2P=V('sf2P');
   const beM2 = Math.round(m.bePriceM2);
-  const ticketMin = est.ticketMinimo ? parseInt(est.ticketMinimo).toLocaleString('es-ES') + ' €' : '—';
+  const ticketMin = est.ticketMinimo ? parseInt(est.ticketMinimo).toLocaleString(pdfLocale()) + ' €' : '—';
   const vLabel = est.vehiculo ? VEHICULO_LABELS[est.vehiculo] : null;
   const vDesc  = est.vehiculo ? VEHICULO_DESC[est.vehiculo] : null;
   const aLabel = est.aportacion ? APORTACION_LABELS[est.aportacion] : null;
@@ -8517,21 +8678,21 @@ function rwSlideHighlightsPDF(dealName, m, d) {
   const maxRoi  = Math.max(roiOpt, 60);
 
   const kpiItems = [
-    ['Inversión total',  rwFmtK(m.totalInvest),                    '#C4975A'],
-    ['Ticket mínimo',    ticketMin,                                 '#1A1D23'],
-    ['ROI bruto base',   rwPct(m.base.roiGross),                   '#1A6B3C'],
-    ['TIR anual base',   m.irrBase>0?rwPct(m.irrBase):'—',         '#1A6B3C'],
-    ['Plazo estimado',   m.totalMonths + ' meses',                  '#1A1D23'],
-    ['Breakeven',        beM2.toLocaleString('es-ES') + ' €/m²',   '#8B8074'],
+    [pdfT('total_invest'),   rwFmtK(m.totalInvest),                    '#C4975A'],
+    [pdfT('min_ticket'),     ticketMin,                                 '#1A1D23'],
+    [pdfT('gross_roi_base'), rwPct(m.base.roiGross),                   '#1A6B3C'],
+    [pdfT('annual_irr_base'),m.irrBase>0?rwPct(m.irrBase):'—',         '#1A6B3C'],
+    [pdfT('estimated_term'), m.totalMonths + ' ' + pdfT('months'),      '#1A1D23'],
+    [pdfT('breakeven'),      beM2.toLocaleString(pdfLocale()) + ' €/m²','#8B8074'],
   ];
 
   return pg(`
-    ${hdr('Highlights de la inversión', dealName, 11)}
+    ${hdr(pdfT('hdr_highlights'), dealName, 11)}
     <div style="padding:20px 44px 20px;height:calc(100% - 74px - 40px);box-sizing:border-box;display:flex;flex-direction:column;gap:16px;">
 
-      <!-- BANDA 1: Métricas clave — 2 columnas × 3 filas -->
+      <!-- BANDA 1: Key metrics — 2 columns × 3 rows -->
       <div>
-        <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">Métricas clave</div>
+        <div style="font-size:6.5px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:700;margin-bottom:10px;">${pdfT('key_metrics')}</div>
         <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;">
           ${kpiItems.map(([l,v,c])=>`
           <div style="padding:12px 14px;background:#F4F1EB;border-left:3px solid ${c};display:flex;justify-content:space-between;align-items:center;">
@@ -8545,12 +8706,12 @@ function rwSlideHighlightsPDF(dealName, m, d) {
       ${(vLabel || aLabel) ? `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         ${vLabel ? `<div style="padding:12px 14px;background:#FAF7F2;border-left:2px solid #C4975A;">
-          <div style="font-size:6.5px;letter-spacing:0.18em;text-transform:uppercase;color:#C4975A;margin-bottom:5px;font-weight:700;">Vehículo de inversión</div>
+          <div style="font-size:6.5px;letter-spacing:0.18em;text-transform:uppercase;color:#C4975A;margin-bottom:5px;font-weight:700;">${pdfT('investment_vehicle')}</div>
           <div style="font-size:12px;color:#1A1D23;font-weight:600;margin-bottom:4px;">${vLabel}</div>
           <div style="font-size:9px;color:#8B8074;line-height:1.6;">${vDesc}</div>
         </div>` : '<div></div>'}
         ${aLabel ? `<div style="padding:12px 14px;background:#F4F1EB;border:0.5px solid rgba(196,151,90,0.2);">
-          <div style="font-size:6.5px;letter-spacing:0.18em;text-transform:uppercase;color:#8B8074;margin-bottom:5px;font-weight:700;">Forma de aportación</div>
+          <div style="font-size:6.5px;letter-spacing:0.18em;text-transform:uppercase;color:#8B8074;margin-bottom:5px;font-weight:700;">${pdfT('contribution_type')}</div>
           <div style="font-size:12px;color:#1A1D23;font-weight:600;margin-bottom:4px;">${aLabel}</div>
           <div style="font-size:9px;color:#8B8074;line-height:1.6;">${aDesc}</div>
         </div>` : '<div></div>'}
@@ -8561,27 +8722,27 @@ function rwSlideHighlightsPDF(dealName, m, d) {
         <!-- Tabla escenarios -->
         <div style="background:#FAF7F2;border:0.5px solid rgba(196,151,90,0.2);">
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px solid rgba(196,151,90,0.15);">
-            ${['Escenario','€/m²','ROI bruto','TIR anual'].map(h=>`<div style="padding:7px 8px;font-size:6.5px;letter-spacing:0.1em;text-transform:uppercase;color:#A09282;">${h}</div>`).join('')}
+            ${[pdfT('hdr_scenario'),pdfT('exit_pm2'),pdfT('gross_roi'),pdfT('annual_irr')].map(h=>`<div style="padding:7px 8px;font-size:6.5px;letter-spacing:0.1em;text-transform:uppercase;color:#A09282;">${h}</div>`).join('')}
           </div>
           ${[
-            {lbl:'Pesimista', ep:V('exitP'), sc:m.pess, col:'#B05050'},
-            {lbl:'Base',      ep:V('exitB'), sc:m.base, col:'#C4975A'},
-            {lbl:'Optimista', ep:V('exitO'), sc:m.opt,  col:'#1A6B3C'},
+            {lbl:pdfT('pessimist'), ep:V('exitP'), sc:m.pess, col:'#B05050'},
+            {lbl:pdfT('base_sc'),   ep:V('exitB'), sc:m.base, col:'#C4975A'},
+            {lbl:pdfT('optimist'),  ep:V('exitO'), sc:m.opt,  col:'#1A6B3C'},
           ].map(({lbl,ep,sc,col})=>`
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px solid rgba(196,151,90,0.08);">
             <div style="padding:9px 8px;font-size:9px;color:${col};font-weight:600;">${lbl}</div>
-            <div style="padding:9px 8px;font-family:'DM Mono',monospace;font-size:9px;color:#1A1D23;">${ep.toLocaleString('es-ES')}</div>
+            <div style="padding:9px 8px;font-family:'DM Mono',monospace;font-size:9px;color:#1A1D23;">${ep.toLocaleString(pdfLocale())}</div>
             <div style="padding:9px 8px;font-family:'DM Mono',monospace;font-size:9px;color:${col};">${rwPct(sc.roiGross)}</div>
             <div style="padding:9px 8px;font-family:'DM Mono',monospace;font-size:9px;color:${col};">${sc.irr>0?rwPct(sc.irr):'—'}</div>
           </div>`).join('')}
         </div>
         <!-- Barras ROI -->
         <div style="display:flex;flex-direction:column;justify-content:center;gap:10px;padding:10px 14px;background:#FAF7F2;border:0.5px solid rgba(196,151,90,0.2);">
-          <div style="font-size:6.5px;letter-spacing:0.2em;text-transform:uppercase;color:#8B8074;margin-bottom:2px;">Proyección ROI bruto</div>
+          <div style="font-size:6.5px;letter-spacing:0.2em;text-transform:uppercase;color:#8B8074;margin-bottom:2px;">${pdfT('gross_roi_projection')}</div>
           ${[
-            {lbl:'Pesimista', v:roiPess.toFixed(1)+'%', bar:(roiPess/maxRoi*100).toFixed(1), c:'#B05050', ep:V('exitP')},
-            {lbl:'Base',      v:roiBase.toFixed(1)+'%', bar:(roiBase/maxRoi*100).toFixed(1), c:'#C4975A', ep:V('exitB')},
-            {lbl:'Optimista', v:roiOpt.toFixed(1)+'%',  bar:(roiOpt/maxRoi*100).toFixed(1),  c:'#1A6B3C', ep:V('exitO')},
+            {lbl:pdfT('pessimist'), v:roiPess.toFixed(1)+'%', bar:(roiPess/maxRoi*100).toFixed(1), c:'#B05050', ep:V('exitP')},
+            {lbl:pdfT('base_sc'),   v:roiBase.toFixed(1)+'%', bar:(roiBase/maxRoi*100).toFixed(1), c:'#C4975A', ep:V('exitB')},
+            {lbl:pdfT('optimist'),  v:roiOpt.toFixed(1)+'%',  bar:(roiOpt/maxRoi*100).toFixed(1),  c:'#1A6B3C', ep:V('exitO')},
           ].map(s=>`
           <div style="display:flex;align-items:center;gap:8px;">
             <div style="width:60px;font-size:7.5px;text-transform:uppercase;color:${s.c};flex-shrink:0;">${s.lbl}</div>
@@ -8596,14 +8757,14 @@ function rwSlideHighlightsPDF(dealName, m, d) {
       <!-- BANDA 4: Estructura de fees Riverwalk -->
       <div style="background:#FAF7F2;border:0.5px solid rgba(196,151,90,0.2);">
         <div style="padding:8px 16px;border-bottom:1px solid rgba(196,151,90,0.15);">
-          <div style="font-size:6.5px;letter-spacing:0.18em;text-transform:uppercase;color:#C4975A;font-weight:700;">Estructura de fees Riverwalk</div>
+          <div style="font-size:6.5px;letter-spacing:0.18em;text-transform:uppercase;color:#C4975A;font-weight:700;">${pdfT('rw_fee_structure')}</div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);">
           ${[
-            ['Management fee',           `${V('mgmtFeePct')}% s/ precio + CapEx`],
-            [`Carry ROI < ${sf1T}%`,     '0% — íntegro al inversor'],
-            [`Carry ROI ${sf1T}–${sf2T}%`, `${sf1P}% Riverwalk · ${100-sf1P}% inversor`],
-            [`Carry ROI > ${sf2T}%`,     `${sf2P}% Riverwalk · ${100-sf2P}% inversor`],
+            [pdfT('mgmt_fee_lbl'),           `${V('mgmtFeePct')}% ${RW_LANG==='en'?'on price + CapEx':'s/ precio + CapEx'}`],
+            [`Carry ROI < ${sf1T}%`,     pdfT('carry_no_fee')],
+            [`Carry ROI ${sf1T}–${sf2T}%`, `${sf1P}% Riverwalk · ${100-sf1P}% ${RW_LANG==='en'?'investor':'inversor'}`],
+            [`Carry ROI > ${sf2T}%`,     `${sf2P}% Riverwalk · ${100-sf2P}% ${RW_LANG==='en'?'investor':'inversor'}`],
           ].map(([l,v], i)=>`
           <div style="padding:10px 14px;${i>0?'border-left:1px solid rgba(196,151,90,0.1);':''}">
             <div style="font-size:8px;color:#C4975A;margin-bottom:5px;font-weight:600;">${l}</div>
@@ -8612,7 +8773,7 @@ function rwSlideHighlightsPDF(dealName, m, d) {
         </div>
       </div>
 
-      <div style="font-size:8px;color:#A09282;line-height:1.6;">Documento informativo. Las rentabilidades proyectadas no garantizan resultados futuros.</div>
+      <div style="font-size:8px;color:#A09282;line-height:1.6;">${pdfT('disclaimer')}</div>
     </div>
     ${ftr()}
   `);
@@ -8652,7 +8813,7 @@ async function exportDossierPDF() {
       proyecto: $('narr-proyecto')?.value || '',
       tesis:    $('narr-tesis')?.value    || '',
     };
-    const dateStr = new Date().toLocaleDateString('es-ES', {day:'2-digit',month:'long',year:'numeric'}).toUpperCase();
+    const dateStr = new Date().toLocaleDateString(pdfLocale(), {day:'2-digit',month:'long',year:'numeric'}).toUpperCase();
 
     // Geocode + map — pass fields separately for structured Nominatim query
     rwUpdateLoader('Geolocalizando el activo…', 0.05);
