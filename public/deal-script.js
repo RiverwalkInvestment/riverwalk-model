@@ -354,7 +354,7 @@ function rwRenderNegotiation() {
   const ng = rwEnsureNegotiation();
   const aImp = document.getElementById('neg-asking-importe');
   const aFec = document.getElementById('neg-asking-fecha');
-  if (aImp && document.activeElement !== aImp) aImp.value = ng.asking.importe ? ng.asking.importe.toLocaleString('es-ES') : '';
+  if (aImp && document.activeElement !== aImp) aImp.value = ng.asking.importe ? ng.asking.importe.toLocaleString(rwLocale()) : '';
   if (aFec && document.activeElement !== aFec) aFec.value = ng.asking.fecha || '';
 
   const list = document.getElementById('neg-rondas-list');
@@ -389,7 +389,7 @@ function rwRenderNegotiation() {
         <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-d);margin-bottom:6px">① Mi oferta</div>
         <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:8px;margin-bottom:10px">
           <div class="field" style="margin:0"><label style="font-size:9px">Importe (€)</label>
-            <input type="text" data-fmt="money" value="${r.oferta.importe ? r.oferta.importe.toLocaleString('es-ES') : ''}" placeholder="0"
+            <input type="text" data-fmt="money" value="${r.oferta.importe ? r.oferta.importe.toLocaleString(rwLocale()) : ''}" placeholder="0"
               onblur="rwUpdateRound(${i},'oferta','importe',this.value)"
               style="font-family:'DM Mono',monospace;font-size:12px"></div>
           <div class="field" style="margin:0"><label style="font-size:9px">Fecha${ofertaBad?' <span style="color:#E05555">⚠ anterior al asking</span>':''}</label>
@@ -408,7 +408,7 @@ function rwRenderNegotiation() {
               <option value="contraoferta" ${r.respuesta.tipo==='contraoferta'?'selected':''}>Contraoferta</option>
             </select></div>
           <div class="field" style="margin:0"><label style="font-size:9px">Importe (€)</label>
-            <input type="text" data-fmt="money" value="${r.respuesta.importe ? r.respuesta.importe.toLocaleString('es-ES') : ''}" placeholder="0" ${r.respuesta.tipo!=='contraoferta'?'disabled style="opacity:0.3"':''}
+            <input type="text" data-fmt="money" value="${r.respuesta.importe ? r.respuesta.importe.toLocaleString(rwLocale()) : ''}" placeholder="0" ${r.respuesta.tipo!=='contraoferta'?'disabled style="opacity:0.3"':''}
               onblur="rwUpdateRound(${i},'respuesta','importe',this.value)"
               style="font-family:'DM Mono',monospace;font-size:12px"></div>
           <div class="field" style="margin:0"><label style="font-size:9px">Fecha${respBad?' <span style="color:#E05555">⚠ anterior a oferta</span>':''}</label>
@@ -766,7 +766,7 @@ function rwRenderLibraryTable() {
       </thead>
       <tbody>
         ${rows.map(w => {
-          const ppm = (w.precio > 0 && w.m2 > 0) ? Math.round(w.precio / w.m2).toLocaleString('es-ES') : '—';
+          const ppm = (w.precio > 0 && w.m2 > 0) ? Math.round(w.precio / w.m2).toLocaleString(rwLocale()) : '—';
           const verified = rwIsVerified(w);
           const usedIn = (w.operacionesVinculadas || []).map(op => `<span style="display:inline-block;background:var(--d4);color:var(--gold);padding:2px 6px;margin-right:4px;font-size:9px;letter-spacing:0.05em">${op}</span>`).join('') || '<span style="color:var(--text-d);font-size:10px">—</span>';
           return `
@@ -1016,9 +1016,9 @@ const V  = id => {
   return parseFloat(el.value) || 0;
 };
 const S  = id => $(id).value || '';
-const fmt  = n => Math.round(n).toLocaleString('es-ES') + ' €';
-const fmtD = (n,d=2) => n.toLocaleString('es-ES',{minimumFractionDigits:d,maximumFractionDigits:d}) + ' €';
-const fmtK = n => { const a=Math.abs(n),s=n<0?'−':''; return a>=1e6?s+(a/1e6).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' M€':a>=1000?s+Math.round(a/1000).toLocaleString('es-ES')+' k€':fmt(n); };
+const fmt  = n => Math.round(n).toLocaleString(rwLocale()) + ' €';
+const fmtD = (n,d=2) => n.toLocaleString(rwLocale(),{minimumFractionDigits:d,maximumFractionDigits:d}) + ' €';
+const fmtK = n => { const a=Math.abs(n),s=n<0?'−':''; return a>=1e6?s+(a/1e6).toLocaleString(rwLocale(),{minimumFractionDigits:2,maximumFractionDigits:2})+' M€':a>=1000?s+Math.round(a/1000).toLocaleString(rwLocale())+' k€':fmt(n); };
 const fmtPct = (n,d=1) => (n*100).toFixed(d)+'%';
 
 // ── Money input auto-format ─────────────────────────
@@ -1121,7 +1121,7 @@ function syncAmpliacion() {
   const pct = parseFloat($('ampliacionPct')?.value || 0);
   const imp = Math.round(bp * pct / 100);
   const el  = $('ampliacion-importe-display');
-  if (el) el.textContent = bp > 0 ? imp.toLocaleString('es-ES') + ' €' : '—';
+  if (el) el.textContent = bp > 0 ? imp.toLocaleString(rwLocale()) + ' €' : '—';
 }
 
 function setAmpliacion(on) {
@@ -1144,8 +1144,8 @@ function syncAmpliacion() {
   const importe = Math.round(bp * pctCal / 100);
   const el1 = $('ampliacion-importe-cal');
   const el2 = $('ampliacion-importe-display');
-  if (el1) el1.textContent = importe.toLocaleString('es-ES') + ' €';
-  if (el2) el2.textContent = importe.toLocaleString('es-ES') + ' €';
+  if (el1) el1.textContent = importe.toLocaleString(rwLocale()) + ' €';
+  if (el2) el2.textContent = importe.toLocaleString(rwLocale()) + ' €';
   // Mirror pct values
   const ampPct = $('ampliacionPct');
   if (ampPct && ampPct.value !== String(pctCal)) ampPct.value = pctCal;
@@ -1213,8 +1213,8 @@ function syncPaseMgmt(el) {
 function syncSlider(el, hidId, slId) {
   const v = parseInt(el.value);
   $(hidId).value = v;
-  const labels = {0:'0% — Sin apalancamiento',10:'10%',20:'20%',30:'30%',40:'40% — Moderado',50:'50%',60:'60% — Elevado',70:'70%'};
-  const overLabels = {0:'0% — Sin provisión',5:'5%',10:'10%',15:'15%',20:'20% — Recomendado',25:'25%',30:'30%',35:'35%',40:'40%'};
+  const labels = {0:t('ltv_no_lev'),10:'10%',20:'20%',30:'30%',40:t('ltv_moderate'),50:'50%',60:t('ltv_elevated'),70:'70%'};
+  const overLabels = {0:t('prov_none'),5:'5%',10:'10%',15:'15%',20:t('prov_recommended'),25:'25%',30:'30%',35:'35%',40:'40%'};
   const map = slId === 'ltvSlider' ? labels : overLabels;
   $(slId+'-rv').textContent = map[v] || v+'%';
   update();
@@ -1281,7 +1281,7 @@ function syncAras(el, src) {
   const bp = V('buyPrice');
   if (src==='pct') {
     const raw = Math.round(bp * V('arasPct') / 100);
-    $('arasAmt').value = raw.toLocaleString('es-ES');
+    $('arasAmt').value = raw.toLocaleString(rwLocale());
   } else if (src === 'amt') {
     const pct = bp > 0 ? (V('arasAmt')/bp*100).toFixed(1) : 0;
     $('arasPct').value = pct;
@@ -1749,7 +1749,7 @@ function render(m) {
   const kpiTotalN2 = $('kpi-total-n');
   if (kpiTotalN2 && !isLev) {
     const acqPm2 = m.surfCapex > 0 ? Math.round(m.buyPrice / m.surfCapex) : 0;
-    kpiTotalN2.textContent = `${fmt(m.totalInvest)} · compra a ${acqPm2.toLocaleString('es-ES')} €/m²`;
+    kpiTotalN2.textContent = `${fmt(m.totalInvest)} · ${t('op_purchase_at')} ${acqPm2.toLocaleString(rwLocale())} €/m²`;
   }
   if (kTotalN) kTotalN.textContent = isLev
     ? `${levMode.toUpperCase()} ${(ltvFrac*100).toFixed(0)}% · deuda ${fmtK(loanAmt)}`
@@ -1758,7 +1758,7 @@ function render(m) {
   kProfit.textContent = fmtK(m.base.netProfit);
   kProfit.className = 'kpi-v ' + (m.base.netProfit>0?'up':'down');
   const beMarg = ((V('exitP')/m.bePriceM2-1)*100).toFixed(0);
-  $('kpi-be').textContent = Math.round(m.bePriceM2).toLocaleString('es-ES') + ' €/m²';
+  $('kpi-be').textContent = Math.round(m.bePriceM2).toLocaleString(rwLocale()) + ' €/m²';
   const kpiBeTotal = $('kpi-be-n');
   if (kpiBeTotal) kpiBeTotal.textContent = `${t('breakeven_be')} ${fmtK(m.bePriceM2 * m.surfCapex)}`;
   $('kpi-be-n').textContent = `+${beMarg}% ${t('above_pess')}`;
@@ -1852,7 +1852,7 @@ function render(m) {
           <div>${label}</div>
           <div style="font-size:11px;font-family:'DM Mono',monospace;font-feature-settings:'tnum' 1;margin-top:3px">
             <span style="color:var(--text-b);font-weight:700">${fmt(totalVentaPase)}</span>
-            <span style="opacity:0.55;font-size:9.5px"> · ${exitM2.toLocaleString('es-ES')} €/m²</span>
+            <span style="opacity:0.55;font-size:9.5px"> · ${exitM2.toLocaleString(rwLocale())} €/m²</span>
           </div>
         </div>
         <div class="sc-big" style="font-size:36px">${irrShow}</div>
@@ -1881,7 +1881,7 @@ function render(m) {
         <div>${label}</div>
         <div style="font-size:11px;font-family:'DM Mono',monospace;font-feature-settings:'tnum' 1;margin-top:3px">
           <span style="color:var(--text-b);font-weight:700">${fmt(totalVenta)}</span>
-          <span style="opacity:0.55;font-size:9.5px"> · ${exitM2.toLocaleString('es-ES')} €/m²</span>
+          <span style="opacity:0.55;font-size:9.5px"> · ${exitM2.toLocaleString(rwLocale())} €/m²</span>
         </div>
       </div>
       <div class="sc-big">${heroVal}</div>
@@ -1939,35 +1939,35 @@ function render(m) {
       <th>Total</th>
     </tr></thead>
     <tbody>
-    <tr class="cat"><td colspan="2">ADQUISICIÓN</td></tr>
-    <tr><td class="indent">Precio de compra</td><td>${fmt(m.buyPrice)}</td></tr>
+    <tr class="cat"><td colspan="2">${t('op_acquisition')}</td></tr>
+    <tr><td class="indent">${t('op_buy_price')}</td><td>${fmt(m.buyPrice)}</td></tr>
     <tr><td class="indent">ITP (${V('itpPct')}%)</td><td>${fmt(m.itp)}</td></tr>
-    <tr><td class="indent">Notaría + registro</td><td>${fmt(m.notaria)}</td></tr>
-    ${m.comunidadTotal>0?`<tr><td class="indent">Comunidad (${m.totalMonths}m)</td><td>${fmt(m.comunidadTotal)}</td></tr>`:''}
-    ${m.brokerBuyFee>0?`<tr><td class="indent">Broker fee compra</td><td>${fmt(m.brokerBuyFee)}</td></tr>`:''}
+    <tr><td class="indent">${t('op_notary')}</td><td>${fmt(m.notaria)}</td></tr>
+    ${m.comunidadTotal>0?`<tr><td class="indent">${t('op_community')} (${m.totalMonths}m)</td><td>${fmt(m.comunidadTotal)}</td></tr>`:''}
+    ${m.brokerBuyFee>0?`<tr><td class="indent">${t('op_broker_buy')}</td><td>${fmt(m.brokerBuyFee)}</td></tr>`:''}
     ${m.intermediaryFee>0?`<tr><td class="indent">${S('intermediaryDesc')||'Fee adicional'}</td><td>${fmt(m.intermediaryFee)}</td></tr>`:''}
-    <tr class="total"><td>INVERSIÓN TOTAL (precio + mgmt fee)</td><td>${fmt(m.totalInvest)}</td></tr>
+    <tr class="total"><td>${t('op_total_invest')}</td><td>${fmt(m.totalInvest)}</td></tr>
 
-    <tr class="cat"><td colspan="2">FEES RIVERWALK — PASE</td></tr>
+    <tr class="cat"><td colspan="2">${t('op_fees_pase')}</td></tr>
     <tr class="fee"><td class="indent">Management fee (${V('paseMgmtPct')}% s/ precio activo${m.totalIVA>0?' + IVA':''})</td><td class="neg">−${fmt(m.mgmtFee + m.ivaFees)}</td></tr>
     <div style="display:none"></div>
 
-    <tr class="cat"><td colspan="2">VENTA — Escenario Base (${V('exitB').toLocaleString('es-ES')} €/m²)</td></tr>
-    <tr><td class="indent">Precio venta bruto (${m.surfCapex} m² construidos)</td><td>${fmt(b.saleGross)}</td></tr>
+    <tr class="cat"><td colspan="2">${t('op_sale_base')} (${(V('exitB')||0).toLocaleString(rwLocale())} €/m²)</td></tr>
+    <tr><td class="indent">${t('op_sale_gross_row')} (${m.surfCapex} ${t('op_built_m2')})</td><td>${fmt(b.saleGross)}</td></tr>
     <tr><td class="indent neg">Comisión broker salida (${V('brokerExit')}%)</td><td class="neg">−${fmt(b.brokerCost)}</td></tr>
-    ${V('exitFixed')>0?`<tr><td class="indent neg">Notaría venta + costes salida</td><td class="neg">−${fmt(V('exitFixed')+V('exitFixedAjuste'))}</td></tr>`:''}
-    <tr class="sub"><td>Beneficio bruto operativo</td><td>${fmt(b.grossProfit)}</td></tr>
+    ${V('exitFixed')>0?`<tr><td class="indent neg">${t('op_notary_exit')}</td><td class="neg">−${fmt(V('exitFixed')+V('exitFixedAjuste'))}</td></tr>`:''}
+    <tr class="sub"><td>${t('op_gross_profit')}</td><td>${fmt(b.grossProfit)}</td></tr>
 
-    <tr class="cat"><td colspan="2">CARRY RIVERWALK</td></tr>
+    <tr class="cat"><td colspan="2">${t('op_carry_rw')}</td></tr>
     <tr class="fee"><td class="indent">Carry (${V('paseCarryPct')}% s/ beneficio bruto)</td><td class="neg">−${fmt(b.carry)}</td></tr>
     <tr class="fee"><td class="indent">IVA sobre carry (${V('paseCarryIVA')}%)</td><td class="neg">−${fmt(b.carryIVA)}</td></tr>
-    <tr class="sub fee"><td>Total carry + IVA</td><td class="neg">−${fmt(b.sf)}</td></tr>
+    <tr class="sub fee"><td>${t('op_total_carry')}</td><td class="neg">−${fmt(b.sf)}</td></tr>
 
-    <tr class="cat tax"><td colspan="2">FISCALIDAD</td></tr>
-    ${taxOn ? `<tr class="tax"><td class="indent">${S('taxStructure')==='sl'?'IS':'IRPF'} (${V('taxRate')}%)</td><td class="neg">−${fmt(b.tax)}</td></tr>` : ''}
+    <tr class="cat tax"><td colspan="2">${t('op_tax_cat')}</td></tr>
+    ${taxOn ? `<tr class="tax"><td class="indent">${S('taxStructure')==='sl'?'IS':t('op_irpf')} (${V('taxRate')}%)</td><td class="neg">−${fmt(b.tax)}</td></tr>` : ''}
 
-    <tr class="total net"><td>BENEFICIO NETO AL INVERSOR</td><td class="${b.netProfit>=0?'pos':'neg'}">${fmt(b.netProfit)}</td></tr>
-    <tr class="net"><td>ROI neto</td><td class="${b.netProfit>=0?'pos':'neg'}">${fmtPct(b.roiNet)}</td></tr>
+    <tr class="total net"><td>${t('op_net_profit_inv')}</td><td class="${b.netProfit>=0?'pos':'neg'}">${fmt(b.netProfit)}</td></tr>
+    <tr class="net"><td>${t('op_roi_net_row')}</td><td class="${b.netProfit>=0?'pos':'neg'}">${fmtPct(b.roiNet)}</td></tr>
     </tbody>`;
   } else {
   // ── REFORMA P&L ───────────────────────────────────────────────────────
@@ -1982,63 +1982,63 @@ function render(m) {
     <th>Sin IVA</th><th>IVA</th><th>Total</th>
   </tr></thead>
   <tbody>
-  <tr class="cat"><td colspan="4">ADQUISICIÓN</td></tr>
-  <tr><td class="indent">Precio de compra</td><td>${fmt(m.buyPrice)}</td><td>—</td><td></td></tr>
+  <tr class="cat"><td colspan="4">${t('op_acquisition')}</td></tr>
+  <tr><td class="indent">${t('op_buy_price')}</td><td>${fmt(m.buyPrice)}</td><td>—</td><td></td></tr>
   <tr><td class="indent">ITP (${V('itpPct')}%)</td><td>${fmt(m.itp)}</td><td>—</td><td></td></tr>
-  <tr><td class="indent">Notaría + registro</td><td>${fmt(m.notaria)}</td><td>—</td><td></td></tr>
-  <tr><td class="indent">Comunidad (${m.totalMonths}m × €${V('comunidad')})</td><td>${fmt(m.comunidadTotal)}</td><td>—</td><td></td></tr>
+  <tr><td class="indent">${t('op_notary')}</td><td>${fmt(m.notaria)}</td><td>—</td><td></td></tr>
+  <tr><td class="indent">${t('op_community')} (${m.totalMonths}m × €${V('comunidad')})</td><td>${fmt(m.comunidadTotal)}</td><td>—</td><td></td></tr>
   ${m.ibiTotal>0?`<tr><td class="indent">IBI</td><td>${fmt(m.ibiTotal)}</td><td>—</td><td></td></tr>`:''}
-  ${m.brokerBuyFee>0?`<tr><td class="indent">Broker fee compra (intermediario)</td><td>${fmt(m.brokerBuyFee)}</td><td>—</td><td></td></tr>`:''}
+  ${m.brokerBuyFee>0?`<tr><td class="indent">${t('op_broker_buy')}</td><td>${fmt(m.brokerBuyFee)}</td><td>—</td><td></td></tr>`:''}
   ${m.intermediaryFee>0?`<tr><td class="indent">${S('intermediaryDesc')||'Fee adicional a terceros'}</td><td>${fmt(m.intermediaryFee)}</td><td>—</td><td></td></tr>`:''}
-  <tr class="sub"><td>Subtotal adquisición</td><td></td><td></td><td>${fmt(m.totalAcq)}</td></tr>
+  <tr class="sub"><td>${t('op_subtotal_acq')}</td><td></td><td></td><td>${fmt(m.totalAcq)}</td></tr>
 
-  <tr class="cat"><td colspan="4">CAPEX</td></tr>
+  <tr class="cat"><td colspan="4">${t('op_capex_cat')}</td></tr>
   <tr><td class="indent">Obra (€${V('obraM2')}/m² × ${m.surfCapex}m²${V('overPct')>0?' +'+V('overPct')+'% sobrecoste':''})</td><td>${fmt(m.obraNet)}</td><td>${fmt(m.obraNet*V('ivaObra')/100)}</td><td></td></tr>
   <tr><td class="indent">Decoración / FF&E (€${V('decoM2')}/m² × ${m.surfCapex}m²)</td><td>${fmt(m.decoNet)}</td><td>${fmt(m.decoNet*V('ivaObra')/100)}</td><td></td></tr>
   ${zcOn&&m.zcNet>0?`<tr><td class="indent">${S('zcDesc')||'Zonas comunes'}</td><td>${fmt(m.zcNet)}</td><td>${fmt(m.zcNet*V('ivaObra')/100)}</td><td></td></tr>`:''}
-  <tr class="sub"><td>Subtotal CapEx</td><td>${fmt(m.capexNet)}</td><td style="color:var(--red);opacity:0.75">${fmt(m.ivaCapex)}</td><td>${fmt(m.capexNet+m.ivaCapex)}</td></tr>
+  <tr class="sub"><td>${t('op_subtotal_capex')}</td><td>${fmt(m.capexNet)}</td><td style="color:var(--red);opacity:0.75">${fmt(m.ivaCapex)}</td><td>${fmt(m.capexNet+m.ivaCapex)}</td></tr>
 
-  <tr class="cat"><td colspan="4">FEES RIVERWALK</td></tr>
+  <tr class="cat"><td colspan="4">${t('op_fees_rw')}</td></tr>
   <tr class="fee"><td class="indent">Management fee (${V('mgmtFeePct')}% s/ precio + CapEx neto = ${fmt(m.mgmtFeeBase)})</td><td>${fmt(m.mgmtFee)}</td><td style="color:var(--red);opacity:0.75">${fmt(m.mgmtFee*V('ivaObra')/100)}</td><td></td></tr>
-  <tr class="sub fee"><td>Subtotal fees Riverwalk</td><td>${fmt(m.totalFeesNet)}</td><td style="color:var(--red);opacity:0.75">${fmt(m.ivaFees)}</td><td>${fmt(m.totalFeesNet+m.ivaFees)}</td></tr>
+  <tr class="sub fee"><td>${t('op_subtotal_fees')}</td><td>${fmt(m.totalFeesNet)}</td><td style="color:var(--red);opacity:0.75">${fmt(m.ivaFees)}</td><td>${fmt(m.totalFeesNet+m.ivaFees)}</td></tr>
 
-  <tr class="cat" style="color:var(--red)"><td colspan="4">IVA SOPORTADO — NO RECUPERABLE</td></tr>
-  <tr class="tax"><td class="indent" style="color:var(--text)">IVA CapEx + Fees (${V('ivaObra')}%)</td><td>—</td><td style="color:var(--red);opacity:0.75">${fmt(m.totalIVA)}</td><td class="neg">−${fmt(m.totalIVA)}</td></tr>
+  <tr class="cat" style="color:var(--red)"><td colspan="4">${t('op_iva_unsupported')}</td></tr>
+  <tr class="tax"><td class="indent" style="color:var(--text)">${t('op_iva_row')} (${V('ivaObra')}%)</td><td>—</td><td style="color:var(--red);opacity:0.75">${fmt(m.totalIVA)}</td><td class="neg">−${fmt(m.totalIVA)}</td></tr>
 
-  <tr class="total"><td>INVERSIÓN TOTAL</td><td>${fmt(m.totalAcq+m.capexNet+m.totalFeesNet)}</td><td style="color:var(--red);opacity:0.75">${fmt(m.totalIVA)}</td><td>${fmt(m.totalInvest)}</td></tr>
+  <tr class="total"><td>${t('op_total_invest2')}</td><td>${fmt(m.totalAcq+m.capexNet+m.totalFeesNet)}</td><td style="color:var(--red);opacity:0.75">${fmt(m.totalIVA)}</td><td>${fmt(m.totalInvest)}</td></tr>
 
-  <tr class="cat"><td colspan="4">VENTA — Escenario Base (€${V('exitB').toLocaleString('es-ES')}/m²)</td></tr>
-  <tr><td class="indent">Precio venta bruto (${m.surfCapex} m² × €${V('exitB').toLocaleString('es-ES')} construidos)</td><td colspan="2"></td><td>${fmt(b.saleGross)}</td></tr>
-  <tr><td class="indent neg">Comisión broker salida (${V('brokerExit')}%)</td><td colspan="2"></td><td class="neg">−${fmt(b.brokerCost)}</td></tr>
-  <tr><td class="indent neg">Notaría venta + costes salida</td><td colspan="2"></td><td class="neg">−${fmt(V('exitFixed')+V('exitFixedAjuste'))}</td></tr>
-  <tr class="sub"><td>Beneficio bruto operativo</td><td colspan="2"></td><td>${fmt(b.grossProfit)}</td></tr>
+  <tr class="cat"><td colspan="4">${t('op_sale_base')} (€${(V('exitB')||0).toLocaleString(rwLocale())}/m²)</td></tr>
+  <tr><td class="indent">${t('op_sale_gross_row')} (${m.surfCapex} m² × €${(V('exitB')||0).toLocaleString(rwLocale())} ${t('op_built_m2')})</td><td colspan="2"></td><td>${fmt(b.saleGross)}</td></tr>
+  <tr><td class="indent neg">${t('op_broker_exit')} (${V('brokerExit')}%)</td><td colspan="2"></td><td class="neg">−${fmt(b.brokerCost)}</td></tr>
+  <tr><td class="indent neg">${t('op_notary_exit')}</td><td colspan="2"></td><td class="neg">−${fmt(V('exitFixed')+V('exitFixedAjuste'))}</td></tr>
+  <tr class="sub"><td>${t('op_gross_profit')}</td><td colspan="2"></td><td>${fmt(b.grossProfit)}</td></tr>
 
-  <tr class="cat"><td colspan="4">SUCCESS FEE RIVERWALK</td></tr>
+  <tr class="cat"><td colspan="4">${t('op_success_fee')}</td></tr>
   <tr class="fee"><td class="indent">${sfLabel}${sfCarryMode==='irr'?` <span style="font-size:9px;color:var(--text-d)">(umbral TIR: ${V('sf1T')}% / ${V('sf2T')}% anual → equiv. a ${fmt(b.t1Profit)} / ${fmt(b.t2Profit)} de beneficio en esta operación)</span>`:''}</td><td colspan="2"></td><td class="neg">−${fmt(b.sf)}</td></tr>
 
-  <tr class="cat tax"><td colspan="4">FISCALIDAD</td></tr>
-  ${taxOn ? `<tr class="tax"><td class="indent">${S('taxStructure')==='sl'?'Impuesto de Sociedades':'IRPF'} (${V('taxRate')}%)</td><td colspan="2"></td><td class="neg">−${fmt(b.tax)}</td></tr>` : ''}
+  <tr class="cat tax"><td colspan="4">${t('op_tax_cat')}</td></tr>
+  ${taxOn ? `<tr class="tax"><td class="indent">${S('taxStructure')==='sl'?t('op_corp_tax'):t('op_irpf')} (${V('taxRate')}%)</td><td colspan="2"></td><td class="neg">−${fmt(b.tax)}</td></tr>` : ''}
 
-  <tr class="total net"><td>BENEFICIO NETO AL INVERSOR</td><td colspan="2"></td><td class="${b.netProfit>=0?'pos':'neg'}">${fmt(b.netProfit)}</td></tr>
-  <tr class="net"><td>ROI neto</td><td colspan="2"></td><td class="${b.netProfit>=0?'pos':'neg'}">${fmtPct(b.roiNet)}</td></tr>
+  <tr class="total net"><td>${t('op_net_profit_inv')}</td><td colspan="2"></td><td class="${b.netProfit>=0?'pos':'neg'}">${fmt(b.netProfit)}</td></tr>
+  <tr class="net"><td>${t('op_roi_net_row')}</td><td colspan="2"></td><td class="${b.netProfit>=0?'pos':'neg'}">${fmtPct(b.roiNet)}</td></tr>
   </tbody>`;
   } // end pase/reforma P&L if-else
 
   // LEVERAGE
   function levCard(l, label, ltvFrac, isRec) {
     return `<div class="lev-item${isRec?' rec':''}">
-      <div class="lev-tag">${label}${isRec?' ← actual':''}</div>
+      <div class="lev-tag">${label}${isRec?' '+t('op_actual_lbl'):''}</div>
       <div class="lev-head">${fmtPct(l.roe)}</div>
-      <div class="lev-sub">ROE neto · ${(ltvFrac*100).toFixed(0)}% LTV</div>
-      <div class="lev-r"><span>Equity desplegado</span><span>${fmt(l.equity)}</span></div>
-      <div class="lev-r"><span>Deuda bridge</span><span>${l.loan>0?fmt(l.loan):'—'}</span></div>
-      <div class="lev-r"><span>Coste financiero</span><span>${l.interest>0?'−'+fmt(l.interest):'€0'}</span></div>
-      <div class="lev-r"><span>Beneficio neto</span><span>${fmt(l.netProfitLev)}</span></div>
-      <div class="lev-r hl"><span>TIR anual</span><span>${isFinite(l.irr)?fmtPct(l.irr):'—'}</span></div>
+      <div class="lev-sub">${t('op_roe_ltv')}${(ltvFrac*100).toFixed(0)}% LTV</div>
+      <div class="lev-r"><span>${t('op_equity_dep')}</span><span>${fmt(l.equity)}</span></div>
+      <div class="lev-r"><span>${t('op_bridge_debt')}</span><span>${l.loan>0?fmt(l.loan):'—'}</span></div>
+      <div class="lev-r"><span>${t('op_fin_cost')}</span><span>${l.interest>0?'−'+fmt(l.interest):'€0'}</span></div>
+      <div class="lev-r"><span>${t('op_net_profit_lev')}</span><span>${fmt(l.netProfitLev)}</span></div>
+      <div class="lev-r hl"><span>${t('op_irr_annual')}</span><span>${isFinite(l.irr)?fmtPct(l.irr):'—'}</span></div>
     </div>`;
   }
   $('lev-strip').innerHTML =
-    levCard(m.lev0, 'Sin apalancamiento', 0, m.ltvPct===0) +
+    levCard(m.lev0, t('op_no_leverage'), 0, m.ltvPct===0) +
     levCard(m.lev40,'LTV 40%', 0.40, m.ltvPct===0.40) +
     levCard(m.lev60,'LTV 60%', 0.60, m.ltvPct===0.60);
 
@@ -2059,19 +2059,19 @@ function render(m) {
   const pessMarg = ((V('exitP')/m.bePriceM2-1)*100).toFixed(0);
   $('be-stats').innerHTML = `
     <div class="be-stat">
-      <div class="be-stat-lbl">Precio breakeven</div>
-      <div class="be-stat-v">€${Math.round(m.bePriceM2).toLocaleString('es-ES')}/m²</div>
-      <div class="be-stat-n">Venta total mín. ${fmt(m.bePriceM2*m.surfCapex)}</div>
+      <div class="be-stat-lbl">${t('op_be_price')}</div>
+      <div class="be-stat-v">€${Math.round(m.bePriceM2).toLocaleString(rwLocale())}/m²</div>
+      <div class="be-stat-n">${t('op_min_sale')} ${fmt(m.bePriceM2*m.surfCapex)}</div>
     </div>
     <div class="be-stat">
-      <div class="be-stat-lbl">Margen sobre pesimista</div>
+      <div class="be-stat-lbl">${t('op_margin_pess')}</div>
       <div class="be-stat-v" style="color:var(--green)">+${pessMarg}%</div>
-      <div class="be-stat-n">€${V('exitP').toLocaleString('es-ES')} vs €${Math.round(m.bePriceM2).toLocaleString('es-ES')} BE</div>
+      <div class="be-stat-n">€${V('exitP').toLocaleString(rwLocale())} vs €${Math.round(m.bePriceM2).toLocaleString(rwLocale())} BE</div>
     </div>
     <div class="be-stat">
-      <div class="be-stat-lbl">Caída máx. desde base</div>
+      <div class="be-stat-lbl">${t('op_max_drop')}</div>
       <div class="be-stat-v" style="color:var(--amber)">${((1-m.bePriceM2/V('exitB'))*100).toFixed(0)}%</div>
-      <div class="be-stat-n">Hasta no-pérdida desde €${V('exitB').toLocaleString('es-ES')}</div>
+      <div class="be-stat-n">${t('op_no_loss')}${V('exitB').toLocaleString(rwLocale())}</div>
     </div>`;
 
   // ── MATRIZ 1: Precio salida × Duración — TIR como métrica principal ──
@@ -2087,9 +2087,9 @@ function render(m) {
 
   let th1 = `<thead>
     <tr>
-      <th style="min-width:120px;text-align:left;font-size:9px;padding:8px 12px" rowspan="2">Duración total<br><span style="color:var(--text-d);font-weight:300">arras → venta</span></th>
+      <th style="min-width:120px;text-align:left;font-size:9px;padding:8px 12px" rowspan="2">${t('op_duration_col')}<br><span style="color:var(--text-d);font-weight:300">${t('op_arras_sale')}</span></th>
       <th colspan="${priceColsFixed.length}" style="text-align:center;font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-d);padding:6px 12px;border-bottom:1px solid var(--line2)">
-        Precio de salida (€/m²) — ROI neto e IS incluidos, carry modo ${sfCarryMode==='irr'?'TIR ★':'ROI simple'}
+        ${t('op_exit_price_hdr')} — ${t('roi_gross_s')} ${t('op_tax_cat').toLowerCase()} incl., carry ${sfCarryMode==='irr'?'IRR ★':'ROI'}
       </th>
     </tr>
     <tr>`;
@@ -2097,7 +2097,7 @@ function render(m) {
     const isBase = p === V('exitB');
     const totalV1 = Math.round(p * m.surfCapex);
     th1 += `<th style="min-width:100px;white-space:nowrap;padding:5px 8px;text-align:center${isBase?';color:var(--gold)':''}">
-      <div style="font-size:10px">${p.toLocaleString('es-ES')} €/m²${isBase?' ←':''}</div>
+      <div style="font-size:10px">${p.toLocaleString(rwLocale())} €/m²${isBase?' ←':''}</div>
       <div style="font-size:9px;font-family:'DM Mono',monospace;font-feature-settings:'tnum' 1;opacity:0.65;margin-top:2px;font-weight:400">${fmtK(totalV1)}</div>
     </th>`;
   });
@@ -2185,7 +2185,7 @@ function render(m) {
     const isBase = p === V('exitB');
     const totalV2 = Math.round(p * m.surfCapex);
     th2 += `<th style="min-width:100px;white-space:nowrap;text-align:center${isBase?';color:var(--gold)':''}">
-      <div style="font-size:10px">${p.toLocaleString('es-ES')} €/m²${isBase?' ←':''}</div>
+      <div style="font-size:10px">${p.toLocaleString(rwLocale())} €/m²${isBase?' ←':''}</div>
       <div style="font-size:9px;font-family:'DM Mono',monospace;font-feature-settings:'tnum' 1;opacity:0.65;margin-top:2px;font-weight:400">${fmtK(totalV2)}</div>
     </th>`;
   });
@@ -2418,10 +2418,10 @@ function buscarRegistro() {
   if (statsEl) {
     statsEl.style.display = '';
     statsEl.innerHTML = `
-      <span style="margin-right:16px">Media: <strong style="color:var(--text-b);font-family:'DM Mono',monospace;font-feature-settings:'tnum' 1">${avgPm2.toLocaleString('es-ES')} €/m²</strong></span>
-      <span style="margin-right:16px">Mediana: <strong style="color:var(--text-b);font-family:'DM Mono',monospace;font-feature-settings:'tnum' 1">${medPm2.toLocaleString('es-ES')} €/m²</strong></span>
-      <span style="margin-right:16px">Rango: <strong style="font-family:'DM Mono',monospace;font-feature-settings:'tnum' 1">${minVal.toLocaleString('es-ES')} – ${maxVal.toLocaleString('es-ES')} €/m²</strong></span>
-      <span>Sup. media: <strong style="font-family:'DM Mono',monospace">${avgSup} m²</strong></span>`;
+      <span style="margin-right:16px">${t('op_avg')}: <strong style="color:var(--text-b);font-family:'DM Mono',monospace;font-feature-settings:'tnum' 1">${avgPm2.toLocaleString(rwLocale())} €/m²</strong></span>
+      <span style="margin-right:16px">${t('op_median')}: <strong style="color:var(--text-b);font-family:'DM Mono',monospace;font-feature-settings:'tnum' 1">${medPm2.toLocaleString(rwLocale())} €/m²</strong></span>
+      <span style="margin-right:16px">${t('op_range')}: <strong style="font-family:'DM Mono',monospace;font-feature-settings:'tnum' 1">${minVal.toLocaleString(rwLocale())} – ${maxVal.toLocaleString(rwLocale())} €/m²</strong></span>
+      <span>${t('op_avg_area')}: <strong style="font-family:'DM Mono',monospace">${avgSup} m²</strong></span>`;
   }
 
   // Table rows (show max 80)
@@ -2432,9 +2432,9 @@ function buscarRegistro() {
       const pm2Color = pm2 > avgPm2 * 1.1 ? 'var(--green)' : pm2 < avgPm2 * 0.9 ? 'var(--red)' : 'var(--amber)';
       return `<tr style="border-bottom:1px solid var(--line2)" onmouseover="this.style.background='var(--d3)'" onmouseout="this.style.background=''">
         <td style="padding:6px 8px;font-size:11px;color:var(--text-d);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${calle}">${calle || '—'}</td>
-        <td style="padding:6px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-feature-settings:'tnum' 1">${precio.toLocaleString('es-ES')} €</td>
+        <td style="padding:6px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-feature-settings:'tnum' 1">${precio.toLocaleString(rwLocale())} €</td>
         <td style="padding:6px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px">${sup} m²</td>
-        <td style="padding:6px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:${pm2Color};font-feature-settings:'tnum' 1">${pm2.toLocaleString('es-ES')} €/m²</td>
+        <td style="padding:6px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:${pm2Color};font-feature-settings:'tnum' 1">${pm2.toLocaleString(rwLocale())} €/m²</td>
         <td style="padding:6px 8px;text-align:center;font-family:'DM Mono',monospace;font-size:10px;color:var(--text-d)">${fecha}</td>
         <td style="padding:6px 8px;text-align:center">
           <button onclick="addRegistroComp(${precio},${sup},${pm2},'${calle || 'Registro ' + cp} (${fecha})')"
@@ -3147,33 +3147,82 @@ function rwAcHide() {
 // ══════════════════════════════════════════════════
 
 function rwSolarDesc(cardinal) {
+  const lang = (typeof RW_LANG !== 'undefined' ? RW_LANG : 'es');
   const D = {
-    N:  { icon:'↑', color:'#7bafd4', label:'Norte',
-          short:'Sin sol directo',
-          lines:['Luz fría y difusa todo el año','Fresco en verano · húmedo en invierno','Sin calor solar directo en ningún mes'] },
-    NE: { icon:'↗', color:'#a8c8e8', label:'Noreste',
-          short:'Sol de primera mañana',
-          lines:['Sol entre las 7–10h en verano','Sin sol directo en invierno','Luminoso al amanecer · tardes frescas'] },
-    E:  { icon:'→', color:'#f4c87a', label:'Este',
-          short:'Sol de mañana todo el año',
-          lines:['Sol 7–13h todo el año sin excepción','Tardes siempre en sombra','Fresco en verano · luminoso al despertar'] },
-    SE: { icon:'↘', color:'#e8a83c', label:'Sureste',
-          short:'Sol de mañana a mediodía',
-          lines:['Sol 7–15h — orientación muy cotizada','Cálido en invierno · no sofocante en verano','Máxima luz natural sin sobrecalentamiento'] },
-    S:  { icon:'↓', color:'#c49156', label:'Sur',
-          short:'Sol pleno de mediodía',
-          lines:['Sol directo 10–17h todo el año','Máxima luminosidad · muy cálido en verano','Prime en el mercado residencial español'] },
-    SO: { icon:'↙', color:'#d4924a', label:'Suroeste',
-          short:'Sol de tarde',
-          lines:['Sol desde mediodía hasta las ~20h','Caluroso en tardes de julio y agosto','Luminoso para cenas en terraza en invierno'] },
-    O:  { icon:'←', color:'#bf7a3c', label:'Oeste',
-          short:'Sol de tarde intenso',
-          lines:['Sol 14–20h todo el año','Muy caluroso en tardes de verano','Mañanas siempre en sombra y frescas'] },
-    NO: { icon:'↖', color:'#8fb8d0', label:'Noroeste',
-          short:'Sol de última tarde en verano',
-          lines:['Sol sólo en verano tras las 17h','Sin sol directo de otoño a primavera','Fresco y moderado — bueno en climas cálidos'] },
+    N:  { icon:'↑', color:'#7bafd4',
+          label:  { es:'Norte',     en:'North',     fr:'Nord',     de:'Nord',     pt:'Norte'     },
+          short:  { es:'Sin sol directo',            en:'No direct sun',           fr:'Pas de soleil direct',   de:'Keine direkte Sonne',     pt:'Sem sol direto'           },
+          lines:  { es:['Luz fría y difusa todo el año','Fresco en verano · húmedo en invierno','Sin calor solar directo en ningún mes'],
+                    en:['Cold, diffuse light all year','Cool in summer · damp in winter','No direct solar heat at any time of year'],
+                    fr:['Lumière froide et diffuse toute l\'année','Frais en été · humide en hiver','Aucune chaleur solaire directe'],
+                    de:['Kaltes, diffuses Licht das ganze Jahr','Kühl im Sommer · feucht im Winter','Keine direkte Sonnenwärme'],
+                    pt:['Luz fria e difusa todo o ano','Fresco no verão · húmido no inverno','Sem calor solar direto em nenhuma época'] } },
+    NE: { icon:'↗', color:'#a8c8e8',
+          label:  { es:'Noreste',   en:'North-East', fr:'Nord-Est',  de:'Nordost',  pt:'Nordeste'  },
+          short:  { es:'Sol de primera mañana',       en:'Early morning sun',       fr:'Soleil de début de matinée', de:'Frühmorgen Sonne',        pt:'Sol do início da manhã'   },
+          lines:  { es:['Sol entre las 7–10h en verano','Sin sol directo en invierno','Luminoso al amanecer · tardes frescas'],
+                    en:['Sun 7–10h in summer','No direct sun in winter','Bright at dawn · cool afternoons'],
+                    fr:['Soleil 7–10h en été','Pas de soleil direct en hiver','Lumineux à l\'aube · après-midis frais'],
+                    de:['Sonne 7–10 Uhr im Sommer','Kein direktes Sonnenlicht im Winter','Hell bei Sonnenaufgang · kühle Nachmittage'],
+                    pt:['Sol entre as 7–10h no verão','Sem sol direto no inverno','Luminoso ao amanhecer · tardes frescas'] } },
+    E:  { icon:'→', color:'#f4c87a',
+          label:  { es:'Este',      en:'East',       fr:'Est',       de:'Ost',       pt:'Este'       },
+          short:  { es:'Sol de mañana todo el año',   en:'Morning sun all year',    fr:'Soleil du matin toute l\'année', de:'Morgensonne das ganze Jahr', pt:'Sol da manhã todo o ano' },
+          lines:  { es:['Sol 7–13h todo el año sin excepción','Tardes siempre en sombra','Fresco en verano · luminoso al despertar'],
+                    en:['Sun 7–13h all year without exception','Afternoons always in shade','Cool in summer · bright at sunrise'],
+                    fr:['Soleil 7–13h toute l\'année sans exception','Après-midis toujours à l\'ombre','Frais en été · lumineux au lever'],
+                    de:['Sonne 7–13 Uhr das ganze Jahr ausnahmslos','Nachmittage immer im Schatten','Kühl im Sommer · hell beim Aufwachen'],
+                    pt:['Sol 7–13h todo o ano sem exceção','Tardes sempre em sombra','Fresco no verão · luminoso ao acordar'] } },
+    SE: { icon:'↘', color:'#e8a83c',
+          label:  { es:'Sureste',   en:'South-East', fr:'Sud-Est',   de:'Südost',   pt:'Sudeste'   },
+          short:  { es:'Sol de mañana a mediodía',    en:'Morning to midday sun',   fr:'Soleil du matin au midi',   de:'Sonne von morgens bis mittags', pt:'Sol da manhã até ao meio-dia' },
+          lines:  { es:['Sol 7–15h — orientación muy cotizada','Cálido en invierno · no sofocante en verano','Máxima luz natural sin sobrecalentamiento'],
+                    en:['Sun 7–15h — highly sought-after orientation','Warm in winter · not stifling in summer','Maximum natural light without overheating'],
+                    fr:['Soleil 7–15h — orientation très recherchée','Chaud en hiver · pas étouffant en été','Lumière naturelle maximale sans surchauffe'],
+                    de:['Sonne 7–15 Uhr — sehr begehrte Ausrichtung','Warm im Winter · nicht drückend im Sommer','Maximales natürliches Licht ohne Überhitzung'],
+                    pt:['Sol 7–15h — orientação muito valorizada','Quente no inverno · não sufocante no verão','Máxima luz natural sem sobreaquecimento'] } },
+    S:  { icon:'↓', color:'#c49156',
+          label:  { es:'Sur',       en:'South',      fr:'Sud',       de:'Süd',       pt:'Sul'        },
+          short:  { es:'Sol pleno de mediodía',       en:'Full midday sun',          fr:'Plein soleil de midi',      de:'Volle Mittagssonne',      pt:'Pleno sol do meio-dia'    },
+          lines:  { es:['Sol directo 10–17h todo el año','Máxima luminosidad · muy cálido en verano','Prime en el mercado residencial español'],
+                    en:['Direct sun 10–17h all year','Maximum brightness · very warm in summer','Prime in the residential market'],
+                    fr:['Soleil direct 10–17h toute l\'année','Luminosité maximale · très chaud en été','Prime sur le marché résidentiel'],
+                    de:['Direktes Sonnenlicht 10–17 Uhr das ganze Jahr','Maximale Helligkeit · sehr warm im Sommer','Prime auf dem Wohnungsmarkt'],
+                    pt:['Sol direto 10–17h todo o ano','Máxima luminosidade · muito quente no verão','Prime no mercado residencial'] } },
+    SO: { icon:'↙', color:'#d4924a',
+          label:  { es:'Suroeste',  en:'South-West', fr:'Sud-Ouest', de:'Südwest',  pt:'Sudoeste'  },
+          short:  { es:'Sol de tarde',                en:'Afternoon sun',            fr:'Soleil de l\'après-midi',   de:'Nachmittagssonne',        pt:'Sol da tarde'             },
+          lines:  { es:['Sol desde mediodía hasta las ~20h','Caluroso en tardes de julio y agosto','Luminoso para cenas en terraza en invierno'],
+                    en:['Sun from midday to ~20h','Hot on July and August afternoons','Bright for terrace dinners in winter'],
+                    fr:['Soleil du midi jusqu\'à ~20h','Chaud les après-midis de juillet et août','Lumineux pour les dîners en terrasse en hiver'],
+                    de:['Sonne von mittags bis ~20 Uhr','Heiß an Juli- und August-Nachmittagen','Hell für Terrassenabende im Winter'],
+                    pt:['Sol desde o meio-dia até as ~20h','Quente nas tardes de julho e agosto','Luminoso para jantares em terraço no inverno'] } },
+    O:  { icon:'←', color:'#bf7a3c',
+          label:  { es:'Oeste',     en:'West',       fr:'Ouest',     de:'West',      pt:'Oeste'      },
+          short:  { es:'Sol de tarde intenso',        en:'Intense afternoon sun',    fr:'Soleil de l\'après-midi intense', de:'Intensive Nachmittagssonne', pt:'Sol da tarde intenso'   },
+          lines:  { es:['Sol 14–20h todo el año','Muy caluroso en tardes de verano','Mañanas siempre en sombra y frescas'],
+                    en:['Sun 14–20h all year','Very hot on summer afternoons','Mornings always in shade and cool'],
+                    fr:['Soleil 14–20h toute l\'année','Très chaud les après-midis d\'été','Matins toujours à l\'ombre et frais'],
+                    de:['Sonne 14–20 Uhr das ganze Jahr','Sehr heiß an Sommernachmittagen','Morgens immer im Schatten und kühl'],
+                    pt:['Sol 14–20h todo o ano','Muito quente nas tardes de verão','Manhãs sempre em sombra e frescas'] } },
+    NO: { icon:'↖', color:'#8fb8d0',
+          label:  { es:'Noroeste',  en:'North-West', fr:'Nord-Ouest',de:'Nordwest',  pt:'Noroeste'  },
+          short:  { es:'Sol de última tarde en verano', en:'Late afternoon sun in summer', fr:'Soleil de fin d\'après-midi en été', de:'Spätnachmittagssonne im Sommer', pt:'Sol do fim da tarde no verão' },
+          lines:  { es:['Sol sólo en verano tras las 17h','Sin sol directo de otoño a primavera','Fresco y moderado — bueno en climas cálidos'],
+                    en:['Sun only in summer after 17h','No direct sun from autumn to spring','Cool and moderate — good in warm climates'],
+                    fr:['Soleil seulement en été après 17h','Pas de soleil direct de l\'automne au printemps','Frais et modéré — bon dans les climats chauds'],
+                    de:['Sonne nur im Sommer nach 17 Uhr','Kein direktes Sonnenlicht von Herbst bis Frühling','Kühl und gemäßigt — gut in warmen Klimazonen'],
+                    pt:['Sol apenas no verão após as 17h','Sem sol direto do outono à primavera','Fresco e moderado — bom em climas quentes'] } },
   };
-  return D[cardinal] || D['N'];
+  const d = D[cardinal] || D['N'];
+  const l = (['es','en','fr','de','pt'].includes(lang)) ? lang : 'es';
+  return {
+    icon:  d.icon,
+    color: d.color,
+    label: d.label[l] || d.label.es,
+    short: d.short[l] || d.short.es,
+    lines: d.lines[l] || d.lines.es,
+  };
 }
 
 async function rwCalcOrientation(lat, lon, address) {
@@ -3285,7 +3334,7 @@ function initPresRegistroChart(cp) {
   const max = Math.ceil(Math.max(...pm2s) / 1000) * 1000;
   const buckets = []; const labels = [];
   for (let v = min; v <= max; v += 1000) {
-    labels.push(v.toLocaleString('es-ES'));
+    labels.push(v.toLocaleString(rwLocale()));
     buckets.push(pm2s.filter(p => p >= v && p < v + 1000).length);
   }
   const mediana = [...pm2s].sort((a,b)=>a-b)[Math.floor(pm2s.length/2)];
@@ -3328,12 +3377,12 @@ const SLIDE_DEFS = [
 ];
 
 function buildSlides(m, d) {
-  const fmt2 = v => (v||0).toLocaleString('es-ES',{maximumFractionDigits:0}) + ' €';
+  const fmt2 = v => (v||0).toLocaleString(rwLocale(),{maximumFractionDigits:0}) + ' €';
   const fmtP = v => ((v||0)*100).toFixed(1) + '%';
   const fmtK2 = v => v >= 1000000 ? (v/1000000).toFixed(2) + 'M €' : Math.round(v/1000) + 'K €';
   const photo = (arr, idx, style='') => (arr||[])[idx]
     ? `<img src="${arr[idx].dataUrl}" style="object-fit:cover;${style}">`
-    : `<div style="${style};background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:rgba(255,255,255,0.15)">Sin imagen</span></div>`;
+    : `<div style="${style};background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:rgba(255,255,255,0.15)">${t('pdf_no_image')}</span></div>`;
   const photoLabel = (arr, idx, style='', label='') => (arr||[])[idx]
     ? `<img src="${arr[idx].dataUrl}" style="object-fit:contain;background:#111;${style}">`
     : `<div style="${style};background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><span style="font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.2)">FOTO</span>${label?`<span style="font-size:10px;color:rgba(255,255,255,0.15)">(${label})</span>`:''}</div>`;
@@ -3376,7 +3425,7 @@ function buildSlides(m, d) {
   </div>`;
 
   const slides = [];
-  const fmtDate = v => v.toLocaleDateString(RW_LANG === 'en' ? 'en-GB' : (RW_LANG === 'de' ? 'de-DE' : (RW_LANG === 'fr' ? 'fr-FR' : (RW_LANG === 'pt' ? 'pt-PT' : 'es-ES'))), {day:'2-digit', month:'long', year:'numeric'});
+  const fmtDate = v => v.toLocaleDateString(rwLocale(), {day:'2-digit', month:'long', year:'numeric'});
 
   // ── PORTADA ──────────────────────────────────────────────────────────────
   slides.push({ id:'portada', html: baseCSS + `
@@ -3404,7 +3453,7 @@ function buildSlides(m, d) {
         <div style="font-size:9px;color:rgba(255,255,255,0.2);letter-spacing:0.1em">${fmtDate(new Date())}</div>
       </div>
       <div style="position:relative;overflow:hidden">
-        ${photoLabel(d.photos, 0, 'position:absolute;inset:0;width:100%;height:100%', 'Fachada exterior')}
+        ${photoLabel(d.photos, 0, 'position:absolute;inset:0;width:100%;height:100%', t('photo_facade'))}
       </div>
     </div>` });
 
@@ -3429,7 +3478,7 @@ function buildSlides(m, d) {
           ${[
             [t('surface_lbl'), m.surfCapex + ' m²'],
             [t('buy_price'), fmt2(m.buyPrice)],
-            [t('buy_pm2_lbl'), buyPm2.toLocaleString('es-ES') + ' €/m²'],
+            [t('buy_pm2_lbl'), buyPm2.toLocaleString(rwLocale()) + ' €/m²'],
             ['Microzona', mz || '—'],
           ].map(([l,v]) => `<div class="ps-data"><div class="ps-data-l">${l}</div><div class="ps-data-v">${v}</div></div>`).join('')}
         </div>
@@ -3442,13 +3491,13 @@ function buildSlides(m, d) {
         </div>
         <div style="flex:0 0 3px;background:#E8E4DC;"></div>
         <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:2px;min-height:0;background:#E8E4DC;">
-          ${photoLabel(d.photos, 1, 'width:100%;height:100%', 'Salón')}
-          ${photoLabel(d.photos, 2, 'width:100%;height:100%', 'Cocina')}
+          ${photoLabel(d.photos, 1, 'width:100%;height:100%', t('photo_living'))}
+          ${photoLabel(d.photos, 2, 'width:100%;height:100%', t('photo_kitchen'))}
         </div>
         <div style="flex:0 0 2px;background:#E8E4DC;"></div>
         <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:2px;min-height:0;background:#E8E4DC;">
-          ${photoLabel(d.photos, 3, 'width:100%;height:100%', 'Dormitorio')}
-          ${photoLabel(d.photos, 4, 'width:100%;height:100%', 'Baño')}
+          ${photoLabel(d.photos, 3, 'width:100%;height:100%', t('photo_bedroom'))}
+          ${photoLabel(d.photos, 4, 'width:100%;height:100%', t('photo_bathroom'))}
         </div>
       </div>
     </div>` });
@@ -3518,7 +3567,7 @@ function buildSlides(m, d) {
             <div style="font-family:'DM Mono',monospace;font-size:24px;color:rgba(196,151,90,0.9);margin:4px 0">${mzData.base >= 0 ? '+' : ''}${mzData.base}%</div>
             <div style="font-size:10px;color:rgba(255,255,255,0.35)">${t('above_median_cp')} · Tier ${mzTier}</div>
           </div>` : ''}
-          ${medRefPm2 > 0 ? `<div class="ps-data"><div class="ps-data-l">${t('refurb_median')}</div><div class="ps-data-v">${medRefPm2.toLocaleString('es-ES')} €/m²</div></div>` : ''}
+          ${medRefPm2 > 0 ? `<div class="ps-data"><div class="ps-data-l">${t('refurb_median')}</div><div class="ps-data-v">${medRefPm2.toLocaleString(rwLocale())} €/m²</div></div>` : ''}
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;min-height:0">
           <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:4px">${t('price_dist_cp')} ${cp} · Registro Q1 2025</div>
@@ -3558,8 +3607,8 @@ function buildSlides(m, d) {
       ${negHitos.map((h, i) => {
         const cfg = negTiposConfig[h.tipo] || negTiposConfig.oferta;
         const isLast = i === negHitos.length - 1;
-        const fmtImporte = h.importe > 0 ? h.importe.toLocaleString('es-ES') + ' €' : '—';
-        const fmtFecha = h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', {day:'2-digit',month:'short',year:'numeric'}) : '';
+        const fmtImporte = h.importe > 0 ? h.importe.toLocaleString(rwLocale()) + ' €' : '—';
+        const fmtFecha = h.fecha ? new Date(h.fecha).toLocaleDateString(rwLocale(), {day:'2-digit',month:'short',year:'numeric'}) : '';
         return `<div style="position:relative;margin-bottom:${isLast?0:14}px;animation:fade-up 0.4s ease forwards;animation-delay:${i*0.12}s;opacity:0">
           <div style="position:absolute;left:-22px;top:4px;width:10px;height:10px;border-radius:50%;background:${cfg.color};box-shadow:0 0 0 3px rgba(10,11,15,1),0 0 0 4px ${cfg.color}40"></div>
           <div style="padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-left:2px solid ${cfg.color}">
@@ -3588,21 +3637,21 @@ function buildSlides(m, d) {
             <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.07);display:flex;justify-content:space-between">
               <div>
                 <div class="ps-data-l">${t('initial_price_l')}</div>
-                <div style="font-family:'DM Mono',monospace;color:rgba(255,255,255,0.5);font-size:14px;text-decoration:line-through">${askingPrice.toLocaleString('es-ES')} €</div>
+                <div style="font-family:'DM Mono',monospace;color:rgba(255,255,255,0.5);font-size:14px;text-decoration:line-through">${askingPrice.toLocaleString(rwLocale())} €</div>
               </div>
               <div style="text-align:right">
                 <div class="ps-data-l">${t('price_agreed')}</div>
-                <div style="font-family:'DM Mono',monospace;color:rgba(196,151,90,0.9);font-size:16px">${pactadoPrice.toLocaleString('es-ES')} €</div>
+                <div style="font-family:'DM Mono',monospace;color:rgba(196,151,90,0.9);font-size:16px">${pactadoPrice.toLocaleString(rwLocale())} €</div>
               </div>
             </div>
             <div style="margin-top:10px;padding:10px 14px;background:rgba(82,192,122,0.08);border:1px solid rgba(82,192,122,0.2)">
               <div class="ps-data-l">${t('neg_saving_lbl')}</div>
-              <div style="font-family:'DM Mono',monospace;font-size:18px;color:#52C07A;margin-top:3px">${savingsAbs.toLocaleString('es-ES')} €</div>
+              <div style="font-family:'DM Mono',monospace;font-size:18px;color:#52C07A;margin-top:3px">${savingsAbs.toLocaleString(rwLocale())} €</div>
             </div>
           </div>` : `<div style="padding:16px 20px;background:rgba(139,105,20,0.1);border:1px solid rgba(196,151,90,0.25)">
             <div class="ps-data-l" style="margin-bottom:6px">${t('buy_price')}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:26px;color:rgba(196,151,90,0.9)">${m.buyPrice.toLocaleString('es-ES')} €</div>
-            <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px">${buyPm2.toLocaleString('es-ES')} €/m²</div>
+            <div style="font-family:'DM Mono',monospace;font-size:26px;color:rgba(196,151,90,0.9)">${m.buyPrice.toLocaleString(rwLocale())} €</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px">${buyPm2.toLocaleString(rwLocale())} €/m²</div>
           </div>`}
           ${descuento ? `<div style="padding:14px 18px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">
             <div class="ps-data-l" style="margin-bottom:4px">${t('discount_unren')}</div>
@@ -3625,12 +3674,12 @@ function buildSlides(m, d) {
             ${reforComp.slice(0,6).map(c=>`<div style="display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:7px 12px;background:rgba(255,255,255,0.03);font-size:11.5px">
               <div style="color:rgba(255,255,255,0.55);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.desc||'—'}</div>
               <div style="font-family:'DM Mono',monospace;color:rgba(255,255,255,0.35);font-size:10px">${c.m2}m²</div>
-              <div style="font-family:'DM Mono',monospace;color:rgba(255,255,255,0.75)">${Math.round(c.precio/c.m2).toLocaleString('es-ES')} €/m²</div>
+              <div style="font-family:'DM Mono',monospace;color:rgba(255,255,255,0.75)">${Math.round(c.precio/c.m2).toLocaleString(rwLocale())} €/m²</div>
             </div>`).join('')}
           </div>` : ''}
           ${medRefPm2 > 0 ? `<div style="padding:14px 18px;background:rgba(139,105,20,0.1);border:1px solid rgba(196,151,90,0.3)">
             <div class="ps-data-l">${t('refurb_median')}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:22px;color:rgba(196,151,90,0.9);margin-top:4px">${medRefPm2.toLocaleString('es-ES')} €/m²</div>
+            <div style="font-family:'DM Mono',monospace;font-size:22px;color:rgba(196,151,90,0.9);margin-top:4px">${medRefPm2.toLocaleString(rwLocale())} €/m²</div>
           </div>` : ''}
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;justify-content:center">
@@ -3640,7 +3689,7 @@ function buildSlides(m, d) {
             {lbl:t('optimistic'),   ep:V('exitO'), sc:m.opt,  col:'#52C07A',  bg:'rgba(30,122,69,0.06)'},
           ].map(({lbl,ep,sc,col,bg,bold})=>`<div style="padding:18px 20px;background:${bg};border:1px solid ${bold?'rgba(196,151,90,0.4)':'rgba(255,255,255,0.07)'}">
             <div style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:${col};margin-bottom:8px">${lbl}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:${bold?28:22}px;color:#fff;font-feature-settings:'tnum' 1;font-weight:${bold?600:400}">${ep.toLocaleString('es-ES')} €/m²</div>
+            <div style="font-family:'DM Mono',monospace;font-size:${bold?28:22}px;color:#fff;font-feature-settings:'tnum' 1;font-weight:${bold?600:400}">${ep.toLocaleString(rwLocale())} €/m²</div>
             <div style="font-family:'DM Mono',monospace;font-size:12px;color:rgba(255,255,255,0.4);margin-top:5px">${fmt2(ep*m.surfCapex)} · ${t('roi_gross_lbl')} <span style="color:${col}">${fmtP(sc.roiGross)}</span></div>
           </div>`).join('')}
         </div>
@@ -3667,8 +3716,8 @@ function buildSlides(m, d) {
         <div class="ps-body" style="margin-bottom:20px">${d.narrative?.proyecto || '<span style="opacity:0.25">Genera la tesis del proyecto con ✦ Narrativa IA</span>'}</div>
         <div style="display:flex;flex-direction:column;gap:6px">
           ${[
-            [t('works'), V('obraM2').toLocaleString('es-ES') + ' €/m² + IVA'],
-            [t('interior_design'), V('decoM2').toLocaleString('es-ES') + ' €/m² + IVA'],
+            [t('works'), V('obraM2').toLocaleString(rwLocale()) + ' €/m² + IVA'],
+            [t('interior_design'), V('decoM2').toLocaleString(rwLocale()) + ' €/m² + IVA'],
             [t('capex_total'), fmt2(m.capexNet * (1 + V('ivaObra')/100))],
             [t('reform_surface'), m.surfCapex + ' m²'],
           ].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:9px 14px;background:rgba(0,0,0,0.04);border:1px solid rgba(0,0,0,0.07);font-size:12px">
@@ -3731,7 +3780,7 @@ function buildSlides(m, d) {
         <!-- Metrics -->
         <div style="display:flex;flex-direction:column;gap:10px">
           ${[
-            [t('exit_price_l'), ep.toLocaleString('es-ES') + ' €/m²'],
+            [t('exit_price_l'), ep.toLocaleString(rwLocale()) + ' €/m²'],
             [t('gross_sale_l'), fmt2(ep*m.surfCapex)],
             [t('gross_profit_l'), fmt2(sc.grossProfit)],
             [t('annual_irr_l'), isFinite(sc.irr) ? fmtP(sc.irr) : '—'],
@@ -3875,7 +3924,7 @@ function buildSlides(m, d) {
 
   const heatRows1 = priceCols.map(ep => {
     const isBase = Math.abs(ep - exitBase) < 200;
-    return `<tr>${['<td style="padding:7px 12px;font-family:\'DM Mono\',monospace;font-size:10.5px;color:'+(isBase?'rgba(196,151,90,0.95)':'rgba(255,255,255,0.5)')+';white-space:nowrap;border-right:1px solid rgba(255,255,255,0.06);'+(isBase?'background:rgba(139,105,20,0.08);':'')+'">'+ep.toLocaleString('es-ES')+' €/m²'+(isBase?' ·':'')+'</td>',
+    return `<tr>${['<td style="padding:7px 12px;font-family:\'DM Mono\',monospace;font-size:10.5px;color:'+(isBase?'rgba(196,151,90,0.95)':'rgba(255,255,255,0.5)')+';white-space:nowrap;border-right:1px solid rgba(255,255,255,0.06);'+(isBase?'background:rgba(139,105,20,0.08);':'')+'">'+ep.toLocaleString(rwLocale())+' €/m²'+(isBase?' ·':'')+'</td>',
       ...durCols.map(({months}) => {
         const roi = cellROI(ep, months);
         const {bg,text,border} = roiColor(roi);
@@ -3924,7 +3973,7 @@ function buildSlides(m, d) {
         </div>
         <div style="display:flex;gap:10px">
           <div style="padding:12px 18px;background:rgba(139,105,20,0.12);border:1px solid rgba(196,151,90,0.3);text-align:center;min-width:100px">
-            <div style="font-family:'DM Mono',monospace;font-size:18px;color:rgba(196,151,90,0.95);line-height:1;margin-bottom:3px">${beM2.toLocaleString('es-ES')}<span style="font-size:10px"> €/m²</span></div>
+            <div style="font-family:'DM Mono',monospace;font-size:18px;color:rgba(196,151,90,0.95);line-height:1;margin-bottom:3px">${beM2.toLocaleString(rwLocale())}<span style="font-size:10px"> €/m²</span></div>
             <div style="font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.3)">${t('breakeven_br')}</div>
           </div>
           <div style="padding:12px 18px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);text-align:center;min-width:90px">
@@ -3933,13 +3982,13 @@ function buildSlides(m, d) {
           </div>
           <div style="padding:12px 18px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);text-align:center;min-width:90px">
             <div style="font-family:'DM Mono',monospace;font-size:18px;color:${worstRoi < 0 ? '#E05555' : '#52C07A'};line-height:1;margin-bottom:3px">${(worstRoi*100).toFixed(1)}<span style="font-size:10px">%</span></div>
-            <div style="font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.3)">Peor escenario</div>
+            <div style="font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.3)">${t('worst_scenario')}</div>
           </div>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;flex:1;min-height:0;overflow:hidden">
         <div style="display:flex;flex-direction:column;min-height:0">
-          <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:8px">ROI · Precio de salida × Duración</div>
+          <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:8px">${t('matrix_roi_exit_dur')}</div>
           <div style="overflow:auto;flex:1">
             <table style="width:100%;border-collapse:separate;border-spacing:2px">
               <thead><tr>
@@ -3952,12 +4001,12 @@ function buildSlides(m, d) {
           ${matrixLegend}
         </div>
         <div style="display:flex;flex-direction:column;min-height:0">
-          <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:8px">ROI · Variación CapEx × Precio salida</div>
+          <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:8px">${t('matrix_roi_capex_exit')}</div>
           <div style="overflow:auto;flex:1">
             <table style="width:100%;border-collapse:separate;border-spacing:2px">
               <thead><tr>
                 <th style="padding:5px 12px;text-align:left;font-size:8px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.25);font-weight:400;border-bottom:1px solid rgba(255,255,255,0.08)">CapEx</th>
-                ${capexExits.map(ep=>`<th style="padding:5px 8px;text-align:center;font-family:'DM Mono',monospace;font-size:10px;color:${Math.abs(ep-exitBase)<200?'rgba(196,151,90,0.8)':'rgba(255,255,255,0.35)'};font-weight:400;border-bottom:1px solid rgba(255,255,255,0.08)">${ep.toLocaleString('es-ES')} €/m²</th>`).join('')}
+                ${capexExits.map(ep=>`<th style="padding:5px 8px;text-align:center;font-family:'DM Mono',monospace;font-size:10px;color:${Math.abs(ep-exitBase)<200?'rgba(196,151,90,0.8)':'rgba(255,255,255,0.35)'};font-weight:400;border-bottom:1px solid rgba(255,255,255,0.08)">${ep.toLocaleString(rwLocale())} €/m²</th>`).join('')}
               </tr></thead>
               <tbody>${heatRows2}</tbody>
             </table>
@@ -3981,20 +4030,11 @@ function buildSlides(m, d) {
 
   // ── HIGHLIGHTS ────────────────────────────────────────────────────────────
   const est = d.estructura || {};
-  const VEHICULO_LABELS_H = { spv_unica:'SPV · Única operación', spv_multi:'SPV · Multi-activo', club_deal:'Club Deal' };
-  const VEHICULO_DESC_H   = {
-    spv_unica: 'Sociedad de propósito específico constituida exclusivamente para esta operación. Separación total de riesgo patrimonial y liquidación automática al cierre de la venta.',
-    spv_multi: 'Vehículo permanente que opera sobre múltiples activos. Permite diversificación y acceso a operaciones futuras dentro del mismo vehículo.',
-    club_deal:  'Grupo cerrado de inversores privados seleccionados. Estructura ágil sin vehículo societario formal, regida por pacto entre partes.'
-  };
-  const APORTACION_LABELS_H = { pp:'Préstamo participativo', cp:'Cuenta en participación', ac:'Ampliación de capital', ph:'Préstamo c/ garantía hipotecaria' };
-  const APORTACION_DESC_H   = {
-    pp: 'El inversor presta capital y recibe interés fijo más participación variable en el beneficio. Sin transmisión de propiedad ni acceso a la gestión operativa.',
-    cp: 'El inversor cede capital a Riverwalk como gestor. Comparte riesgo y beneficio en proporción a su aportación, sin que se constituya una entidad jurídica separada.',
-    ac: 'El inversor entra como socio de la sociedad, con los derechos societarios correspondientes. Participación directa en el capital social del vehículo.',
-    ph: 'Retorno fijo garantizado con el activo inmobiliario como colateral. Sin participación en el upside. Perfil de riesgo más conservador.'
-  };
-  const ticketMin_h = est.ticketMinimo ? parseInt(est.ticketMinimo).toLocaleString('es-ES') + ' €' : '—';
+  const VEHICULO_LABELS_H = { spv_unica: t('pdf_veh_spv_unica'), spv_multi: t('pdf_veh_spv_multi'), club_deal: t('pdf_veh_club_deal') };
+  const VEHICULO_DESC_H   = { spv_unica: t('pdf_veh_spv_unica_desc'), spv_multi: t('pdf_veh_spv_multi_desc'), club_deal: t('pdf_veh_club_deal_desc') };
+  const APORTACION_LABELS_H = { pp: t('pdf_ap_pp'), cp: t('pdf_ap_cp'), ac: t('pdf_ap_ac'), ph: t('pdf_ap_ph') };
+  const APORTACION_DESC_H   = { pp: t('pdf_ap_pp_desc'), cp: t('pdf_ap_cp_desc'), ac: t('pdf_ap_ac_desc'), ph: t('pdf_ap_ph_desc') };
+  const ticketMin_h = est.ticketMinimo ? parseInt(est.ticketMinimo).toLocaleString(rwLocale()) + ' €' : '—';
   const vehiculoLabel_h = est.vehiculo ? VEHICULO_LABELS_H[est.vehiculo] : null;
   const vehiculoDesc_h  = est.vehiculo ? VEHICULO_DESC_H[est.vehiculo] : null;
   const aportLabel_h    = est.aportacion ? APORTACION_LABELS_H[est.aportacion] : null;
@@ -4018,7 +4058,7 @@ function buildSlides(m, d) {
               [t('roi_gross_base'), fmtP(m.base.roiGross), '#52C07A'],
               [t('irr_base_s'), isFinite(m.base.irr)?fmtP(m.base.irr):'—', '#52C07A'],
               [t('est_duration'), m.totalMonths + ' ' + t('months_s'), 'rgba(255,255,255,0.8)'],
-              [t('breakeven_s'), beM2.toLocaleString('es-ES') + ' €/m²', 'rgba(255,255,255,0.7)'],
+              [t('breakeven_s'), beM2.toLocaleString(rwLocale()) + ' €/m²', 'rgba(255,255,255,0.7)'],
             ].map(([l,v,c])=>`<div style="padding:12px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07)">
               <div style="font-size:8px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:4px">${l}</div>
               <div style="font-family:'DM Mono',monospace;font-size:14px;color:${c};font-feature-settings:'tnum' 1">${v}</div>
@@ -4034,7 +4074,7 @@ function buildSlides(m, d) {
               {lbl:t('optimistic_s'), ep:V('exitO'), sc:m.opt,  col:'#52C07A'},
             ].map(({lbl,ep,sc,col})=>`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px solid rgba(255,255,255,0.04)">
               <div style="padding:7px 10px;font-size:10px;color:${col}">${lbl}</div>
-              <div style="padding:7px 10px;font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,0.7)">${ep.toLocaleString('es-ES')}</div>
+              <div style="padding:7px 10px;font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,0.7)">${ep.toLocaleString(rwLocale())}</div>
               <div style="padding:7px 10px;font-family:'DM Mono',monospace;font-size:10px;color:${col}">${fmtP(sc.roiGross)}</div>
               <div style="padding:7px 10px;font-family:'DM Mono',monospace;font-size:10px;color:${col}">${isFinite(sc.irr)?fmtP(sc.irr):'—'}</div>
             </div>`).join('')}
@@ -4057,7 +4097,7 @@ function buildSlides(m, d) {
             <div style="display:flex;flex-direction:column;gap:6px">
               <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.05)">
                 <span style="font-size:10.5px;color:rgba(255,255,255,0.45)">Management fee</span>
-                <span style="font-family:'DM Mono',monospace;font-size:12px;color:rgba(255,255,255,0.7)">${V('mgmtFeePct')}% s/ precio + CapEx</span>
+                <span style="font-family:'DM Mono',monospace;font-size:12px;color:rgba(255,255,255,0.7)">${V('mgmtFeePct')}% ${t('mgmt_fee_base')}</span>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.05)">
                 <span style="font-size:10.5px;color:rgba(255,255,255,0.45)">Carry ROI &lt; ${sf1T}%</span>
@@ -4331,7 +4371,7 @@ function renderIntelContent(tab) {
 // ── DEAL DNA ────────────────────────────────────────────────────────────────
 function buildDNAView() {
   const db = lsGet(LS_DNA);
-  const fmt2 = v => (v||0).toLocaleString('es-ES',{maximumFractionDigits:0}) + ' €';
+  const fmt2 = v => (v||0).toLocaleString(rwLocale(),{maximumFractionDigits:0}) + ' €';
   const fmtP = v => ((v||0)*100).toFixed(1) + '%';
   const devStr = v => {
     if (v == null) return '<span style="color:rgba(255,255,255,0.3)">—</span>';
@@ -4460,9 +4500,9 @@ function buildBenchmarkView() {
 
     ${dealPm2 > 0 ? `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,0.06);margin-bottom:16px">
       ${[
-        {lbl:'Este activo · '+mz, val:dealPm2.toLocaleString('es-ES')+' €/m²', sub:'escenario base', col:'rgba(160,100,240,0.9)'},
-        {lbl:'Miami Beach prime', val:last?.miami ? last.miami.toLocaleString('es-ES')+' €/m²' : '—', sub: last?.miami ? pctVs(dealPm2,last.miami)+' vs Miami' : 'pulsa actualizar', col:'rgba(196,151,90,0.85)'},
-        {lbl:'Londres prime', val:last?.london ? last.london.toLocaleString('es-ES')+' €/m²' : '—', sub: last?.london ? pctVs(dealPm2,last.london)+' vs Londres' : 'pulsa actualizar', col:'rgba(82,192,122,0.85)'},
+        {lbl:t('intel_this_asset')+' · '+mz, val:dealPm2.toLocaleString(rwLocale())+' €/m²', sub:t('intel_base_sc'), col:'rgba(160,100,240,0.9)'},
+        {lbl:'Miami Beach prime', val:last?.miami ? last.miami.toLocaleString(rwLocale())+' €/m²' : '—', sub: last?.miami ? pctVs(dealPm2,last.miami)+' vs Miami' : t('intel_tap_refresh'), col:'rgba(196,151,90,0.85)'},
+        {lbl:'London prime', val:last?.london ? last.london.toLocaleString(rwLocale())+' €/m²' : '—', sub: last?.london ? pctVs(dealPm2,last.london)+' vs London' : t('intel_tap_refresh'), col:'rgba(82,192,122,0.85)'},
       ].map(k=>`<div style="background:#0a0b0f;padding:22px;text-align:center">
         <div style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:${k.col};opacity:0.75;margin-bottom:8px">${k.lbl}</div>
         <div style="font-family:'DM Mono',monospace;font-size:26px;color:${k.col};font-feature-settings:'tnum' 1">${k.val}</div>
@@ -4482,8 +4522,8 @@ function buildBenchmarkView() {
         <thead><tr><th>Fecha</th><th>Miami Beach</th><th>Londres prime</th><th>BCE</th></tr></thead>
         <tbody>${stored.slice(-5).reverse().map(s => `<tr>
           <td>${s.date}</td>
-          <td style="font-family:'DM Mono',monospace">${s.miami ? s.miami.toLocaleString('es-ES')+' €/m²' : '—'}</td>
-          <td style="font-family:'DM Mono',monospace">${s.london ? s.london.toLocaleString('es-ES')+' €/m²' : '—'}</td>
+          <td style="font-family:'DM Mono',monospace">${s.miami ? s.miami.toLocaleString(rwLocale())+' €/m²' : '—'}</td>
+          <td style="font-family:'DM Mono',monospace">${s.london ? s.london.toLocaleString(rwLocale())+' €/m²' : '—'}</td>
           <td style="font-family:'DM Mono',monospace">${s.ecbRate ? s.ecbRate+'%' : '—'}</td>
         </tr>`).join('')}</tbody>
       </table>
@@ -4510,7 +4550,7 @@ async function fetchBenchmarks() {
   "ecbRate": tipo BCE actual como string "X.XX",
   "usdEur": tipo €/$ actual como número,
   "gbpEur": tipo €/£ actual como número,
-  "narrative": párrafo 3-4 frases en español tono Savills/Knight Frank contextualizando Madrid prime (${mz}) vs Miami y Londres, mencionando arbitraje de precio para inversor internacional${dealPm2 ? ' — el activo en análisis está a ' + dealPm2.toLocaleString('es-ES') + ' €/m²' : ''},
+  "narrative": párrafo 3-4 frases en español tono Savills/Knight Frank contextualizando Madrid prime (${mz}) vs Miami y Londres, mencionando arbitraje de precio para inversor internacional${dealPm2 ? ' — el activo en análisis está a ' + dealPm2.toLocaleString(rwLocale()) + ' €/m²' : ''},
   "sources": "fuentes usadas"
 }`;
 
@@ -4556,7 +4596,7 @@ function buildInvestorsView() {
     </div>
 
     ${matches.length > 0 && m ? `<div class="intel-card purple" style="margin-bottom:16px">
-      <div class="intel-h" style="color:rgba(160,100,240,0.8)">Encajan con este deal · ${m.totalInvest.toLocaleString('es-ES')} € · ROI ${(m.base.roiGross*100).toFixed(1)}% · ${m.totalMonths}m</div>
+      <div class="intel-h" style="color:rgba(160,100,240,0.8)">${t('intel_matches')} · ${m.totalInvest.toLocaleString(rwLocale())} € · ROI ${(m.base.roiGross*100).toFixed(1)}% · ${m.totalMonths}m</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px">
         ${matches.map(inv => `<div style="background:rgba(120,60,200,0.1);border:1px solid rgba(160,100,240,0.25);padding:10px 16px;display:flex;align-items:center;gap:14px">
           <div>
@@ -4574,7 +4614,7 @@ function buildInvestorsView() {
         <tbody>${investors.map((inv,i) => `<tr>
           <td style="color:#fff;font-weight:500">${inv.name}</td>
           <td style="color:rgba(255,255,255,0.45)">${inv.tipo||'—'}</td>
-          <td style="font-family:'DM Mono',monospace;font-size:10.5px">${inv.ticket_min?inv.ticket_min.toLocaleString('es-ES')+'€':'—'}${inv.ticket_max?' – '+inv.ticket_max.toLocaleString('es-ES')+'€':''}</td>
+          <td style="font-family:'DM Mono',monospace;font-size:10.5px">${inv.ticket_min?inv.ticket_min.toLocaleString(rwLocale())+'€':'—'}${inv.ticket_max?' – '+inv.ticket_max.toLocaleString(rwLocale())+'€':''}</td>
           <td style="font-family:'DM Mono',monospace">${inv.roi_min?inv.roi_min+'%':'—'}</td>
           <td style="font-family:'DM Mono',monospace">${inv.plazo_max?inv.plazo_max+'m':'—'}</td>
           <td style="font-size:10px;color:rgba(255,255,255,0.4);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${inv.notas||'—'}</td>
@@ -4718,10 +4758,10 @@ if(location.href.includes('idealista')){
   var fh1=document.querySelector('h1');if(fh1)desc=fh1.textContent.trim().substring(0,80);
 }
 if(!price&&!m2){alert('No se encontraron datos. Abre la ficha completa del inmueble (no el listado).');return;}
-var ppmText=price&&m2?Math.round(price/m2).toLocaleString('es-ES')+' \u20ac/m\u00b2':'';
+var ppmText=price&&m2?Math.round(price/m2).toLocaleString(rwLocale())+' \u20ac/m\u00b2':'';
 var data='RW_COMP::'+JSON.stringify({precio:price,m2:m2,desc:desc,planta:planta,exterior:ext,ascensor:asc,source:source,url:location.href});
 if(navigator.clipboard){
-  navigator.clipboard.writeText(data).then(function(){alert('\u2713 Copiado ('+source+'):\n'+(price?price.toLocaleString('es-ES')+' \u20ac':'\u2014')+' \u00b7 '+(m2?m2+' m\u00b2':'\u2014')+' \u00b7 '+ppmText+'\n\nVuelve a Riverwalk y pulsa "\ud83d\udccb Pegar testigo"');});
+  navigator.clipboard.writeText(data).then(function(){alert('\u2713 Copiado ('+source+'):\n'+(price?price.toLocaleString(rwLocale())+' \u20ac':'\u2014')+' \u00b7 '+(m2?m2+' m\u00b2':'\u2014')+' \u00b7 '+ppmText+'\n\nVuelve a Riverwalk y pulsa "\ud83d\udccb Pegar testigo"');});
 }else{window.prompt('Copia y pega en Riverwalk:',data);}
 })();`;
   const el = document.getElementById('bookmarklet-link');
@@ -4746,8 +4786,8 @@ async function rwPasteComp() {
   comps.push({ id:compNextId++, desc:desc||`${source||'Idealista'}`, url:url||'', source:source||'Idealista',
     tipo:'reformado', precio:precio||0, m2:m2||0, planta:planta??null, exterior:exterior??true, ascensor:ascensor??true });
   renderCompInputs(); renderCompOutput(); renderPricingEngine(); update();
-  const ppm = precio&&m2 ? Math.round(precio/m2).toLocaleString('es-ES')+' €/m²' : '';
-  setStatus(`✓ ${source||'Testigo'} añadido — ${precio?precio.toLocaleString('es-ES')+' €':'—'} · ${m2?m2+' m²':'—'}${ppm?' · '+ppm:''}`, 'var(--green)');
+  const ppm = precio&&m2 ? Math.round(precio/m2).toLocaleString(rwLocale())+' €/m²' : '';
+  setStatus(`✓ ${source||'Testigo'} añadido — ${precio?precio.toLocaleString(rwLocale())+' €':'—'} · ${m2?m2+' m²':'—'}${ppm?' · '+ppm:''}`, 'var(--green)');
   setTimeout(() => setStatus(''), 4000);
 }
 
@@ -4794,7 +4834,7 @@ function updateQEPreview() {
   if (!prev) return;
   if (precio && m2v) {
     const ppm = Math.round(precio / m2v);
-    prev.textContent = `${precio.toLocaleString('es-ES')} €  ·  ${m2v} m²  ·  ${ppm.toLocaleString('es-ES')} €/m²`;
+    prev.textContent = `${precio.toLocaleString(rwLocale())} €  ·  ${m2v} m²  ·  ${ppm.toLocaleString(rwLocale())} €/m²`;
     prev.style.color = 'var(--gold)';
   } else {
     prev.textContent = precio || m2v ? 'Falta ' + (!precio ? 'precio' : 'm²') : '';
@@ -4808,7 +4848,7 @@ function addQuickEntry() {
   if (!precio || !m2v) { alert('Introduce precio y m² antes de añadir.'); return; }
   comps.push({
     id: compNextId++,
-    desc: $('qe-desc')?.value || `${$('qe-source')?.value||'Manual'} ${Math.round(precio/m2v).toLocaleString('es-ES')}€/m²`,
+    desc: $('qe-desc')?.value || `${$('qe-source')?.value||'Manual'} ${Math.round(precio/m2v).toLocaleString(rwLocale())}€/m²`,
     url: '', source: $('qe-source')?.value || 'Manual',
     tipo: $('qe-tipo')?.value || 'reformado',
     precio, m2: m2v,
@@ -4968,7 +5008,7 @@ function renderPricingEngine() {
       ].map(({lbl,val,col,sc,bg,bold}) => `
         <div style="background:var(--d3);padding:14px;text-align:center${bold?';border:1px solid rgba(139,105,20,0.3)':''}">
           <div style="font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:${col};margin-bottom:6px;font-weight:600">${lbl}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:${bold?22:19}px;color:${col};font-feature-settings:'tnum' 1;font-weight:${bold?700:600}">${val.toLocaleString('es-ES')} €/m²</div>
+          <div style="font-family:'DM Mono',monospace;font-size:${bold?22:19}px;color:${col};font-feature-settings:'tnum' 1;font-weight:${bold?700:600}">${val.toLocaleString(rwLocale())} €/m²</div>
           <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-d);margin-top:4px;font-feature-settings:'tnum' 1">${fmt(val * surf)}</div>
           <button onclick="applyExitPrice(${val},'${sc}')"
             style="margin-top:8px;background:${bg};border:1px solid ${col};color:${col};
@@ -5033,64 +5073,57 @@ function calcDetailedCF(m) {
   const ampImporte = ampliacionOn ? Math.round(m.buyPrice * ampPct) : 0;
 
   // Arras iniciales
-  add(dArras, `Arras iniciales (${((m.arasAmt / m.buyPrice)*100).toFixed(1)}% s/precio)`, -m.arasAmt, 'compra');
+  add(dArras, `${t('cf_arras')} (${((m.arasAmt / m.buyPrice)*100).toFixed(1)}% ${t('cf_of_price')})`, -m.arasAmt, 'compra');
 
   if (!isPase) {
-    // Management fee: 50% en arras
-    if (mgmtTot > 0) add(dArras, 'Management fee — 50% + IVA', -(mgmtTot * 0.5), 'fee-rw');
+    if (mgmtTot > 0) add(dArras, t('cf_mgmt_50'), -(mgmtTot * 0.5), 'fee-rw');
   } else {
-    // Pase: management fee 50% en arras también
     const paseMgmt = m.mgmtFee * (1 + V('ivaObra')/100);
-    if (paseMgmt > 0) add(dArras, `Management fee pase — 50% + IVA (${V('paseMgmtPct')}% s/precio)`, -(paseMgmt * 0.5), 'fee-rw');
+    if (paseMgmt > 0) add(dArras, `${t('cf_mgmt_pase_50')} (${V('paseMgmtPct')}% ${t('cf_of_price')})`, -(paseMgmt * 0.5), 'fee-rw');
   }
 
-  // Ampliación de arras
   if (ampliacionOn && dAmpliacion && ampImporte > 0) {
-    add(dAmpliacion, `Ampliación de arras (${(ampPct*100).toFixed(1)}% s/precio)`, -ampImporte, 'compra');
+    add(dAmpliacion, `${t('cf_ampliacion')} (${(ampPct*100).toFixed(1)}% ${t('cf_of_price')})`, -ampImporte, 'compra');
   }
 
-  // Escritura (original si sin ampliación, o nueva fecha si con ampliación)
   const arasTotal = m.arasAmt + ampImporte;
-  add(dEscFinal, 'Resto precio compra (escritura)', -(m.buyPrice - arasTotal), 'compra');
+  add(dEscFinal, t('cf_rest_compra'), -(m.buyPrice - arasTotal), 'compra');
   add(dEscFinal, `ITP (${V('itpPct')}%)`, -m.itp, 'gasto');
-  add(dEscFinal, 'Notaría + registro (compra)', -m.notaria, 'gasto');
-  if (m.brokerBuyFee   > 0) add(dEscFinal, 'Broker fee compra', -m.brokerBuyFee, 'gasto');
-  if (m.intermediaryFee > 0) add(dEscFinal, S('intermediaryDesc') || 'Fee adicional a terceros', -m.intermediaryFee, 'gasto');
+  add(dEscFinal, t('cf_notaria_compra'), -m.notaria, 'gasto');
+  if (m.brokerBuyFee   > 0) add(dEscFinal, t('cf_broker_compra'), -m.brokerBuyFee, 'gasto');
+  if (m.intermediaryFee > 0) add(dEscFinal, S('intermediaryDesc') || t('cf_fee_terceros'), -m.intermediaryFee, 'gasto');
 
   if (!isPase) {
-    // Management fee: 50% en escritura
-    if (mgmtTot > 0) add(dEscFinal, 'Management fee — 50% restante + IVA', -(mgmtTot * 0.5), 'fee-rw');
+    if (mgmtTot > 0) add(dEscFinal, t('cf_mgmt_50r'), -(mgmtTot * 0.5), 'fee-rw');
   } else {
     const paseMgmt = m.mgmtFee * (1 + V('ivaObra')/100);
-    if (paseMgmt > 0) add(dEscFinal, 'Management fee pase — 50% restante + IVA', -(paseMgmt * 0.5), 'fee-rw');
+    if (paseMgmt > 0) add(dEscFinal, t('cf_mgmt_pase_50r'), -(paseMgmt * 0.5), 'fee-rw');
   }
   if (!isPase) {
-    // CapEx tramos
     if (capexTot > 0) {
-      add(dEscFinal, 'CapEx tramo 1 — Escritura (50%) + IVA',      -(capexTot * 0.50), 'capex');
-      add(dCert50,   'CapEx tramo 2 — Cert. 50% obra (20%) + IVA', -(capexTot * 0.20), 'capex');
-      add(dCert70,   'CapEx tramo 3 — Cert. 70% obra (20%) + IVA', -(capexTot * 0.20), 'capex');
-      add(dEntrega,  'CapEx tramo 4 — Entrega obra (10%) + IVA',    -(capexTot * 0.10), 'capex');
+      add(dEscFinal, t('cf_capex_t1'),  -(capexTot * 0.50), 'capex');
+      add(dCert50,   t('cf_capex_t2'),  -(capexTot * 0.20), 'capex');
+      add(dCert70,   t('cf_capex_t3'),  -(capexTot * 0.20), 'capex');
+      add(dEntrega,  t('cf_capex_t4'),  -(capexTot * 0.10), 'capex');
     }
     if (m.comunidadTotal + m.ibiTotal > 0) {
-      add(dEntrega || dVenta, `Gastos holding (comunidad + IBI, ${m.totalMonths}m)`, -(m.comunidadTotal + m.ibiTotal), 'gasto');
+      add(dEntrega || dVenta, `${t('cf_holding_full')} (${m.totalMonths}m)`, -(m.comunidadTotal + m.ibiTotal), 'gasto');
     }
   } else {
     if (m.comunidadTotal + m.ibiTotal > 0) {
-      add(dVenta, `Gastos holding (comunidad, ${m.totalMonths}m)`, -(m.comunidadTotal + m.ibiTotal), 'gasto');
+      add(dVenta, `${t('cf_holding_simple')} (${m.totalMonths}m)`, -(m.comunidadTotal + m.ibiTotal), 'gasto');
     }
   }
 
-  // Venta
-  add(dVenta, `Venta — ${V('exitB').toLocaleString('es-ES')} €/m² × ${m.surfCapex} m² construidos`, b.saleGross, 'ingreso');
-  add(dVenta, `Comisión broker salida (${V('brokerExit')}%)`, -b.brokerCost, 'gasto');
+  add(dVenta, `${t('cf_sale_label')} — ${V('exitB').toLocaleString(rwLocale())} €/m² × ${m.surfCapex} ${t('cf_built_area')}`, b.saleGross, 'ingreso');
+  add(dVenta, `${t('cf_broker_exit')} (${V('brokerExit')}%)`, -b.brokerCost, 'gasto');
   const exitF = V('exitFixed') + V('exitFixedAjuste');
-  if (exitF > 0) add(dVenta, 'Plusvalía municipal + notaría venta', -exitF, 'gasto');
+  if (exitF > 0) add(dVenta, t('cf_plusvalia'), -exitF, 'gasto');
 
   if (isPase) {
-    add(dVenta, `Carry Riverwalk (${V('paseCarryPct')}% + IVA ${V('paseCarryIVA')}%)`, -b.sf, 'sf');
+    add(dVenta, `${t('cf_carry_rw')} (${V('paseCarryPct')}% + IVA ${V('paseCarryIVA')}%)`, -b.sf, 'sf');
   } else {
-    add(dVenta, 'Success fee Riverwalk', -b.sf, 'sf');
+    add(dVenta, t('cf_success_fee'), -b.sf, 'sf');
   }
   if (taxOn && b.tax > 0) add(dVenta, `${S('taxStructure')==='sl'?'IS':'IRPF'} (${V('taxRate')}%)`, -b.tax, 'tax');
 
@@ -5378,7 +5411,7 @@ let comps = [
 let compNextId = 6;
 let extracting  = false;
 
-const tipoLabel = { reformar:'A reformar', reformado:'Reformado', estreno:'Estreno' };
+function tipoLabel(tipo) { return ({ reformar: t('op_tipo_toreno'), reformado: t('op_tipo_renovated'), estreno: t('op_tipo_new') })[tipo] || tipo; }
 const tipoClass = { reformar:'comp-tipo-r', reformado:'comp-tipo-rr', estreno:'comp-tipo-e' };
 const tipoColor = { reformar:'var(--red)', reformado:'var(--amber)', estreno:'var(--green)' };
 
@@ -5481,7 +5514,7 @@ Si no puedes extraer el precio o los m², devuelve los campos como null. No inve
         m2: parsed.m2 || 0
       });
       const ppm = parsed.precio && parsed.m2 ? Math.round(parsed.precio / parsed.m2) : null;
-      status.textContent = `✓ Extraído — ${parsed.precio ? parsed.precio.toLocaleString('es-ES')+' €' : '?'}  ·  ${parsed.m2 ? parsed.m2+' m²' : '?'}${ppm ? '  ·  '+ppm.toLocaleString('es-ES')+' €/m²' : ''}. Selecciona el estado del inmueble.`;
+      status.textContent = `✓ Extraído — ${parsed.precio ? parsed.precio.toLocaleString(rwLocale())+' €' : '?'}  ·  ${parsed.m2 ? parsed.m2+' m²' : '?'}${ppm ? '  ·  '+ppm.toLocaleString(rwLocale())+' €/m²' : ''}. Selecciona el estado del inmueble.`;
       status.style.color = 'var(--green)';
     }
 
@@ -5568,7 +5601,7 @@ function renderCompInputs() {
   if (!container) return;
   container.innerHTML = comps.map(c => {
     const ppm = compPpm(c);
-    const ppmText = ppm ? ppm.toLocaleString('es-ES') + ' €/m²' : '—';
+    const ppmText = ppm ? ppm.toLocaleString(rwLocale()) + ' €/m²' : '—';
     const verified = rwIsVerified(c);
     const precTag = c.precision === 'exacta' ? '📍 exacta' : c.precision === 'calle' ? '📍 calle' : c.precision === 'zona' ? '📍 zona' : '';
     const badgeColor = verified ? 'var(--green)' : 'var(--amber)';
@@ -5596,15 +5629,15 @@ function renderCompInputs() {
             onchange="comps.find(x=>x.id===${c.id}).tipo=this.value;renderCompInputs();renderCompOutput();rwPersistComps()"
             style="background:var(--d4);border:1px solid var(--d6);color:${c.tipo?tipoColor[c.tipo]:'var(--amber)'};font-family:'Raleway',sans-serif;font-size:10.5px;padding:6px;width:100%">
             <option value="" ${!c.tipo?'selected':''}>— Estado —</option>
-            <option value="reformado" ${c.tipo==='reformado'?'selected':''}>Reformado</option>
-            <option value="estreno"   ${c.tipo==='estreno'  ?'selected':''}>Estreno</option>
-            <option value="reformar"  ${c.tipo==='reformar' ?'selected':''}>A reformar</option>
+            <option value="reformado" ${c.tipo==='reformado'?'selected':''}>${t('op_tipo_renovated')}</option>
+            <option value="estreno"   ${c.tipo==='estreno'  ?'selected':''}>${t('op_tipo_new')}</option>
+            <option value="reformar"  ${c.tipo==='reformar' ?'selected':''}>${t('op_tipo_toreno')}</option>
           </select>
           <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--gold);padding:6px 10px;background:var(--d4);border:1px solid var(--line2);white-space:nowrap;min-width:90px;text-align:right">${ppmText}</div>
         </div>
         <!-- Row 2: Precio + m² + Planta -->
         <div style="display:grid;grid-template-columns:1fr 80px 60px;gap:4px;margin-bottom:6px">
-          <input type="text" value="${c.precio ? Math.round(c.precio).toLocaleString('es-ES') : ''}" placeholder="Precio €"
+          <input type="text" value="${c.precio ? Math.round(c.precio).toLocaleString(rwLocale()) : ''}" placeholder="Precio €"
             onblur="comps.find(x=>x.id===${c.id}).precio=parseFloat(this.value.replace(/\\./g,'').replace(',','.'))||0;renderCompInputs();renderCompOutput();rwPersistComps()"
             style="background:var(--d4);border:1px solid ${c.precio?'var(--d6)':'var(--amber)'};color:var(--text-b);font-family:'DM Mono',monospace;font-size:11px;padding:6px;text-align:right;width:100%">
           <input type="number" value="${c.m2||''}" placeholder="m²" step="1"
@@ -5671,16 +5704,16 @@ function renderCompOutput() {
 
   // Summary strip
   const stripItems = [
-    { lbl:`A reformar (${byTipo.reformar.length})`,  val:avgR,  cls:'comp-tipo-r',  sub:`${byTipo.reformar.length ? minArr(byTipo.reformar).toLocaleString('es-ES')+' – '+maxArr(byTipo.reformar).toLocaleString('es-ES')+' €/m²' : '—'}` },
-    { lbl:`Reformado (${byTipo.reformado.length})`,  val:avgRR, cls:'comp-tipo-rr', sub:`${byTipo.reformado.length ? minArr(byTipo.reformado).toLocaleString('es-ES')+' – '+maxArr(byTipo.reformado).toLocaleString('es-ES')+' €/m²' : '—'}` },
-    { lbl:`Estreno (${byTipo.estreno.length})`,      val:avgE,  cls:'comp-tipo-e',  sub:`${byTipo.estreno.length ? minArr(byTipo.estreno).toLocaleString('es-ES')+' – '+maxArr(byTipo.estreno).toLocaleString('es-ES')+' €/m²' : '—'}` },
+    { lbl:`${t('op_tipo_toreno')} (${byTipo.reformar.length})`,  val:avgR,  cls:'comp-tipo-r',  sub:`${byTipo.reformar.length ? minArr(byTipo.reformar).toLocaleString(rwLocale())+' – '+maxArr(byTipo.reformar).toLocaleString(rwLocale())+' €/m²' : '—'}` },
+    { lbl:`${t('op_tipo_renovated')} (${byTipo.reformado.length})`,  val:avgRR, cls:'comp-tipo-rr', sub:`${byTipo.reformado.length ? minArr(byTipo.reformado).toLocaleString(rwLocale())+' – '+maxArr(byTipo.reformado).toLocaleString(rwLocale())+' €/m²' : '—'}` },
+    { lbl:`${t('op_tipo_new')} (${byTipo.estreno.length})`,      val:avgE,  cls:'comp-tipo-e',  sub:`${byTipo.estreno.length ? minArr(byTipo.estreno).toLocaleString(rwLocale())+' – '+maxArr(byTipo.estreno).toLocaleString(rwLocale())+' €/m²' : '—'}` },
   ];
 
   let html = `<div class="comp-out-strip">`;
   stripItems.forEach(it => {
     html += `<div class="comp-out-item">
       <div class="comp-out-lbl">${it.lbl}</div>
-      <div class="comp-out-val ${it.cls}">${it.val ? it.val.toLocaleString('es-ES')+' €/m²' : '—'}</div>
+      <div class="comp-out-val ${it.cls}">${it.val ? it.val.toLocaleString(rwLocale())+' €/m²' : '—'}</div>
       <div style="font-size:10.5px;color:var(--text-d);margin-top:3px">${it.sub}</div>
     </div>`;
   });
@@ -5707,10 +5740,10 @@ function renderCompOutput() {
       html += `<tr>
         <td>${c.desc || '—'} ${urlEl}</td>
         <td style="color:var(--text-d)">${c.source}</td>
-        <td class="${tipoClass[c.tipo]}">${tipoLabel[c.tipo]}</td>
+        <td class="${tipoClass[c.tipo]}">${tipoLabel(c.tipo)}</td>
         <td>${fmt(c.precio)}</td>
         <td>${c.m2} m²</td>
-        <td class="${tipoClass[c.tipo]}" style="font-weight:500">${ppm.toLocaleString('es-ES')} €/m²</td>
+        <td class="${tipoClass[c.tipo]}" style="font-weight:500">${ppm.toLocaleString(rwLocale())} €/m²</td>
       </tr>`;
     });
 
@@ -5718,7 +5751,7 @@ function renderCompOutput() {
   if (sellable.length) {
     html += `<tr class="comp-avg">
       <td colspan="5">Media testigos vendibles (reformado + estreno)</td>
-      <td style="color:var(--green);font-weight:500">${suggestedBase.toLocaleString('es-ES')} €/m²</td>
+      <td style="color:var(--green);font-weight:500">${suggestedBase.toLocaleString(rwLocale())} €/m²</td>
     </tr>`;
   }
   html += `</tbody></table>`;
@@ -5736,14 +5769,14 @@ function renderCompOutput() {
         const ppm = compPpm(c);
         const pct = dotRange > 0 ? ((ppm - dotMin) / dotRange * 100).toFixed(1) : 50;
         return `<div style="position:absolute;left:${pct}%;transform:translateX(-50%);top:-6px;">
-          <div style="width:10px;height:10px;border-radius:50%;background:${tipoColor[c.tipo]};border:2px solid var(--d3);title='${c.desc}: ${ppm.toLocaleString('es-ES')} €/m²'" title="${c.desc}: ${ppm.toLocaleString('es-ES')} €/m²"></div>
+          <div style="width:10px;height:10px;border-radius:50%;background:${tipoColor[c.tipo]};border:2px solid var(--d3);title='${c.desc}: ${ppm.toLocaleString(rwLocale())} €/m²'" title="${c.desc}: ${ppm.toLocaleString(rwLocale())} €/m²"></div>
         </div>`;
       }).join('')}
     </div>
     <div class="comp-bar-markers" style="margin-top:18px">
-      <span>${Math.round(dotMin).toLocaleString('es-ES')} €</span>
-      <span>${Math.round((dotMin+dotMax)/2).toLocaleString('es-ES')} €</span>
-      <span>${Math.round(dotMax).toLocaleString('es-ES')} €</span>
+      <span>${Math.round(dotMin).toLocaleString(rwLocale())} €</span>
+      <span>${Math.round((dotMin+dotMax)/2).toLocaleString(rwLocale())} €</span>
+      <span>${Math.round(dotMax).toLocaleString(rwLocale())} €</span>
     </div>
   </div>`;
 
@@ -5751,16 +5784,16 @@ function renderCompOutput() {
   const exitBCurrent = V('exitB');
   const diff = exitBCurrent - suggestedBase;
   const diffPct = suggestedBase > 0 ? (diff / suggestedBase * 100).toFixed(1) : '—';
-  const diffStr = diff > 0 ? `<span style="color:var(--green)">+${Math.abs(diffPct)}% por encima</span> de la media de testigos` :
-                  diff < 0 ? `<span style="color:var(--red)">${Math.abs(diffPct)}% por debajo</span> de la media de testigos` :
-                  `en línea con la media de testigos`;
+  const diffStr = diff > 0 ? `<span style="color:var(--green)">+${Math.abs(diffPct)}% ${t('sug_above_avg')}</span>` :
+                  diff < 0 ? `<span style="color:var(--red)">${Math.abs(diffPct)}% ${t('sug_below_avg')}</span>` :
+                  t('sug_inline_avg');
 
   html += `<div class="comp-suggestion">
-    <strong>Rango sugerido de precio de salida:</strong> ${suggestedLow.toLocaleString('es-ES')} – ${suggestedHigh.toLocaleString('es-ES')} €/m²
-    <span style="font-size:10px;color:var(--text-d);margin-left:8px">(basado en media de reformados + estreno ± ajuste conservador)</span>
+    <strong>${t('sug_range_lbl')}:</strong> ${suggestedLow.toLocaleString(rwLocale())} – ${suggestedHigh.toLocaleString(rwLocale())} €/m²
+    <span style="font-size:10px;color:var(--text-d);margin-left:8px">(${t('sug_basis')})</span>
     <br><br>
-    Tu escenario base actual (<strong>${exitBCurrent.toLocaleString('es-ES')} €/m²</strong>) está ${diffStr}.
-    ${Math.abs(diff) > 1000 ? `<br><span style="font-size:10px;color:var(--amber)">⚠ La diferencia es &gt;1.000 €/m². Revisa si tus escenarios de salida están bien alineados con los comparables.</span>` : ''}
+    ${t('sug_current_base')} (<strong>${exitBCurrent.toLocaleString(rwLocale())} €/m²</strong>) ${t('sug_is_at')} ${diffStr}.
+    ${Math.abs(diff) > 1000 ? `<br><span style="font-size:10px;color:var(--amber)">⚠ ${t('sug_diff_warn')}</span>` : ''}
   </div>`;
 
   el.innerHTML = html;
@@ -5833,7 +5866,7 @@ function renderSensPriceConfig() {
       <span style="color:${isSorted?'var(--green)':'var(--amber)'}">
         ${isSorted ? '✓' : '⚠ Reordena de menor a mayor →'}
       </span>
-      ${sensPrices.map(p=>`<span style="font-family:'DM Mono',monospace;color:var(--gold-l)">${p.toLocaleString('es-ES')} €</span>`).join(' · ')}`;
+      ${sensPrices.map(p=>`<span style="font-family:'DM Mono',monospace;color:var(--gold-l)">${p.toLocaleString(rwLocale())} €</span>`).join(' · ')}`;
   }
 }
 
@@ -5930,13 +5963,13 @@ function renderNotariaCompra(buyPrice) {
   const nc = calcArancel(buyPrice);
   const nd = $('notaria-calc-display');
   if (nd && nc) {
-    nd.innerHTML = `Arancel notario: <strong>${nc.notario.toLocaleString('es-ES')} €</strong> &nbsp;·&nbsp;
-      Registro est.: <strong>${nc.registro.toLocaleString('es-ES')} €</strong> &nbsp;·&nbsp;
-      <strong style="color:var(--gold)">Total: ${nc.total.toLocaleString('es-ES')} €</strong>
-      <br><span style="color:var(--text-d);font-size:9px">Arancel RD 1426/1989 · escala progresiva sobre ${buyPrice.toLocaleString('es-ES')} €</span>`;
+    nd.innerHTML = `${t('notary_fee_lbl')}: <strong>${nc.notario.toLocaleString(rwLocale())} €</strong> &nbsp;·&nbsp;
+      ${t('registry_est_lbl')}: <strong>${nc.registro.toLocaleString(rwLocale())} €</strong> &nbsp;·&nbsp;
+      <strong style="color:var(--gold)">Total: ${nc.total.toLocaleString(rwLocale())} €</strong>
+      <br><span style="color:var(--text-d);font-size:9px">${t('notary_arancel')} ${buyPrice.toLocaleString(rwLocale())} €</span>`;
     if (V('notariaAjuste') === 0) {
       const el = $('notaria');
-      if (el && !el.dataset.manualOverride) el.value = nc.total.toLocaleString('es-ES');
+      if (el && !el.dataset.manualOverride) el.value = nc.total.toLocaleString(rwLocale());
     }
   }
 }
@@ -6000,9 +6033,9 @@ function renderInvBreakdown(m) {
   if (legEl) {
     const items = isLev
       ? [
-          { lbl: 'Equity inversor', color: '#5B8FE0',         val: equity },
-          { lbl: 'Deuda bridge',    color: 'rgba(139,105,20,0.6)', val: loan },
-          { lbl: 'Total proyecto',  color: 'var(--text-d)',    val: total  },
+          { lbl: t('equity_investor'), color: '#5B8FE0',         val: equity },
+          { lbl: t('bridge_debt'),    color: 'rgba(139,105,20,0.6)', val: loan },
+          { lbl: t('total_project'),  color: 'var(--text-d)',    val: total  },
         ]
       : partidas.slice(0, 4);
     legEl.innerHTML = items.map(p =>
@@ -6175,8 +6208,8 @@ function resetForm() {
     overPct:0,overSlider:0,taxRate:25
   };
   Object.entries(defs).forEach(([k,v])=>{ const el=$(k); if(el)el.value=v; });
-  $('ltvSlider-rv').textContent = '0% — Sin apalancamiento';
-  $('overSlider-rv').textContent = '0% — Sin provisión';
+  $('ltvSlider-rv').textContent = t('ltv_no_lev');
+  $('overSlider-rv').textContent = t('prov_none');
   $('mgmtSlider-rv').textContent = '4.0% sobre precio + CapEx neto';
   sfMode='tramos'; setSFMode('tramos');
   zcOn=false; toggleZC(false);
@@ -6264,10 +6297,10 @@ function applyDeal(deal) {
   }
   // Refresh slider labels
   const ltvVal = parseInt($('ltvSlider')?.value || 0);
-  const ltvLabels = {0:'0% — Sin apalancamiento',10:'10%',20:'20%',30:'30%',40:'40% — Moderado',50:'50%',60:'60% — Elevado',70:'70%'};
+  const ltvLabels = {0:t('ltv_no_lev'),10:'10%',20:'20%',30:'30%',40:t('ltv_moderate'),50:'50%',60:t('ltv_elevated'),70:'70%'};
   if ($('ltvSlider-rv')) $('ltvSlider-rv').textContent = ltvLabels[ltvVal] || ltvVal+'%';
   const overVal = parseInt($('overSlider')?.value || 0);
-  const overLabels = {0:'0% — Sin provisión',5:'5%',10:'10%',15:'15%',20:'20% — Recomendado',25:'25%',30:'30%',35:'35%',40:'40%'};
+  const overLabels = {0:t('prov_none'),5:'5%',10:'10%',15:'15%',20:t('prov_recommended'),25:'25%',30:'30%',35:'35%',40:'40%'};
   if ($('overSlider-rv')) $('overSlider-rv').textContent = overLabels[overVal] || overVal+'%';
   const mgmtVal = parseFloat($('mgmtSlider')?.value || 4);
   if ($('mgmtSlider-rv')) $('mgmtSlider-rv').textContent = mgmtVal.toFixed(1)+'% sobre precio + CapEx neto';
@@ -6765,7 +6798,7 @@ function rwStepCalidades() {
     const sel = (rwWizardState.presetSelected === p.id);
     const inRange = obra >= p.priceRange.min && obra <= p.priceRange.max;
     const thumb = (p.images && p.images[0]) ? p.images[0] : '';
-    const range = p.priceRange.min.toLocaleString('es-ES') + '–' + p.priceRange.max.toLocaleString('es-ES') + ' €/m²';
+    const range = p.priceRange.min.toLocaleString(rwLocale()) + '–' + p.priceRange.max.toLocaleString(rwLocale()) + ' €/m²';
     return (
       '<div onclick="rwWizardState.presetSelected=\'' + p.id + '\';rwRenderWizardStep()" style="position:relative;border:1.5px solid ' + (sel?'var(--gold)':'var(--d6)') + ';background:' + (thumb?'url('+thumb+') center/cover':'var(--d4)') + ';padding:14px;cursor:pointer;min-height:140px;display:flex;flex-direction:column;justify-content:flex-end;' + (sel?'box-shadow:0 0 0 3px rgba(196,151,90,0.2)':'') + '">' +
         (thumb?'<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,11,16,0.15),rgba(10,11,16,0.85))"></div>':'') +
@@ -7068,7 +7101,7 @@ function updateEdificio() {
     totalCapex += capex;
     totalVenta += venta;
     const ventaEl = $(`eu-venta-${u.id}`);
-    if (ventaEl) ventaEl.textContent = venta > 0 ? venta.toLocaleString('es-ES') + ' €' : '—';
+    if (ventaEl) ventaEl.textContent = venta > 0 ? venta.toLocaleString(rwLocale()) + ' €' : '—';
   });
 
   // Summary
@@ -9161,6 +9194,129 @@ Object.assign(RW_I18N, {
   pdf_ap_cp_desc:         { es:'Capital cedido al gestor. Comparte riesgo y beneficio en proporción a la aportación.', en:'Capital lent to the manager. Risk and profit shared in proportion to contribution.', fr:'Capital cédé au gestionnaire. Partage du risque et du bénéfice en proportion de l\'apport.', de:'Kapital an den Manager übertragen. Risiko und Gewinn werden proportional zur Einlage geteilt.', pt:'Capital cedido ao gestor. Partilha de risco e lucro em proporção à aportação.' },
   pdf_ap_ac_desc:         { es:'El inversor entra como socio de la sociedad, con derechos societarios.', en:'The investor joins as a shareholder with corporate rights.', fr:'L\'investisseur entre comme associé de la société, avec droits sociaux.', de:'Der Investor wird Gesellschafter mit gesellschaftsrechtlichen Rechten.', pt:'O investidor entra como sócio da sociedade, com direitos societários.' },
   pdf_ap_ph_desc:         { es:'Retorno fijo garantizado con el activo como colateral. Perfil más conservador.', en:'Fixed return guaranteed with the asset as collateral. More conservative profile.', fr:'Retour fixe garanti avec l\'actif comme collatéral. Profil plus conservateur.', de:'Feste Rendite, durch das Objekt als Sicherheit garantiert. Konservatives Profil.', pt:'Retorno fixo garantido com o ativo como colateral. Perfil mais conservador.' },
+  // Output panel P&L table
+  op_acquisition:    { es:'ADQUISICIÓN',              en:'ACQUISITION',           fr:'ACQUISITION',             de:'ANKAUF',                   pt:'AQUISIÇÃO' },
+  op_buy_price:      { es:'Precio de compra',          en:'Purchase price',        fr:'Prix d\'achat',           de:'Kaufpreis',                pt:'Preço de compra' },
+  op_notary:         { es:'Notaría + registro',        en:'Notary + registration', fr:'Notaire + enregistrement',de:'Notar + Grundbuch',         pt:'Notário + registo' },
+  op_community:      { es:'Comunidad',                 en:'Community fees',        fr:'Charges communes',        de:'Hausgeld',                 pt:'Condomínio' },
+  op_broker_buy:     { es:'Broker fee compra',         en:'Acquisition broker fee',fr:'Commission achat',        de:'Maklerprovision Kauf',     pt:'Comissão de compra' },
+  op_total_invest:   { es:'INVERSIÓN TOTAL (precio + mgmt fee)', en:'TOTAL INVESTMENT (price + mgmt fee)', fr:'INVESTISSEMENT TOTAL', de:'GESAMTINVESTITION', pt:'INVESTIMENTO TOTAL' },
+  op_fees_pase:      { es:'FEES RIVERWALK — PASE',     en:'RIVERWALK FEES — FLIP', fr:'FRAIS RIVERWALK — CESSION', de:'RIVERWALK GEBÜHREN — FLIP', pt:'FEES RIVERWALK — CESSÃO' },
+  op_fees_rw:        { es:'FEES RIVERWALK',            en:'RIVERWALK FEES',        fr:'FRAIS RIVERWALK',         de:'RIVERWALK GEBÜHREN',       pt:'FEES RIVERWALK' },
+  op_sale_base:      { es:'VENTA — Escenario Base',    en:'SALE — Base Scenario',  fr:'VENTE — Scénario de base',de:'VERKAUF — Basisszenario',   pt:'VENDA — Cenário Base' },
+  op_sale_gross_row: { es:'Precio venta bruto',        en:'Gross sale price',      fr:'Prix de vente brut',      de:'Bruttoverkaufspreis',      pt:'Preço de venda bruto' },
+  op_built_m2:       { es:'m² construidos',            en:'built m²',              fr:'m² construits',           de:'bebaute m²',               pt:'m² construídos' },
+  op_broker_exit:    { es:'Comisión broker salida',    en:'Exit broker commission',fr:'Commission vente',        de:'Verkäuferprovision',       pt:'Comissão de saída' },
+  op_notary_exit:    { es:'Notaría venta + costes salida', en:'Sale notary + exit costs', fr:'Notaire vente + frais de sortie', de:'Notar Verkauf + Ausstiegskosten', pt:'Notário venda + custos saída' },
+  op_gross_profit:   { es:'Beneficio bruto operativo', en:'Gross operating profit',fr:'Bénéfice brut opérationnel', de:'Bruttooperationsgewinn',pt:'Lucro bruto operacional' },
+  op_carry_rw:       { es:'CARRY RIVERWALK',           en:'RIVERWALK CARRY',       fr:'CARRY RIVERWALK',         de:'RIVERWALK CARRY',          pt:'CARRY RIVERWALK' },
+  op_total_carry:    { es:'Total carry + IVA',         en:'Total carry + VAT',     fr:'Total carry + TVA',       de:'Gesamt Carry + MwSt.',     pt:'Total carry + IVA' },
+  op_tax_cat:        { es:'FISCALIDAD',                en:'TAXATION',              fr:'FISCALITÉ',               de:'STEUERN',                  pt:'FISCALIDADE' },
+  op_net_profit_inv: { es:'BENEFICIO NETO AL INVERSOR',en:'NET PROFIT TO INVESTOR',fr:'BÉNÉFICE NET À L\'INVESTISSEUR', de:'NETTOGEWINN FÜR DEN INVESTOR', pt:'LUCRO LÍQUIDO AO INVESTIDOR' },
+  op_roi_net_row:    { es:'ROI neto',                  en:'Net ROI',               fr:'ROI net',                 de:'Netto-ROI',                pt:'ROI líquido' },
+  op_capex_cat:      { es:'CAPEX',                     en:'CAPEX',                 fr:'CAPEX',                   de:'CAPEX',                    pt:'CAPEX' },
+  op_obra_row:       { es:'Obra',                      en:'Construction works',    fr:'Travaux',                 de:'Bauarbeiten',              pt:'Obra' },
+  op_deco_row:       { es:'Decoración / FF&E',         en:'Fit-out / FF&E',        fr:'Décoration / FF&E',       de:'Ausstattung / FF&E',       pt:'Decoração / FF&E' },
+  op_subtotal_acq:   { es:'Subtotal adquisición',      en:'Acquisition subtotal',  fr:'Sous-total acquisition',  de:'Teilsumme Ankauf',         pt:'Subtotal aquisição' },
+  op_subtotal_capex: { es:'Subtotal CapEx',            en:'CapEx subtotal',        fr:'Sous-total CapEx',        de:'CapEx-Teilsumme',          pt:'Subtotal CapEx' },
+  op_subtotal_fees:  { es:'Subtotal fees Riverwalk',   en:'Riverwalk fees subtotal',fr:'Sous-total frais Riverwalk', de:'Riverwalk Gebühren Teilsumme', pt:'Subtotal fees Riverwalk' },
+  op_iva_unsupported:{ es:'IVA SOPORTADO — NO RECUPERABLE', en:'VAT — NON-RECOVERABLE', fr:'TVA — NON RÉCUPÉRABLE', de:'NICHT ERSTATTUNGSFÄHIGE MWST.', pt:'IVA SUPORTADO — NÃO RECUPERÁVEL' },
+  op_iva_row:        { es:'IVA CapEx + Fees',          en:'VAT CapEx + Fees',      fr:'TVA CapEx + Frais',       de:'MwSt. CapEx + Gebühren',   pt:'IVA CapEx + Fees' },
+  op_total_invest2:  { es:'INVERSIÓN TOTAL',           en:'TOTAL INVESTMENT',      fr:'INVESTISSEMENT TOTAL',    de:'GESAMTINVESTITION',        pt:'INVESTIMENTO TOTAL' },
+  op_success_fee:    { es:'SUCCESS FEE RIVERWALK',     en:'RIVERWALK SUCCESS FEE', fr:'FRAIS DE SUCCÈS RIVERWALK', de:'RIVERWALK ERFOLGSPROVISION', pt:'SUCCESS FEE RIVERWALK' },
+  op_corp_tax:       { es:'Impuesto de Sociedades',    en:'Corporation tax',       fr:'Impôt sur les sociétés',  de:'Körperschaftsteuer',       pt:'Imposto sobre Sociedades' },
+  op_irpf:           { es:'IRPF',                      en:'Income tax (IRPF)',     fr:'Impôt sur le revenu',     de:'Einkommensteuer',          pt:'IRS' },
+  // Leverage card
+  op_no_leverage:    { es:'Sin apalancamiento',        en:'No leverage',           fr:'Sans levier',             de:'Ohne Hebelwirkung',        pt:'Sem alavancagem' },
+  op_equity_dep:     { es:'Equity desplegado',         en:'Deployed equity',       fr:'Fonds propres déployés',  de:'Eingesetztes Eigenkapital',pt:'Equity implantado' },
+  op_bridge_debt:    { es:'Deuda bridge',              en:'Bridge debt',           fr:'Dette bridge',            de:'Bridge-Darlehen',          pt:'Dívida bridge' },
+  op_fin_cost:       { es:'Coste financiero',          en:'Financing cost',        fr:'Coût de financement',     de:'Finanzierungskosten',      pt:'Custo financeiro' },
+  op_net_profit_lev: { es:'Beneficio neto',            en:'Net profit',            fr:'Bénéfice net',            de:'Nettogewinn',              pt:'Lucro líquido' },
+  op_irr_annual:     { es:'TIR anual',                 en:'Annual IRR',            fr:'TRI annuel',              de:'Jahres-IRR',               pt:'TIR anual' },
+  op_roe_ltv:        { es:'ROE neto · ',               en:'Net ROE · ',            fr:'ROE net · ',              de:'Netto-ROE · ',             pt:'ROE líquido · ' },
+  op_actual_lbl:     { es:'← actual',                  en:'← current',             fr:'← actuel',                de:'← aktuell',                pt:'← atual' },
+  // Breakeven stats
+  op_be_price:       { es:'Precio breakeven',          en:'Breakeven price',       fr:'Prix seuil de rentabilité',de:'Gewinnschwellenpreis',    pt:'Preço breakeven' },
+  op_margin_pess:    { es:'Margen sobre pesimista',    en:'Margin vs pessimistic', fr:'Marge sur le pessimiste', de:'Marge ggü. Pessimistisch', pt:'Margem sobre pessimista' },
+  op_max_drop:       { es:'Caída máx. desde base',     en:'Max. drop from base',   fr:'Chute max. depuis la base',de:'Max. Rückgang ab Basis',   pt:'Queda máx. desde base' },
+  op_min_sale:       { es:'Venta total mín.',          en:'Min. total sale',       fr:'Vente totale min.',       de:'Mindest-Gesamtverkauf',    pt:'Venda total mín.' },
+  op_no_loss:        { es:'Hasta no-pérdida desde €',  en:'Break-even from €',     fr:'Sans perte à partir de €',de:'Gewinnschwelle ab €',      pt:'Sem perda a partir de €' },
+  // Sensitivity matrix header
+  op_duration_col:   { es:'Duración total',            en:'Total duration',        fr:'Durée totale',            de:'Gesamtlaufzeit',           pt:'Duração total' },
+  op_arras_sale:     { es:'arras → venta',             en:'deposit → sale',        fr:'arrhes → vente',          de:'Anzahlung → Verkauf',      pt:'sinal → venda' },
+  op_exit_price_hdr: { es:'Precio de salida (€/m²)',   en:'Exit price (€/m²)',     fr:'Prix de sortie (€/m²)',   de:'Verkaufspreis (€/m²)',     pt:'Preço de saída (€/m²)' },
+  // Testigos/comps stats
+  op_avg:            { es:'Media',                     en:'Average',               fr:'Moyenne',                 de:'Durchschnitt',             pt:'Média' },
+  op_median:         { es:'Mediana',                   en:'Median',                fr:'Médiane',                 de:'Median',                   pt:'Mediana' },
+  op_range:          { es:'Rango',                     en:'Range',                 fr:'Plage',                   de:'Bereich',                  pt:'Intervalo' },
+  op_avg_area:       { es:'Sup. media',                en:'Avg. area',             fr:'Surface moy.',            de:'Ø Fläche',                 pt:'Sup. média' },
+  // Property type labels
+  op_tipo_renovated: { es:'Reformado',                 en:'Renovated',             fr:'Rénové',                  de:'Saniert',                  pt:'Renovado' },
+  op_tipo_new:       { es:'Estreno',                   en:'New build',             fr:'Neuf',                    de:'Neubau',                   pt:'Novo' },
+  op_tipo_toreno:    { es:'A reformar',                en:'To renovate',           fr:'À rénover',               de:'Sanierungsbedürftig',      pt:'A reformar' },
+  op_purchase_at:    { es:'compra a',                  en:'purchased at',          fr:'acheté à',                de:'gekauft für',              pt:'compra a' },
+  // Presentation slides
+  worst_scenario:        { es:'Peor escenario',               en:'Worst case',              fr:'Pire scénario',           de:'Schlechtester Fall',       pt:'Pior cenário' },
+  matrix_roi_exit_dur:   { es:'ROI · Precio de salida × Duración', en:'ROI · Exit price × Duration', fr:'ROI · Prix de sortie × Durée', de:'ROI · Verkaufspreis × Laufzeit', pt:'ROI · Preço de saída × Duração' },
+  matrix_roi_capex_exit: { es:'ROI · Variación CapEx × Precio salida', en:'ROI · CapEx variation × Exit price', fr:'ROI · Variation CapEx × Prix sortie', de:'ROI · CapEx-Variation × Verkaufspreis', pt:'ROI · Variação CapEx × Preço saída' },
+  mgmt_fee_base:         { es:'s/ precio + CapEx',            en:'on price + CapEx',        fr:'sur prix + CapEx',        de:'auf Preis + CapEx',        pt:'s/ preço + CapEx' },
+  // LTV / leverage slider labels
+  ltv_no_lev:        { es:'0% — Sin apalancamiento',      en:'0% — No leverage',        fr:'0% — Sans levier',        de:'0% — Ohne Hebel',          pt:'0% — Sem alavancagem' },
+  ltv_moderate:      { es:'40% — Moderado',               en:'40% — Moderate',          fr:'40% — Modéré',            de:'40% — Moderat',            pt:'40% — Moderado' },
+  ltv_elevated:      { es:'60% — Elevado',                en:'60% — High',              fr:'60% — Élevé',             de:'60% — Hoch',               pt:'60% — Elevado' },
+  prov_none:         { es:'0% — Sin provisión',           en:'0% — No provision',       fr:'0% — Sans provision',     de:'0% — Keine Rücklage',      pt:'0% — Sem provisão' },
+  prov_recommended:  { es:'20% — Recomendado',            en:'20% — Recommended',       fr:'20% — Recommandé',        de:'20% — Empfohlen',          pt:'20% — Recomendado' },
+  // Cashflow chart legend
+  equity_investor:   { es:'Equity inversor',              en:'Investor equity',         fr:'Équité investisseur',     de:'Eigenkapital Investor',    pt:'Equity investidor' },
+  total_project:     { es:'Total proyecto',               en:'Total project',           fr:'Total projet',            de:'Gesamtprojekt',            pt:'Total projeto' },
+  // Cashflow event labels
+  cf_arras:          { es:'Arras iniciales',              en:'Initial deposit',         fr:'Acompte initial',         de:'Anzahlung',                pt:'Sinal inicial' },
+  cf_of_price:       { es:'s/precio',                     en:'on price',                fr:'sur prix',                de:'auf Preis',                pt:'s/preço' },
+  cf_mgmt_50:        { es:'Management fee — 50% + IVA',   en:'Management fee — 50% + VAT', fr:'Frais de gestion — 50% + TVA', de:'Management-fee — 50% + MwSt', pt:'Management fee — 50% + IVA' },
+  cf_mgmt_50r:       { es:'Management fee — 50% restante + IVA', en:'Management fee — remaining 50% + VAT', fr:'Frais de gestion — 50% restant + TVA', de:'Management-fee — restl. 50% + MwSt', pt:'Management fee — 50% restante + IVA' },
+  cf_mgmt_pase_50:   { es:'Management fee pase — 50% + IVA', en:'Assignment mgmt fee — 50% + VAT', fr:'Frais gestion cession — 50% + TVA', de:'Weiterleitungs-mgmt-fee — 50% + MwSt', pt:'Management fee passe — 50% + IVA' },
+  cf_mgmt_pase_50r:  { es:'Management fee pase — 50% restante + IVA', en:'Assignment mgmt fee — remaining 50% + VAT', fr:'Frais gestion cession — 50% restant + TVA', de:'Weiterleitungs-mgmt-fee — restl. 50% + MwSt', pt:'Management fee passe — 50% restante + IVA' },
+  cf_ampliacion:     { es:'Ampliación de arras',          en:'Deposit increase',        fr:'Complément de dépôt',     de:'Anzahlungserhöhung',       pt:'Reforço do sinal' },
+  cf_rest_compra:    { es:'Resto precio compra (escritura)', en:'Balance of purchase price (deed)', fr:'Solde prix achat (acte)', de:'Restkaufpreis (Urkunde)', pt:'Resto do preço (escritura)' },
+  cf_notaria_compra: { es:'Notaría + registro (compra)', en:'Notary + registry (purchase)', fr:'Notaire + registre (achat)', de:'Notar + Register (Kauf)', pt:'Notário + registo (compra)' },
+  cf_broker_compra:  { es:'Broker fee compra',            en:'Buying broker fee',       fr:'Commission achat',        de:'Käufermakler-fee',         pt:'Broker fee compra' },
+  cf_fee_terceros:   { es:'Fee adicional a terceros',     en:'Third-party fee',         fr:'Frais tiers',             de:'Drittpartei-gebühr',       pt:'Fee adicional a terceiros' },
+  cf_capex_t1:       { es:'CapEx tramo 1 — Escritura (50%) + IVA', en:'CapEx tranche 1 — Deed (50%) + VAT', fr:'CapEx tranche 1 — Acte (50%) + TVA', de:'CapEx Rate 1 — Urkunde (50%) + MwSt', pt:'CapEx tranche 1 — Escritura (50%) + IVA' },
+  cf_capex_t2:       { es:'CapEx tramo 2 — Cert. 50% obra (20%) + IVA', en:'CapEx tranche 2 — 50% works cert. (20%) + VAT', fr:'CapEx tranche 2 — Cert. 50% travaux (20%) + TVA', de:'CapEx Rate 2 — 50% Baufort. (20%) + MwSt', pt:'CapEx tranche 2 — Cert. 50% obras (20%) + IVA' },
+  cf_capex_t3:       { es:'CapEx tramo 3 — Cert. 70% obra (20%) + IVA', en:'CapEx tranche 3 — 70% works cert. (20%) + VAT', fr:'CapEx tranche 3 — Cert. 70% travaux (20%) + TVA', de:'CapEx Rate 3 — 70% Baufort. (20%) + MwSt', pt:'CapEx tranche 3 — Cert. 70% obras (20%) + IVA' },
+  cf_capex_t4:       { es:'CapEx tramo 4 — Entrega obra (10%) + IVA', en:'CapEx tranche 4 — Works handover (10%) + VAT', fr:'CapEx tranche 4 — Livraison travaux (10%) + TVA', de:'CapEx Rate 4 — Bauübergabe (10%) + MwSt', pt:'CapEx tranche 4 — Entrega obras (10%) + IVA' },
+  cf_holding_full:   { es:'Gastos holding (comunidad + IBI)',  en:'Holding costs (HOA + council tax)', fr:'Charges holding (charges + taxe foncière)', de:'Haltekosten (WEG + Grundsteuer)', pt:'Custos holding (condomínio + IMI)' },
+  cf_holding_simple: { es:'Gastos holding (comunidad)',  en:'Holding costs (HOA)',     fr:'Charges holding (charges copro)', de:'Haltekosten (WEG)',        pt:'Custos holding (condomínio)' },
+  cf_sale_label:     { es:'Venta',                        en:'Sale',                    fr:'Vente',                   de:'Verkauf',                  pt:'Venda' },
+  cf_built_area:     { es:'m² construidos',               en:'built m²',                fr:'m² construits',           de:'m² Wohnfläche',            pt:'m² construídos' },
+  cf_broker_exit:    { es:'Comisión broker salida',       en:'Selling broker commission', fr:'Commission agent vente', de:'Verkäufermakler-Provision', pt:'Comissão broker saída' },
+  cf_plusvalia:      { es:'Plusvalía municipal + notaría venta', en:'Municipal capital gains tax + sale notary', fr:'Plus-value municipale + notaire vente', de:'Kommunale Wertzuwachssteuer + Notar Verkauf', pt:'Mais-valia municipal + notário venda' },
+  cf_carry_rw:       { es:'Carry Riverwalk',              en:'Riverwalk carry',         fr:'Carry Riverwalk',         de:'Riverwalk Carry',          pt:'Carry Riverwalk' },
+  cf_success_fee:    { es:'Success fee Riverwalk',        en:'Riverwalk success fee',   fr:'Success fee Riverwalk',   de:'Riverwalk Erfolgsprämie',  pt:'Success fee Riverwalk' },
+  // Price suggestion panel
+  sug_range_lbl:     { es:'Rango sugerido de precio de salida', en:'Suggested exit price range', fr:'Fourchette de prix de sortie suggérée', de:'Empfohlene Verkaufspreisrange', pt:'Intervalo sugerido de preço de saída' },
+  sug_basis:         { es:'basado en media de reformados + estreno ± ajuste conservador', en:'based on avg renovated + new build ± conservative adjustment', fr:'basé sur moy. rénové + neuf ± ajustement conservateur', de:'basierend auf Ø saniert + Neubau ± konservativer Anpassung', pt:'baseado na média reformados + estreia ± ajuste conservador' },
+  sug_current_base:  { es:'Tu escenario base actual', en:'Your current base scenario', fr:'Votre scénario de base actuel', de:'Ihr aktuelles Basisszenario', pt:'O seu cenário base atual' },
+  sug_is_at:         { es:'está', en:'is', fr:'est', de:'liegt', pt:'está' },
+  sug_above_avg:     { es:'por encima de la media de testigos', en:'above the comparable average', fr:'au-dessus de la moyenne des comparables', de:'über dem Vergleichsdurchschnitt', pt:'acima da média dos comparáveis' },
+  sug_below_avg:     { es:'por debajo de la media de testigos', en:'below the comparable average', fr:'en dessous de la moyenne des comparables', de:'unter dem Vergleichsdurchschnitt', pt:'abaixo da média dos comparáveis' },
+  sug_inline_avg:    { es:'en línea con la media de testigos', en:'in line with the comparable average', fr:'dans la moyenne des comparables', de:'im Durchschnitt der Vergleichswerte', pt:'em linha com a média dos comparáveis' },
+  sug_diff_warn:     { es:'La diferencia es >1.000 €/m². Revisa si tus escenarios de salida están bien alineados con los comparables.', en:'The gap is >€1,000/m². Check that your exit scenarios are properly aligned with the comparables.', fr:'L\'écart est >1.000 €/m². Vérifiez l\'alignement de vos scénarios de sortie avec les comparables.', de:'Die Abweichung beträgt >1.000 €/m². Prüfen Sie die Ausrichtung Ihrer Verkaufsszenarien.', pt:'A diferença é >1.000 €/m². Reveja se os seus cenários de saída estão bem alinhados com os comparáveis.' },
+  // Market intel widget
+  intel_this_asset:  { es:'Este activo',                  en:'This asset',              fr:'Cet actif',               de:'Dieses Objekt',            pt:'Este ativo' },
+  intel_base_sc:     { es:'escenario base',               en:'base scenario',           fr:'scénario de base',        de:'Basisszenario',            pt:'cenário base' },
+  intel_tap_refresh: { es:'pulsa actualizar',             en:'tap refresh',             fr:'appuyer pour actualiser', de:'Aktualisieren',            pt:'toque para atualizar' },
+  intel_matches:     { es:'Encajan con este deal',        en:'Match for this deal',     fr:'Correspondent à cette opération', de:'Passen zu diesem Deal', pt:'Correspondem a este negócio' },
+  // Notary calculator
+  notary_fee_lbl:    { es:'Arancel notario', en:'Notary fee', fr:'Honoraires notaire', de:'Notargebühr', pt:'Honorários notário' },
+  registry_est_lbl:  { es:'Registro est.', en:'Registry est.', fr:'Registre est.', de:'Register (ca.)', pt:'Registo est.' },
+  notary_arancel:    { es:'Arancel RD 1426/1989 · escala progresiva sobre', en:'Schedule RD 1426/1989 · progressive scale on', fr:'Barème RD 1426/1989 · échelle progressive sur', de:'Gebührenordnung RD 1426/1989 · Staffelung über', pt:'Tabela RD 1426/1989 · escala progressiva sobre' },
+  // Photo placeholders
+  photo_facade:      { es:'Fachada exterior',             en:'Exterior façade',         fr:'Façade extérieure',       de:'Außenfassade',             pt:'Fachada exterior' },
+  photo_living:      { es:'Salón',                        en:'Living room',             fr:'Séjour',                  de:'Wohnzimmer',               pt:'Sala' },
+  photo_kitchen:     { es:'Cocina',                       en:'Kitchen',                 fr:'Cuisine',                 de:'Küche',                    pt:'Cozinha' },
+  photo_bedroom:     { es:'Dormitorio',                   en:'Bedroom',                 fr:'Chambre',                 de:'Schlafzimmer',             pt:'Quarto' },
+  photo_bathroom:    { es:'Baño',                         en:'Bathroom',                fr:'Salle de bain',           de:'Badezimmer',               pt:'Casa de banho' },
 });
 
 function t(key) {
@@ -9660,7 +9816,7 @@ function rwSlideExtMatrix(matrixId, m) {
   const md = RW_SENS_MATRICES[matrixId]; if (!md) return '';
   const rows = md.rowsFn(m); const cols = md.colsFn(m);
   let html = '<div style="width:794px;height:1123px;background:#F7F4EE;padding:64px 52px;box-sizing:border-box;font-family:\'Raleway\',sans-serif;color:#0A0B0D;position:relative">'
-    + '<div style="font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:600;margin-bottom:6px">Matriz de sensibilidad</div>'
+    + '<div style="font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:#C4975A;font-weight:600;margin-bottom:6px">' + t('sens_matrices') + '</div>'
     + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:34px;font-weight:400;color:#0A0B0D;letter-spacing:0.005em;margin-bottom:4px;line-height:1.1">' + (md.label_key ? t(md.label_key) : md.label) + '</div>'
     + '<div style="font-size:11px;color:#5A5D6E;margin-bottom:32px;line-height:1.6;max-width:640px">' + (md.sub_key ? t(md.sub_key) : md.sub) + '</div>'
     + '<table style="width:100%;border-collapse:collapse;font-family:\'DM Mono\',monospace;font-size:10.5px"><thead><tr>'
